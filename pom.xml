@@ -259,14 +259,25 @@
   </dependencies>
 
   <profiles>
-    <!-- PROFImapount -->
+    <!-- PROFILE: wc -->
     <profile>
-      <id>wordcount</id>
+      <id>wc</id>
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
       <properties>
         <project.main>com.acmutv.moviedoop.WordCount</project.main>
+      </properties>
+    </profile>
+
+    <!-- PROFILE: wcadv -->
+    <profile>
+      <id>wcadv</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <properties>
+        <project.main>com.acmutv.moviedoop.WordCountAdvanced</project.main>
       </properties>
     </profile>
 

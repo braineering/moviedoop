@@ -25,18 +25,22 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.MovieRatingMapper;
-import com.acmutv.moviedoop.reduce.MovieRatingReducer;
+import com.acmutv.moviedoop.map.MovieFilterByRatingMapper;
+import com.acmutv.moviedoop.reduce.MovieMaxRatingReducer;
+import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.NLineInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Date;
 
 /**
@@ -64,11 +68,16 @@ public class Query1 {
     Path inputPath = new Path(args[0]);
     Path outputPath = new Path(args[1]);
     Double ratingThreshold = Double.valueOf(args[2]);
-    Date startDate = new SimpleDateFormat("dd/MM/yy").parse(args[3]);
+    LocalDate startDate = DateParser.parse(args[3]);
+
+    System.out.println("Input: " + inputPath);
+    System.out.println("Output: " + outputPath);
+    System.out.println("Rating Threshold: " + ratingThreshold);
+    System.out.println("Start Date: " + DateParser.toString(startDate));
 
     Configuration config = new Configuration();
     config.setDouble("ratingThreshold", ratingThreshold);
-    config.set("startDate", startDate.toString());
+    config.set("startDate", DateParser.toString(startDate));
 
     Job job = configJob(config);
     FileInputFormat.addInputPath(job, inputPath);
@@ -87,9 +96,10 @@ public class Query1 {
   private static Job configJob(Configuration config) throws IOException {
     Job job = Job.getInstance(config, JOB_NAME);
     job.setJarByClass(Query1.class);
-    job.setMapperClass(MovieRatingMapper.class);
+    job.setMapperClass(MovieFilterByRatingMapper.class);
+    job.setReducerClass(MovieMaxRatingReducer.class);
     job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(IntWritable.class);
+    job.setOutputValueClass(DoubleWritable.class);
     return job;
   }
 }

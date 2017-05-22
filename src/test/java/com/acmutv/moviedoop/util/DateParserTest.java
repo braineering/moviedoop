@@ -23,49 +23,64 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.util;
 
-import com.acmutv.moviedoop.Query1;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.junit.Assert;
+import org.junit.Test;
 
-import java.io.IOException;
-import java.util.StringTokenizer;
+import java.time.*;
+import java.util.*;
+
+import static java.util.Calendar.*;
+import static java.util.Locale.ENGLISH;
 
 /**
- * The mapper for the {@link Query1} job.
+ * Unit test for {@link DateParser}.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MovieRatingMapper extends Mapper<Object,Text,Text,IntWritable> {
+public class DateParserTest {
 
   /**
-   * The count to emit.
+   * Tests the date parsing.
+   * Best case.
    */
-  private static final IntWritable ONE = new IntWritable(1);
+  @Test
+  public void test_parse() {
+    String line = "27/06/1990";
+
+    LocalDate actual = DateParser.parse(line);
+
+    LocalDate expected = LocalDate.of(1990, Month.JUNE, 27);
+
+    Assert.assertEquals(expected, actual);
+  }
 
   /**
-   * The word to emit.
+   * Tests the date stringify.
+   * Best case.
    */
-  private Text word = new Text();
+  @Test
+  public void test_tostring() {
+    LocalDate date = LocalDate.of(1990, Month.JUNE, 27);
+
+    String actual = DateParser.toString(date);
+
+    String expected = "27/06/1990";
+
+    Assert.assertEquals(expected, actual);
+  }
 
   /**
-   * The mapping routine.
-   *
-   * @param key the input key.
-   * @param value the input value.
-   * @param ctx the context.
-   * @throws IOException when the context cannot be written.
-   * @throws InterruptedException when the context cannot be written.
+   * Tests seconds conversion.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    StringTokenizer tokenizer = new StringTokenizer(value.toString());
-    while (tokenizer.hasMoreTokens()) {
-      this.word.set(tokenizer.nextToken());
-      ctx.write(this.word, ONE);
-    }
+  @Test
+  public void test_localDateToMillis() {
+    LocalDate date = LocalDate.of(1970, Month.JANUARY, 1);
+    long actual = date.atStartOfDay().toInstant(ZoneOffset.UTC).getEpochSecond();
+    long expected = 0;
+    Assert.assertEquals(expected, actual);
   }
 }

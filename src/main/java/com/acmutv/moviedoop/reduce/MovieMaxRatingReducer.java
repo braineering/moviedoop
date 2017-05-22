@@ -26,9 +26,14 @@
 package com.acmutv.moviedoop.reduce;
 
 import com.acmutv.moviedoop.Query1;
+import com.acmutv.moviedoop.map.MovieFilterByRatingMapper;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
@@ -39,12 +44,17 @@ import java.io.IOException;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MovieRatingReducer extends Reducer<Text,IntWritable,Text,IntWritable> {
+public class MovieMaxRatingReducer extends Reducer<Text,DoubleWritable,Text,DoubleWritable> {
 
   /**
-   * The count result.
+   * The movie title to emit.
    */
-  private IntWritable result = new IntWritable();
+  private Text movieTitle = new Text();
+
+  /**
+   * The movie rating to emit.
+   */
+  private DoubleWritable movieRating = new DoubleWritable();
 
   /**
    * The reduction routine.
@@ -55,13 +65,14 @@ public class MovieRatingReducer extends Reducer<Text,IntWritable,Text,IntWritabl
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(Text key, Iterable<IntWritable> values, Context ctx) throws IOException, InterruptedException {
-    int sum = 0;
-    for (IntWritable value : values) {
-      sum += value.get();
+  public void reduce(Text key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
+    double max = 0.0;
+    for (DoubleWritable value : values) {
+      max = (value.get() > max) ? value.get() : max;
     }
-    this.result.set(sum);
-    ctx.write(key, this.result);
+    this.movieTitle.set(key);
+    this.movieRating.set(max);
+    ctx.write(this.movieTitle, this.movieRating);
   }
 
 }

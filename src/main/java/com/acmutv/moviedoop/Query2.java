@@ -25,7 +25,9 @@
  */
 package com.acmutv.moviedoop;
 
+import com.acmutv.moviedoop.map.GenreRatingMapper;
 import com.acmutv.moviedoop.map.TokenizationMapper;
+import com.acmutv.moviedoop.reduce.GenreStatsReducer;
 import com.acmutv.moviedoop.reduce.SumReducer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -36,15 +38,22 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
- * A MapReduce job that counts word occurences.
+ * A MapReduce job that returns the average and standard deviation of the rating for all movies.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
 public class Query2 {
+
+  /**
+   * The job name.
+   */
+  private static final String JOB_NAME = "Query2";
 
   /**
    * The job main method.
@@ -56,7 +65,9 @@ public class Query2 {
     Path inputPath = new Path(args[0]);
     Path outputPath = new Path(args[1]);
 
-    Job job = configJob();
+    Configuration config = new Configuration();
+
+    Job job = configJob(config);
     FileInputFormat.addInputPath(job, inputPath);
     FileOutputFormat.setOutputPath(job, outputPath);
 
@@ -66,16 +77,15 @@ public class Query2 {
   /**
    * Configures job.
    *
+   * @param config the job configuration.
    * @return the job.
    * @throws IOException when job cannot be configured.
    */
-  private static Job configJob() throws IOException {
-    Configuration config = new Configuration();
-    Job job = Job.getInstance(config, "WordCount");
+  private static Job configJob(Configuration config) throws IOException {
+    Job job = Job.getInstance(config, JOB_NAME);
     job.setJarByClass(Query2.class);
-    job.setMapperClass(TokenizationMapper.class);
-    job.setCombinerClass(SumReducer.class);
-    job.setReducerClass(SumReducer.class);
+    job.setMapperClass(GenreRatingMapper.class);
+    job.setReducerClass(GenreStatsReducer.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(IntWritable.class);
     return job;

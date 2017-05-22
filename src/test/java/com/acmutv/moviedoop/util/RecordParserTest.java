@@ -23,45 +23,39 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.util;
 
-import com.acmutv.moviedoop.WordCount;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.junit.Assert;
+import org.junit.Test;
 
-import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * The reducer for the {@link WordCount} job.
+ * Unit test for {@link RecordParser}.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class SumReducer extends Reducer<Text,IntWritable,Text,IntWritable> {
+public class RecordParserTest {
 
   /**
-   * The count result.
+   * Tests the record parsing.
+   * Best case.
    */
-  private IntWritable result = new IntWritable();
+  @Test
+  public void test() {
+    String attributes[] = {"key1", "key2", "key3"};
+    String delimiter = " ";
+    String line = "val1 val2 val3";
 
-  /**
-   * The reduction routine.
-   *
-   * @param key the input key.
-   * @param values the input values.
-   * @param ctx the context.
-   * @throws IOException when the context cannot be written.
-   * @throws InterruptedException when the context cannot be written.
-   */
-  public void reduce(Text key, Iterable<IntWritable> values, Context ctx) throws IOException, InterruptedException {
-    int sum = 0;
-    for (IntWritable value : values) {
-      sum += value.get();
-    }
-    this.result.set(sum);
-    ctx.write(key, this.result);
+    Map<String,String> actual = RecordParser.parse(line, attributes, delimiter);
+    Map<String,String> expected = new HashMap<>();
+    expected.put("key1", "val1");
+    expected.put("key2", "val2");
+    expected.put("key3", "val3");
+
+    Assert.assertEquals(expected, actual);
   }
-
 }

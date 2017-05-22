@@ -23,45 +23,50 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.WordCount;
+import com.acmutv.moviedoop.Query1;
+import com.acmutv.moviedoop.Query2;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
+import java.util.StringTokenizer;
 
 /**
- * The reducer for the {@link WordCount} job.
+ * The mapper for the {@link Query2} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class SumReducer extends Reducer<Text,IntWritable,Text,IntWritable> {
+public class GenreRatingMapper extends Mapper<Object,Text,Text,IntWritable> {
 
   /**
-   * The count result.
+   * The count to emit.
    */
-  private IntWritable result = new IntWritable();
+  private static final IntWritable ONE = new IntWritable(1);
 
   /**
-   * The reduction routine.
+   * The word to emit.
+   */
+  private Text word = new Text();
+
+  /**
+   * The mapping routine.
    *
    * @param key the input key.
-   * @param values the input values.
+   * @param value the input value.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(Text key, Iterable<IntWritable> values, Context ctx) throws IOException, InterruptedException {
-    int sum = 0;
-    for (IntWritable value : values) {
-      sum += value.get();
+  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
+    StringTokenizer tokenizer = new StringTokenizer(value.toString());
+    while (tokenizer.hasMoreTokens()) {
+      this.word.set(tokenizer.nextToken());
+      ctx.write(this.word, ONE);
     }
-    this.result.set(sum);
-    ctx.write(key, this.result);
   }
-
 }

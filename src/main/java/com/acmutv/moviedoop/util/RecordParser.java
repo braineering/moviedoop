@@ -23,45 +23,33 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.util;
 
-import com.acmutv.moviedoop.WordCount;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
-
-import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * The reducer for the {@link WordCount} job.
- *
+ * Utility to parse records.
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class SumReducer extends Reducer<Text,IntWritable,Text,IntWritable> {
+public class RecordParser {
 
   /**
-   * The count result.
-   */
-  private IntWritable result = new IntWritable();
-
-  /**
-   * The reduction routine.
+   * Parses {@code line} as a list of attributes separated by {@code delimiter}.
    *
-   * @param key the input key.
-   * @param values the input values.
-   * @param ctx the context.
-   * @throws IOException when the context cannot be written.
-   * @throws InterruptedException when the context cannot be written.
+   * @param line the string to parse.
+   * @param attributes the list of attributes.
+   * @param delimiter the string delimiter.
+   * @return the map of attributes.
    */
-  public void reduce(Text key, Iterable<IntWritable> values, Context ctx) throws IOException, InterruptedException {
-    int sum = 0;
-    for (IntWritable value : values) {
-      sum += value.get();
+  public static Map<String,String> parse(String line, String[] attributes, String delimiter) {
+    Map<String,String> map = new HashMap<>();
+    String[] values = line.split(delimiter);
+    for (int i = 0; i < values.length; i++) {
+      map.put(attributes[i], values[i]);
     }
-    this.result.set(sum);
-    ctx.write(key, this.result);
+    return map;
   }
-
 }

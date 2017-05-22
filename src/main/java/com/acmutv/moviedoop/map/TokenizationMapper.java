@@ -25,6 +25,7 @@
  */
 package com.acmutv.moviedoop.map;
 
+import com.acmutv.moviedoop.WordCount;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -33,7 +34,7 @@ import java.io.IOException;
 import java.util.StringTokenizer;
 
 /**
- * The mapper for the {@code WordCount} job.
+ * The mapper for the {@link WordCount} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}

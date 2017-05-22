@@ -36,15 +36,24 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
- * A MapReduce job that counts word occurences.
+ * A MapReduce job that returns the top-{@code rank} movies for the period from {@code startDate1} to
+ * {@code endDate1} and their rating variation with respect to the classification in period from
+ * {@code startDate2} to {@code endDate2}.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
 public class Query3 {
+
+  /**
+   * The job name.
+   */
+  private static final String JOB_NAME = "Query3";
 
   /**
    * The job main method.
@@ -55,8 +64,20 @@ public class Query3 {
   public static void main(String[] args) throws Exception {
     Path inputPath = new Path(args[0]);
     Path outputPath = new Path(args[1]);
+    Integer rank = Integer.valueOf(args[2]);
+    Date startDate1 = new SimpleDateFormat("dd/MM/yy").parse(args[3]);
+    Date endDate1 = new SimpleDateFormat("dd/MM/yy").parse(args[4]);
+    Date startDate2 = new SimpleDateFormat("dd/MM/yy").parse(args[5]);
+    Date endDate2 = new SimpleDateFormat("dd/MM/yy").parse(args[6]);
 
-    Job job = configJob();
+    Configuration config = new Configuration();
+    config.setInt("rank", rank);
+    config.set("startDate1", startDate1.toString());
+    config.set("endDate1", endDate1.toString());
+    config.set("startDate2", startDate2.toString());
+    config.set("endDate2", endDate2.toString());
+
+    Job job = configJob(config);
     FileInputFormat.addInputPath(job, inputPath);
     FileOutputFormat.setOutputPath(job, outputPath);
 
@@ -66,12 +87,12 @@ public class Query3 {
   /**
    * Configures job.
    *
+   * @param config the job configuration.
    * @return the job.
    * @throws IOException when job cannot be configured.
    */
-  private static Job configJob() throws IOException {
-    Configuration config = new Configuration();
-    Job job = Job.getInstance(config, "WordCount");
+  private static Job configJob(Configuration config) throws IOException {
+    Job job = Job.getInstance(config, JOB_NAME);
     job.setJarByClass(Query3.class);
     job.setMapperClass(TokenizationMapper.class);
     job.setCombinerClass(SumReducer.class);

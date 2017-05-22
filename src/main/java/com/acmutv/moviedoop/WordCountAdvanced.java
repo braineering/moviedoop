@@ -48,6 +48,11 @@ import java.io.IOException;
 public class WordCountAdvanced {
 
   /**
+   * The job name.
+   */
+  private static final String JOB_NAME = "WordCount";
+
+  /**
    * The job main method.
    *
    * @param args the job arguments.
@@ -56,9 +61,10 @@ public class WordCountAdvanced {
   public static void main(String[] args) throws Exception {
     Path inputPath = new Path(args[0]);
     Path outputPath = new Path(args[1]);
-    System.out.println("InputPath: " + inputPath);
-    System.out.println("OutputPath: " + outputPath);
-    Job job = configJob();
+
+    Configuration config = new Configuration();
+
+    Job job = configJob(config);
     FileInputFormat.addInputPath(job, inputPath);
     FileOutputFormat.setOutputPath(job, outputPath);
 
@@ -68,12 +74,12 @@ public class WordCountAdvanced {
   /**
    * Configures job.
    *
+   * @param config the job configuration.
    * @return the job.
    * @throws IOException when job cannot be configured.
    */
-  private static Job configJob() throws IOException {
-    Configuration config = new Configuration();
-    Job job = Job.getInstance(config, "WordCount");
+  private static Job configJob(Configuration config) throws IOException {
+    Job job = Job.getInstance(config, JOB_NAME);
     job.setJarByClass(WordCountAdvanced.class);
     job.setMapperClass(TokenizationMapper.class);
     job.setCombinerClass(SumReducer.class);

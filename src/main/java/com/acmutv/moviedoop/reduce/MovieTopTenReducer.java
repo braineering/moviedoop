@@ -25,7 +25,7 @@
  */
 package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.WordCount;
+import com.acmutv.moviedoop.Query1;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -33,13 +33,13 @@ import org.apache.hadoop.mapreduce.Reducer;
 import java.io.IOException;
 
 /**
- * The reducer for the {@link WordCount} job.
+ * The reducer for the {@link Query1} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class SumReducer extends Reducer<Text,IntWritable,Text,IntWritable> {
+public class MovieTopTenReducer extends Reducer<Text,IntWritable,Text,IntWritable> {
 
   /**
    * The count result.

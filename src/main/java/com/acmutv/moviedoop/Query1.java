@@ -25,8 +25,8 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.TokenizationMapper;
-import com.acmutv.moviedoop.reduce.SumReducer;
+import com.acmutv.moviedoop.map.MovieRatingMapper;
+import com.acmutv.moviedoop.reduce.MovieRatingReducer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -36,15 +36,23 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
- * A MapReduce job that counts word occurences.
+ * A MapReduce job that returns movies with rate greater/equal to the specified {@code threshold}
+ * and valuated starting from the specified {@code startDate}.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
 public class Query1 {
+
+  /**
+   * The job name.
+   */
+  private static final String JOB_NAME = "Query1";
 
   /**
    * The job main method.
@@ -55,8 +63,14 @@ public class Query1 {
   public static void main(String[] args) throws Exception {
     Path inputPath = new Path(args[0]);
     Path outputPath = new Path(args[1]);
+    Double ratingThreshold = Double.valueOf(args[2]);
+    Date startDate = new SimpleDateFormat("dd/MM/yy").parse(args[3]);
 
-    Job job = configJob();
+    Configuration config = new Configuration();
+    config.setDouble("ratingThreshold", ratingThreshold);
+    config.set("startDate", startDate.toString());
+
+    Job job = configJob(config);
     FileInputFormat.addInputPath(job, inputPath);
     FileOutputFormat.setOutputPath(job, outputPath);
 
@@ -66,16 +80,14 @@ public class Query1 {
   /**
    * Configures job.
    *
+   * @param config the job configuration.
    * @return the job.
    * @throws IOException when job cannot be configured.
    */
-  private static Job configJob() throws IOException {
-    Configuration config = new Configuration();
-    Job job = Job.getInstance(config, "WordCount");
+  private static Job configJob(Configuration config) throws IOException {
+    Job job = Job.getInstance(config, JOB_NAME);
     job.setJarByClass(Query1.class);
-    job.setMapperClass(TokenizationMapper.class);
-    job.setCombinerClass(SumReducer.class);
-    job.setReducerClass(SumReducer.class);
+    job.setMapperClass(MovieRatingMapper.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(IntWritable.class);
     return job;

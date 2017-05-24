@@ -25,35 +25,33 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.GenreRatingMapper;
-import com.acmutv.moviedoop.map.TokenizationMapper;
-import com.acmutv.moviedoop.reduce.GenreStatsReducer;
-import com.acmutv.moviedoop.reduce.SumReducer;
+import com.acmutv.moviedoop.map.MovieFilterByRatingMapper;
+import com.acmutv.moviedoop.reduce.MovieMaxRatingReducer;
+import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.LocalDate;
 
 /**
- * A MapReduce job that returns the average and standard deviation of the rating for all movies.
+ * A MapReduce job that joins movies with their rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query2 {
+public class JoinMovieRating {
 
   /**
    * The job name.
    */
-  private static final String JOB_NAME = "Query2";
+  private static final String JOB_NAME = "JoinMovieRating";
 
   /**
    * The job main method.
@@ -64,8 +62,17 @@ public class Query2 {
   public static void main(String[] args) throws Exception {
     Path inputPath = new Path(args[0]);
     Path outputPath = new Path(args[1]);
+    Double ratingThreshold = Double.valueOf(args[2]);
+    LocalDate startDate = DateParser.parse(args[3]);
+
+    System.out.println("Input: " + inputPath);
+    System.out.println("Output: " + outputPath);
+    System.out.println("Rating Threshold: " + ratingThreshold);
+    System.out.println("Start Date: " + DateParser.toString(startDate));
 
     Configuration config = new Configuration();
+    config.setDouble("ratingThreshold", ratingThreshold);
+    config.set("startDate", DateParser.toString(startDate));
 
     Job job = configJob(config);
     FileInputFormat.addInputPath(job, inputPath);
@@ -83,11 +90,11 @@ public class Query2 {
    */
   private static Job configJob(Configuration config) throws IOException {
     Job job = Job.getInstance(config, JOB_NAME);
-    job.setJarByClass(Query2.class);
-    job.setMapperClass(GenreRatingMapper.class);
-    job.setReducerClass(GenreStatsReducer.class);
+    job.setJarByClass(JoinMovieRating.class);
+    job.setMapperClass(MovieFilterByRatingMapper.class);
+    job.setReducerClass(MovieMaxRatingReducer.class);
     job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(IntWritable.class);
+    job.setOutputValueClass(DoubleWritable.class);
     return job;
   }
 }

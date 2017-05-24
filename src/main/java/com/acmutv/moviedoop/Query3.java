@@ -25,19 +25,21 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.TokenizationMapper;
-import com.acmutv.moviedoop.reduce.SumReducer;
+import com.acmutv.moviedoop.map.MovieTopKWithinPeriodMapper;
+import com.acmutv.moviedoop.reduce.MovieTopKReducer;
+import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.LocalDate;
 
 /**
  * A MapReduce job that returns the top-{@code rank} movies for the period from {@code startDate1} to
@@ -64,18 +66,26 @@ public class Query3 {
   public static void main(String[] args) throws Exception {
     Path inputPath = new Path(args[0]);
     Path outputPath = new Path(args[1]);
-    Integer rank = Integer.valueOf(args[2]);
-    Date startDate1 = new SimpleDateFormat("dd/MM/yy").parse(args[3]);
-    Date endDate1 = new SimpleDateFormat("dd/MM/yy").parse(args[4]);
-    Date startDate2 = new SimpleDateFormat("dd/MM/yy").parse(args[5]);
-    Date endDate2 = new SimpleDateFormat("dd/MM/yy").parse(args[6]);
+    Integer rankSize = Integer.valueOf(args[2]);
+    LocalDate startDate1 = DateParser.parse(args[3]);
+    LocalDate endDate1 = DateParser.parse(args[4]);
+    LocalDate startDate2 = DateParser.parse(args[5]);
+    LocalDate endDate2 = DateParser.parse(args[6]);
+
+    System.out.println("Input: " + inputPath);
+    System.out.println("Output: " + outputPath);
+    System.out.println("rankSize: " + rankSize);
+    System.out.println("Start Date 1: " + DateParser.toString(startDate1));
+    System.out.println("End Date 1: " + DateParser.toString(endDate1));
+    System.out.println("Start Date 2: " + DateParser.toString(startDate2));
+    System.out.println("End Date 2: " + DateParser.toString(endDate2));
 
     Configuration config = new Configuration();
-    config.setInt("rank", rank);
-    config.set("startDate1", startDate1.toString());
-    config.set("endDate1", endDate1.toString());
-    config.set("startDate2", startDate2.toString());
-    config.set("endDate2", endDate2.toString());
+    config.setInt("rankSize", rankSize);
+    config.set("startDate1", DateParser.toString(startDate1));
+    config.set("endDate1", DateParser.toString(endDate1));
+    config.set("startDate2", DateParser.toString(startDate2));
+    config.set("endDate2", DateParser.toString(endDate2));
 
     Job job = configJob(config);
     FileInputFormat.addInputPath(job, inputPath);
@@ -94,11 +104,11 @@ public class Query3 {
   private static Job configJob(Configuration config) throws IOException {
     Job job = Job.getInstance(config, JOB_NAME);
     job.setJarByClass(Query3.class);
-    job.setMapperClass(TokenizationMapper.class);
-    job.setCombinerClass(SumReducer.class);
-    job.setReducerClass(SumReducer.class);
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(IntWritable.class);
+    job.setMapperClass(MovieTopKWithinPeriodMapper.class);
+    job.setReducerClass(MovieTopKReducer.class);
+    job.setOutputKeyClass(NullWritable.class);
+    job.setOutputValueClass(Text.class);
+    job.setNumReduceTasks(1);
     return job;
   }
 }

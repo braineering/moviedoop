@@ -32,6 +32,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -98,7 +99,7 @@ public class Query1 {
     job.setJarByClass(Query1.class);
     job.setMapperClass(MovieFilterByRatingMapper.class);
     job.setReducerClass(MovieMaxRatingReducer.class);
-    job.setOutputKeyClass(Text.class);
+    job.setOutputKeyClass(LongWritable.class);
     job.setOutputValueClass(DoubleWritable.class);
     return job;
   }

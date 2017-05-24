@@ -25,7 +25,8 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query1;
+import com.acmutv.moviedoop.Query3;
+import com.acmutv.moviedoop.struct.BestMap;
 import com.acmutv.moviedoop.util.DateParser;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.*;
@@ -34,46 +35,59 @@ import org.apache.hadoop.mapreduce.Mapper;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.TreeMap;
 
 import static com.acmutv.moviedoop.util.RecordParser.RATING_FIELDS;
 import static com.acmutv.moviedoop.util.RecordParser.DELIMITER;
 
 /**
- * The mapper for the {@link Query1} job.
+ * The mapper for the {@link Query3} job.
+ * It produces the top K movies, expressed by tuples (movieId,rating), rated within the interval
+ * {@code startDate} and {@code endDate}.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MovieFilterByRatingMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
+public class MovieTopKWithinPeriodMapper extends Mapper<Object,Text,NullWritable,Text> {
 
   /**
-   * The movie rating threshold.
+   * The rank size.
    */
-  private Double ratingThreshold;
+  private int rankSize;
 
   /**
-   * The starting date for movie rating.
+   * The start date.
    */
   private LocalDate startDate;
 
   /**
-   * The movie id to emit.
+   * The end date.
    */
-  private LongWritable movieId = new LongWritable();
+  private LocalDate endDate;
 
   /**
-   * The movie rating to emit.
+   * The rank data structure.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private BestMap rank = new BestMap();
+
+  /**
+   * The tuple (movieId,rating) to emit.
+   */
+  private Text tuple = new Text();
 
   /**
    * Configures the mapper.
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.ratingThreshold = Double.valueOf(ctx.getConfiguration().get("ratingThreshold"));
-    this.startDate = DateParser.parse(ctx.getConfiguration().get("startDate"));
+    this.rankSize = Integer.valueOf(ctx.getConfiguration().get("rankSize"));
+    this.startDate = DateParser.parse(ctx.getConfiguration().get("startDate1"));
+    this.endDate = DateParser.parse(ctx.getConfiguration().get("endDate1"));
+    System.out.println("# [SETUP MAP] # rankSize: " + this.rankSize);
+    System.out.println("# [SETUP MAP] # startDate: " + this.startDate);
+    System.out.println("# [SETUP MAP] # endDate: " + this.endDate);
+    this.rank.setMaxSize(this.rankSize);
   }
 
   /**
@@ -87,14 +101,21 @@ public class MovieFilterByRatingMapper extends Mapper<Object,Text,LongWritable,D
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
     Map<String,String> record = RecordParser.parse(value.toString(), RATING_FIELDS, DELIMITER);
-    double rating = Double.valueOf(record.get("rating"));
-    LocalDate timestamp = DateParser.parse(record.get("timestamp"));
+    System.out.println("# [MAP] # Record: " + record);
 
-    if (timestamp.isAfter(this.startDate) && rating >= this.ratingThreshold) {
-      Long movieId = Long.valueOf(record.get("movieId"));
-      this.movieId.set(movieId);
-      this.movieRating.set(rating);
-      ctx.write(this.movieId, this.movieRating);
+    Long movieId = Long.valueOf(record.get("movieId"));
+    Double rating = Double.valueOf(record.get("rating"));
+    this.rank.put(movieId, rating);
+  }
+
+  /**
+   * Flushes the mapper.
+   * @param ctx the job context.
+   */
+  protected void cleanup(Context ctx) throws IOException, InterruptedException {
+    for (Map.Entry<Long,Double> entry : this.rank.entrySet()) {
+      this.tuple.set(entry.getKey() + "," + entry.getValue());
+      ctx.write(NullWritable.get(), this.tuple);
     }
   }
 }

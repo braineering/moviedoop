@@ -37,6 +37,21 @@ import java.util.Map;
 public class RecordParser {
 
   /**
+   * The input record attributes for the `rating` data set.
+   */
+  public static final String[] RATING_FIELDS = {"userId","movieId","rating","timestamp"};
+
+  /**
+   * The input record attributes for the intermediate `rank` data set.
+   */
+  public static final String[] RANK_FIELDS = {"movieId","rating"};
+
+  /**
+   * The input record delimiter for the `rating` data set.
+   */
+  public static final String DELIMITER = ",";
+
+  /**
    * Parses {@code line} as a list of attributes separated by {@code delimiter}.
    *
    * @param line the string to parse.

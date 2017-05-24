@@ -23,78 +23,82 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.reduce;
 
 import com.acmutv.moviedoop.Query1;
+import com.acmutv.moviedoop.Query3;
+import com.acmutv.moviedoop.struct.BestMap;
 import com.acmutv.moviedoop.util.DateParser;
 import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.hadoop.io.*;
+import org.apache.commons.lang.ObjectUtils;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
-import static com.acmutv.moviedoop.util.RecordParser.RATING_FIELDS;
 import static com.acmutv.moviedoop.util.RecordParser.DELIMITER;
+import static com.acmutv.moviedoop.util.RecordParser.RANK_FIELDS;
 
 /**
- * The mapper for the {@link Query1} job.
+ * The reducer for the {@link Query3} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MovieFilterByRatingMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
+public class MovieTopKReducer extends Reducer<NullWritable,Text,NullWritable,Text> {
 
   /**
-   * The movie rating threshold.
+   * The rank size.
    */
-  private Double ratingThreshold;
+  private int rankSize;
 
   /**
-   * The starting date for movie rating.
+   * The rank data structure.
    */
-  private LocalDate startDate;
+  private BestMap rank = new BestMap();
 
   /**
-   * The movie id to emit.
+   * The tuple (movieId,rating) to emit.
    */
-  private LongWritable movieId = new LongWritable();
+  private Text tuple = new Text();
 
   /**
-   * The movie rating to emit.
-   */
-  private DoubleWritable movieRating = new DoubleWritable();
-
-  /**
-   * Configures the mapper.
-   * @param ctx the job context.
-   */
-  protected void setup(Context ctx) {
-    this.ratingThreshold = Double.valueOf(ctx.getConfiguration().get("ratingThreshold"));
-    this.startDate = DateParser.parse(ctx.getConfiguration().get("startDate"));
-  }
-
-  /**
-   * The mapping routine.
+   * The reduction routine.
    *
    * @param key the input key.
-   * @param value the input value.
+   * @param values the input values.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> record = RecordParser.parse(value.toString(), RATING_FIELDS, DELIMITER);
-    double rating = Double.valueOf(record.get("rating"));
-    LocalDate timestamp = DateParser.parse(record.get("timestamp"));
+  public void reduce(NullWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+    this.rankSize = Integer.valueOf(ctx.getConfiguration().get("rankSize"));
+    System.out.println("# [SETUP RED] # rankSize: " + this.rankSize);
+    this.rank.setMaxSize(this.rankSize);
 
-    if (timestamp.isAfter(this.startDate) && rating >= this.ratingThreshold) {
+    for (Text value : values) {
+      Map<String,String> record = RecordParser.parse(value.toString(), RANK_FIELDS, DELIMITER);
+      System.out.println("# [RED] # Record: " + record);
       Long movieId = Long.valueOf(record.get("movieId"));
-      this.movieId.set(movieId);
-      this.movieRating.set(rating);
-      ctx.write(this.movieId, this.movieRating);
+      Double rating = Double.valueOf(record.get("rating"));
+      this.rank.put(movieId, rating);
+      System.out.println("# [RED] # Rank: " + this.rank);
+    }
+
+    for (Map.Entry<Long,Double> entry :
+        this.rank.entrySet().stream().sorted((e1,e2)->{return e2.getValue().compareTo(e1.getValue());}).collect(Collectors.toList())) {
+      this.tuple.set(entry.getKey() + "," + entry.getValue());
+      ctx.write(NullWritable.get(), this.tuple);
     }
   }
+
 }

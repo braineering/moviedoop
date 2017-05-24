@@ -25,8 +25,6 @@
  */
 package com.acmutv.moviedoop.util;
 
-import org.apache.commons.lang.ObjectUtils;
-
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;

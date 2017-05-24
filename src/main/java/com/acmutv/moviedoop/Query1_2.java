@@ -31,6 +31,7 @@ import com.acmutv.moviedoop.reduce.RatingsMoviesJoinReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.ObjectWritable;
 import org.apache.hadoop.io.Text;
@@ -78,6 +79,7 @@ public class Query1_2 {
     final LocalDateTime startDate = (args.length > 4) ?
         DateParser.parseOrDefault(args[4], DateParser.MIN) : DateParser.MIN;
 
+    // USER PARAMETERS RESUME
     System.out.println("Input Ratings: " + inputRatings);
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
@@ -93,17 +95,19 @@ public class Query1_2 {
     Job job = Job.getInstance(config, JOB_NAME);
     job.setJarByClass(Query1_2.class);
 
-    // MAPPERS CONFIGURATION
+    // MAP CONFIGURATION
     MultipleInputs.addInputPath(job, inputRatings, TextInputFormat.class, RatingsFilterMapper.class);
     MultipleInputs.addInputPath(job, inputMovies, TextInputFormat.class, MoviesMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(Text.class);
 
-    // REDUCERS CONFIGURATION
+    // REDUCE CONFIGURATION
     job.setReducerClass(RatingsMoviesJoinReducer.class);
     job.setNumReduceTasks(1);
 
     // OUTPUT CONFIGURATION
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(DoubleWritable.class);
     FileOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION

@@ -30,7 +30,6 @@ import com.acmutv.moviedoop.model.MovieWritable;
 import com.acmutv.moviedoop.model.RatingsWritable;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.ObjectWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 

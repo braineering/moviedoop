@@ -25,27 +25,16 @@
  */
 package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query1;
 import com.acmutv.moviedoop.Query3;
 import com.acmutv.moviedoop.struct.BestMap;
-import com.acmutv.moviedoop.util.DateParser;
 import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.commons.lang.ObjectUtils;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
-
-import static com.acmutv.moviedoop.util.RecordParser.DELIMITER;
-import static com.acmutv.moviedoop.util.RecordParser.RANK_FIELDS;
 
 /**
  * The reducer for the {@link Query3} job.
@@ -86,11 +75,11 @@ public class MovieTopKReducer extends Reducer<NullWritable,Text,NullWritable,Tex
     this.rank.setMaxSize(this.rankSize);
 
     for (Text value : values) {
-      Map<String,String> record = RecordParser.parse(value.toString(), RANK_FIELDS, DELIMITER);
-      System.out.println("# [RED] # Record: " + record);
-      Long movieId = Long.valueOf(record.get("movieId"));
-      Double rating = Double.valueOf(record.get("rating"));
-      this.rank.put(movieId, rating);
+      Map<String,String> rankRecord = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
+      System.out.println("# [RED] # Record: " + rankRecord);
+      Long movieId = Long.valueOf(rankRecord.get("movieId"));
+      Double score = Double.valueOf(rankRecord.get("score"));
+      this.rank.put(movieId, score);
       System.out.println("# [RED] # Rank: " + this.rank);
     }
 

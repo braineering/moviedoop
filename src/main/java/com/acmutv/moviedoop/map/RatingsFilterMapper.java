@@ -26,21 +26,13 @@
 package com.acmutv.moviedoop.map;
 
 import com.acmutv.moviedoop.Query1_2;
-import com.acmutv.moviedoop.model.RatingsWritable;
-import com.acmutv.moviedoop.util.DateParser;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.ObjectWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Map;
-
-import static com.acmutv.moviedoop.util.RecordParser.DELIMITER;
-import static com.acmutv.moviedoop.util.RecordParser.RATING_FIELDS;
 
 /**
  * The mapper for the {@link Query1_2} job.

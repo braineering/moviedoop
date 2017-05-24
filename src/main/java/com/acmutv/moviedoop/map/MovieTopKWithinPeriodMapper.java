@@ -29,17 +29,13 @@ import com.acmutv.moviedoop.Query3;
 import com.acmutv.moviedoop.struct.BestMap;
 import com.acmutv.moviedoop.util.DateParser;
 import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.hadoop.io.*;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.TreeMap;
-
-import static com.acmutv.moviedoop.util.RecordParser.RATING_FIELDS;
-import static com.acmutv.moviedoop.util.RecordParser.DELIMITER;
 
 /**
  * The mapper for the {@link Query3} job.
@@ -101,15 +97,15 @@ public class MovieTopKWithinPeriodMapper extends Mapper<Object,Text,NullWritable
    * @throws InterruptedException when the context cannot be written.
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> record = RecordParser.parse(value.toString(), RATING_FIELDS, DELIMITER);
-    System.out.println("# [MAP] # Record: " + record);
+    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
+    System.out.println("# [MAP] # Record: " + rating);
 
-    LocalDateTime timestamp = DateParser.parse(record.get("timestamp"));
+    LocalDateTime timestamp = DateParser.parse(rating.get("timestamp"));
 
     if (timestamp.isAfter(this.startDate) && timestamp.isBefore(this.endDate)) {
-      Long movieId = Long.valueOf(record.get("movieId"));
-      Double rating = Double.valueOf(record.get("rating"));
-      this.rank.put(movieId, rating);
+      Long movieId = Long.valueOf(rating.get("movieId"));
+      Double score = Double.valueOf(rating.get("score"));
+      this.rank.put(movieId, score);
     }
   }
 

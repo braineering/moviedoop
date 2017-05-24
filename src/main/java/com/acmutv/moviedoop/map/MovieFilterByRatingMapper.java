@@ -26,18 +26,12 @@
 package com.acmutv.moviedoop.map;
 
 import com.acmutv.moviedoop.Query1;
-import com.acmutv.moviedoop.util.DateParser;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Map;
-
-import static com.acmutv.moviedoop.util.RecordParser.RATING_FIELDS;
-import static com.acmutv.moviedoop.util.RecordParser.DELIMITER;
 
 /**
  * The mapper for the {@link Query1} job.
@@ -87,14 +81,14 @@ public class MovieFilterByRatingMapper extends Mapper<Object,Text,LongWritable,D
    * @throws InterruptedException when the context cannot be written.
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> record = RecordParser.parse(value.toString(), RATING_FIELDS, DELIMITER);
-    double rating = Double.valueOf(record.get("rating"));
-    long timestamp = Long.valueOf(record.get("timestamp"));
+    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
+    double score = Double.valueOf(rating.get("score"));
+    long timestamp = Long.valueOf(rating.get("timestamp"));
 
-    if (timestamp >= this.startDate && rating >= this.ratingThreshold) {
-      Long movieId = Long.valueOf(record.get("movieId"));
+    if (timestamp >= this.startDate && score >= this.ratingThreshold) {
+      Long movieId = Long.valueOf(rating.get("movieId"));
       this.movieId.set(movieId);
-      this.movieRating.set(rating);
+      this.movieRating.set(score);
       ctx.write(this.movieId, this.movieRating);
     }
   }

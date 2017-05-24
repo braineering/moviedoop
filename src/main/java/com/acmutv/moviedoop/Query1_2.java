@@ -25,36 +25,33 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.MovieFilterByRatingMapper;
-import com.acmutv.moviedoop.reduce.MovieMaxRatingReducer;
+import com.acmutv.moviedoop.map.MoviesMapper;
+import com.acmutv.moviedoop.map.RatingsFilterMapper;
+import com.acmutv.moviedoop.reduce.RatingsMoviesJoinReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.ObjectWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.NLineInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
 
 /**
  * A MapReduce job that returns movies with rate greater/equal to the specified {@code threshold}
  * and valuated starting from the specified {@code startDate}.
- * The job does not leverage inner joins.
+ * The job leverages inner joins (repartition joins).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query1 {
+public class Query1_2 {
 
   /**
    * The job name.
@@ -68,47 +65,48 @@ public class Query1 {
    * @throws Exception when job cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    if (args.length < 3) {
-      System.err.println("Usage: Query1 [input] [output] [ratingThreshold] (startDate)");
+    if (args.length < 4) {
+      System.err.println("Usage: Query1 [inputRatings] [inputMovies] [output] [ratingThreshold] (startDate)");
       System.exit(1);
     }
 
-    final Path input = new Path(args[0]);
-    final Path output = new Path(args[1]);
-    final Double ratingThreshold = Double.valueOf(args[2]);
-    final LocalDateTime startDate = (args.length > 3) ?
-        DateParser.parseOrDefault(args[3], DateParser.MIN) : DateParser.MIN;
+    // USER PARAMETERS
+    final Path inputRatings = new Path(args[0]);
+    final Path inputMovies = new Path(args[1]);
+    final Path output = new Path(args[2]);
+    final Double ratingThreshold = Double.valueOf(args[3]);
+    final LocalDateTime startDate = (args.length > 4) ?
+        DateParser.parseOrDefault(args[4], DateParser.MIN) : DateParser.MIN;
 
-    System.out.println("Input: " + input);
+    System.out.println("Input Ratings: " + inputRatings);
+    System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
     System.out.println("Rating Threshold: " + ratingThreshold);
     System.out.println("Start Date: " + DateParser.toString(startDate));
 
+    // CONTEXT CONFIGURATION
     Configuration config = new Configuration();
     config.setDouble("ratingThreshold", ratingThreshold);
     config.setLong("startDate", DateParser.toSeconds(startDate));
 
-    Job job = configJob(config);
-    FileInputFormat.addInputPath(job, input);
+    // JOB CONFIGURATION
+    Job job = Job.getInstance(config, JOB_NAME);
+    job.setJarByClass(Query1_2.class);
+
+    // MAPPERS CONFIGURATION
+    MultipleInputs.addInputPath(job, inputRatings, TextInputFormat.class, RatingsFilterMapper.class);
+    MultipleInputs.addInputPath(job, inputMovies, TextInputFormat.class, MoviesMapper.class);
+    job.setMapOutputKeyClass(LongWritable.class);
+    job.setMapOutputValueClass(Text.class);
+
+    // REDUCERS CONFIGURATION
+    job.setReducerClass(RatingsMoviesJoinReducer.class);
+    job.setNumReduceTasks(1);
+
+    // OUTPUT CONFIGURATION
     FileOutputFormat.setOutputPath(job, output);
 
+    // JOB EXECUTION
     System.exit(job.waitForCompletion(true) ? 0 : 1);
-  }
-
-  /**
-   * Configures job.
-   *
-   * @param config the job configuration.
-   * @return the job.
-   * @throws IOException when job cannot be configured.
-   */
-  private static Job configJob(Configuration config) throws IOException {
-    Job job = Job.getInstance(config, JOB_NAME);
-    job.setJarByClass(Query1.class);
-    job.setMapperClass(MovieFilterByRatingMapper.class);
-    job.setReducerClass(MovieMaxRatingReducer.class);
-    job.setOutputKeyClass(LongWritable.class);
-    job.setOutputValueClass(DoubleWritable.class);
-    return job;
   }
 }

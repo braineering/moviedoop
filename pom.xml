@@ -270,17 +270,6 @@
       </properties>
     </profile>
 
-    <!-- PROFILE: wcadv -->
-    <profile>
-      <id>wcadv</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <project.main>com.acmutv.moviedoop.WordCountAdvanced</project.main>
-      </properties>
-    </profile>
-
     <!-- PROFILE: query1 -->
     <profile>
       <id>query1</id>
@@ -289,6 +278,17 @@
       </activation>
       <properties>
         <project.main>com.acmutv.moviedoop.Query1</project.main>
+      </properties>
+    </profile>
+
+    <!-- PROFILE: query1_2 -->
+    <profile>
+      <id>query1_2</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <properties>
+        <project.main>com.acmutv.moviedoop.Query1_2</project.main>
       </properties>
     </profile>
 

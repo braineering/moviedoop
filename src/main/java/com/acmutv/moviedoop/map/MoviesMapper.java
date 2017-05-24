@@ -25,38 +25,28 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query1;
-import com.acmutv.moviedoop.util.DateParser;
+import com.acmutv.moviedoop.Query1_2;
+import com.acmutv.moviedoop.model.MovieWritable;
 import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.hadoop.io.*;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-import static com.acmutv.moviedoop.util.RecordParser.RATING_FIELDS;
 import static com.acmutv.moviedoop.util.RecordParser.DELIMITER;
+import static com.acmutv.moviedoop.util.RecordParser.RATING_FIELDS;
 
 /**
- * The mapper for the {@link Query1} job.
+ * The mapper for the {@link Query1_2} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MovieFilterByRatingMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
-
-  /**
-   * The movie rating threshold.
-   */
-  private Double ratingThreshold;
-
-  /**
-   * The starting date for movie rating.
-   */
-  private long startDate;
+public class MoviesMapper extends Mapper<Object, Text, LongWritable, Text> {
 
   /**
    * The movie id to emit.
@@ -64,18 +54,9 @@ public class MovieFilterByRatingMapper extends Mapper<Object,Text,LongWritable,D
   private LongWritable movieId = new LongWritable();
 
   /**
-   * The movie rating to emit.
+   * The movie title to emit.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
-
-  /**
-   * Configures the mapper.
-   * @param ctx the job context.
-   */
-  protected void setup(Context ctx) {
-    this.ratingThreshold = ctx.getConfiguration().getDouble("ratingThreshold", Double.MIN_VALUE);
-    this.startDate = ctx.getConfiguration().getLong("startDate", Long.MIN_VALUE);
-  }
+  private Text movieTitle = new Text();
 
   /**
    * The mapping routine.
@@ -87,15 +68,9 @@ public class MovieFilterByRatingMapper extends Mapper<Object,Text,LongWritable,D
    * @throws InterruptedException when the context cannot be written.
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> record = RecordParser.parse(value.toString(), RATING_FIELDS, DELIMITER);
-    double rating = Double.valueOf(record.get("rating"));
-    long timestamp = Long.valueOf(record.get("timestamp"));
-
-    if (timestamp >= this.startDate && rating >= this.ratingThreshold) {
-      Long movieId = Long.valueOf(record.get("movieId"));
-      this.movieId.set(movieId);
-      this.movieRating.set(rating);
-      ctx.write(this.movieId, this.movieRating);
-    }
+    Map<String,String> movie = RecordParser.parse(value.toString(), new String[] {"id","title","genres"},",");
+    this.movieId.set(Long.valueOf(movie.get("id")));
+    this.movieTitle.set("M" + movie.get("title"));
+    ctx.write(this.movieId, this.movieTitle);
   }
 }

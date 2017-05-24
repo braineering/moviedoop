@@ -24,10 +24,11 @@ Build the job:
 where *[JOB]* is the name of the job to build.
 The following jobs are available:
 * **wc** the standard word counter.
-* **wcadv** the advanced word counter.
-* **query1** the 1st query.
+* **query1** the 1st query with no inner join.
+* **query1_2** the 1st query with inner join (replication join).
 * **query2** the 2nd query.
-* **query3** the 3rd query.
+* **query3** the 3rd query with no inner join.
+* **query3_bis** the 3rd query with inner join.
 
 ## Usage
 Start Hadoop:

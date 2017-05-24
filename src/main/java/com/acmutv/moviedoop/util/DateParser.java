@@ -28,6 +28,7 @@ package com.acmutv.moviedoop.util;
 import org.apache.commons.lang.ObjectUtils;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
@@ -94,6 +95,15 @@ public class DateParser {
     } catch (NullPointerException exc) {
       return null;
     }
+  }
 
+  /**
+   * Returns the seconds from epoch.
+   *
+   * @param date the date to convert.
+   * @return the seconds from epoch.
+   */
+  public static long toSeconds(LocalDateTime date) {
+    return date.toEpochSecond(ZoneOffset.UTC);
   }
 }

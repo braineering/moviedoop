@@ -42,6 +42,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 /**
@@ -66,13 +67,19 @@ public class Query1 {
    * @throws Exception when job cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    Path inputPath = new Path(args[0]);
-    Path outputPath = new Path(args[1]);
-    Double ratingThreshold = Double.valueOf(args[2]);
-    LocalDate startDate = DateParser.parse(args[3]);
+    if (args.length < 3) {
+      System.err.println("Usage: Query1 [input] [output] [ratingThreshold] (startDate)");
+      System.exit(1);
+    }
 
-    System.out.println("Input: " + inputPath);
-    System.out.println("Output: " + outputPath);
+    final Path input = new Path(args[0]);
+    final Path output = new Path(args[1]);
+    final Double ratingThreshold = Double.valueOf(args[2]);
+    final LocalDateTime startDate = (args.length > 3) ?
+        DateParser.parseOrDefault(args[3], LocalDateTime.MIN) : LocalDateTime.MIN;
+
+    System.out.println("Input: " + input);
+    System.out.println("Output: " + output);
     System.out.println("Rating Threshold: " + ratingThreshold);
     System.out.println("Start Date: " + DateParser.toString(startDate));
 
@@ -81,8 +88,8 @@ public class Query1 {
     config.set("startDate", DateParser.toString(startDate));
 
     Job job = configJob(config);
-    FileInputFormat.addInputPath(job, inputPath);
-    FileOutputFormat.setOutputPath(job, outputPath);
+    FileInputFormat.addInputPath(job, input);
+    FileOutputFormat.setOutputPath(job, output);
 
     System.exit(job.waitForCompletion(true) ? 0 : 1);
   }

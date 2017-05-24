@@ -25,14 +25,13 @@
  */
 package com.acmutv.moviedoop.util;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
+import org.apache.commons.lang.ObjectUtils;
+
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoField;
 
 /**
  * Utility to parse dates.
@@ -43,18 +42,40 @@ import java.util.Map;
 public class DateParser {
 
   /**
-   * The date and time format.
+   * The date and time format (dd/mm/yyyyThh:mm:ss).
    */
-  private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+  private static DateTimeFormatter DATE_TIME_FORMAT =
+      new DateTimeFormatterBuilder().appendPattern("dd/MM/yyyy['T'[HH][:mm][:ss]]")
+          .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+          .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+          .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+          .toFormatter();
 
   /**
-   * Parses {@code line} as a date (i.e. dd/mm/yyy).
+   * Parses {@code line} as date and time (i.e. dd/mm/yyyt, dd/mm/yyyyThh:mm:ss).
    *
    * @param line the string to parse.
-   * @return the date; null if error.
+   * @return the date;
+   * @throws DateTimeParseException when date and time cannot be parsed.
    */
-  public static LocalDate parse(String line) {
-    return LocalDate.parse(line, DATE_TIME_FORMAT);
+  public static LocalDateTime parse(String line) {
+    return LocalDateTime.parse(line, DATE_TIME_FORMAT);
+  }
+
+  /**
+   * Parses {@code line} as date and time (i.e. dd/mm/yyyt, dd/mm/yyyyThh:mm:ss), with the specified
+   * fallback value.
+   *
+   * @param line the string to parse.
+   * @param fallback the fallback value.
+   * @return the date; default if error.
+   */
+  public static LocalDateTime parseOrDefault(String line, LocalDateTime fallback) {
+    try {
+      return LocalDateTime.parse(line, DATE_TIME_FORMAT);
+    } catch (DateTimeParseException|NullPointerException exc) {
+      return fallback;
+    }
   }
 
   /**
@@ -63,7 +84,12 @@ public class DateParser {
    * @param date the date to stringify.
    * @return the date as string; null if error.
    */
-  public static String toString(LocalDate date) {
-    return date.format(DATE_TIME_FORMAT);
+  public static String toString(LocalDateTime date) {
+    try {
+      return date.format(DATE_TIME_FORMAT);
+    } catch (NullPointerException exc) {
+      return null;
+    }
+
   }
 }

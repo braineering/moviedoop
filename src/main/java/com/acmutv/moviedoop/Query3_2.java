@@ -30,8 +30,6 @@ import com.acmutv.moviedoop.reduce.MovieTopKReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -51,12 +49,12 @@ import java.time.LocalDateTime;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query3 {
+public class Query3_2 {
 
   /**
    * The job name.
    */
-  private static final String JOB_NAME = "Query3";
+  private static final String JOB_NAME = "Query3_2";
 
   /**
    * The job main method.
@@ -113,7 +111,7 @@ public class Query3 {
    */
   private static Job configJob(Configuration config) throws IOException {
     Job job = Job.getInstance(config, JOB_NAME);
-    job.setJarByClass(Query3.class);
+    job.setJarByClass(Query3_2.class);
     job.setMapperClass(MovieTopKWithinPeriodMapper.class);
     job.setReducerClass(MovieTopKReducer.class);
     job.setOutputKeyClass(NullWritable.class);

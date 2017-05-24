@@ -106,13 +106,11 @@ public class BestMapTest {
     actual.put(5L, 4.0);
     actual.put(5L, 5.0);
     actual.put(5L, 5.0);
-    System.out.println("####");
     actual.put(1L, 1.0);
     actual.put(2L, 1.0);
     actual.put(3L, 1.0);
     actual.put(4L, 1.0);
     actual.put(5L, 1.0);
-    System.out.println("####");
 
     BestMap expected = new BestMap(3);
     expected.put(5L, 5.0);

@@ -34,6 +34,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -59,12 +60,12 @@ public class MovieTopKWithinPeriodMapper extends Mapper<Object,Text,NullWritable
   /**
    * The start date.
    */
-  private LocalDate startDate;
+  private LocalDateTime startDate;
 
   /**
    * The end date.
    */
-  private LocalDate endDate;
+  private LocalDateTime endDate;
 
   /**
    * The rank data structure.
@@ -103,9 +104,13 @@ public class MovieTopKWithinPeriodMapper extends Mapper<Object,Text,NullWritable
     Map<String,String> record = RecordParser.parse(value.toString(), RATING_FIELDS, DELIMITER);
     System.out.println("# [MAP] # Record: " + record);
 
-    Long movieId = Long.valueOf(record.get("movieId"));
-    Double rating = Double.valueOf(record.get("rating"));
-    this.rank.put(movieId, rating);
+    LocalDateTime timestamp = DateParser.parse(record.get("timestamp"));
+
+    if (timestamp.isAfter(this.startDate) && timestamp.isBefore(this.endDate)) {
+      Long movieId = Long.valueOf(record.get("movieId"));
+      Double rating = Double.valueOf(record.get("rating"));
+      this.rank.put(movieId, rating);
+    }
   }
 
   /**

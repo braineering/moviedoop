@@ -33,6 +33,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import static com.acmutv.moviedoop.util.RecordParser.RATING_FIELDS;
@@ -55,7 +56,7 @@ public class MovieFilterByRatingMapper extends Mapper<Object,Text,LongWritable,D
   /**
    * The starting date for movie rating.
    */
-  private LocalDate startDate;
+  private LocalDateTime startDate;
 
   /**
    * The movie id to emit.
@@ -88,9 +89,10 @@ public class MovieFilterByRatingMapper extends Mapper<Object,Text,LongWritable,D
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
     Map<String,String> record = RecordParser.parse(value.toString(), RATING_FIELDS, DELIMITER);
     double rating = Double.valueOf(record.get("rating"));
-    LocalDate timestamp = DateParser.parse(record.get("timestamp"));
+    LocalDateTime timestamp = DateParser.parse(record.get("timestamp"));
 
-    if (timestamp.isAfter(this.startDate) && rating >= this.ratingThreshold) {
+    if ((timestamp.isAfter(this.startDate) | timestamp.isEqual(this.startDate))
+        && rating >= this.ratingThreshold) {
       Long movieId = Long.valueOf(record.get("movieId"));
       this.movieId.set(movieId);
       this.movieRating.set(rating);

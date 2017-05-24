@@ -95,7 +95,7 @@ public class MovieTopKReducer extends Reducer<NullWritable,Text,NullWritable,Tex
     }
 
     for (Map.Entry<Long,Double> entry :
-        this.rank.entrySet().stream().sorted((e1,e2)->{return e2.getValue().compareTo(e1.getValue());}).collect(Collectors.toList())) {
+        this.rank.entrySet().stream().sorted((e1,e2)-> e2.getValue().compareTo(e1.getValue())).collect(Collectors.toList())) {
       this.tuple.set(entry.getKey() + "," + entry.getValue());
       ctx.write(NullWritable.get(), this.tuple);
     }

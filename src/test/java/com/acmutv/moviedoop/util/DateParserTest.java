@@ -44,43 +44,73 @@ import static java.util.Locale.ENGLISH;
 public class DateParserTest {
 
   /**
-   * Tests the date parsing.
-   * Best case.
+   * Tests the date and time parsing, with fallback.
    */
   @Test
-  public void test_parse() {
+  public void test_parseOrDefault() {
+    String line = null;
+
+    LocalDateTime actual = DateParser.parseOrDefault(line, LocalDateTime.MIN);
+
+    LocalDateTime expected = LocalDateTime.MIN;
+
+    Assert.assertEquals(expected, actual);
+  }
+
+  /**
+   * Tests the date parsing.
+   */
+  @Test
+  public void test_parseDate() {
     String line = "27/06/1990";
 
-    LocalDate actual = DateParser.parse(line);
+    LocalDateTime actual = DateParser.parse(line);
 
-    LocalDate expected = LocalDate.of(1990, Month.JUNE, 27);
+    LocalDateTime expected = LocalDateTime.of(1990, Month.JUNE, 27, 0, 0, 0);
+
+    Assert.assertEquals(expected, actual);
+  }
+
+  /**
+   * Tests the date and time parsing.
+   */
+  @Test
+  public void test_parseDateTime() {
+    String line = "27/06/1990T12:12:12";
+
+    LocalDateTime actual = DateParser.parse(line);
+
+    LocalDateTime expected = LocalDateTime.of(1990, Month.JUNE, 27, 12, 12, 12);
 
     Assert.assertEquals(expected, actual);
   }
 
   /**
    * Tests the date stringify.
-   * Best case.
    */
   @Test
   public void test_tostring() {
-    LocalDate date = LocalDate.of(1990, Month.JUNE, 27);
+    LocalDateTime date = LocalDateTime.of(1990, Month.JUNE, 27, 0, 0, 0);
 
     String actual = DateParser.toString(date);
 
-    String expected = "27/06/1990";
+    String expected = "27/06/1990T00:00:00";
 
     Assert.assertEquals(expected, actual);
   }
 
   /**
-   * Tests seconds conversion.
+   * Tests the date stringify.
+   * Null case.
    */
   @Test
-  public void test_localDateToMillis() {
-    LocalDate date = LocalDate.of(1970, Month.JANUARY, 1);
-    long actual = date.atStartOfDay().toInstant(ZoneOffset.UTC).getEpochSecond();
-    long expected = 0;
+  public void test_tostring_null() {
+    LocalDateTime date = null;
+
+    String actual = DateParser.toString(date);
+
+    String expected = null;
+
     Assert.assertEquals(expected, actual);
   }
 }

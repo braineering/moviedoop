@@ -74,9 +74,9 @@ public class Query3 {
     final Path output = new Path(args[1]);
     final Integer rankSize = Integer.valueOf(args[2]);
     LocalDateTime startDate1 = (args.length > 3) ?
-        DateParser.parseOrDefault(args[3], LocalDateTime.MIN) : LocalDateTime.MIN;
+        DateParser.parseOrDefault(args[3], DateParser.MIN) : DateParser.MIN;
     LocalDateTime endDate1 = (args.length > 4) ?
-        DateParser.parseOrDefault(args[4], LocalDateTime.MAX) : LocalDateTime.MAX;
+        DateParser.parseOrDefault(args[4], DateParser.MAX) : DateParser.MAX;
     LocalDateTime startDate2 = (args.length > 5) ?
         DateParser.parseOrDefault(args[5], null) : null;
     LocalDateTime endDate2 = (args.length > 6 && startDate2 != null) ?

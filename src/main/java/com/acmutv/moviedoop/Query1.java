@@ -76,7 +76,7 @@ public class Query1 {
     final Path output = new Path(args[1]);
     final Double ratingThreshold = Double.valueOf(args[2]);
     final LocalDateTime startDate = (args.length > 3) ?
-        DateParser.parseOrDefault(args[3], LocalDateTime.MIN) : LocalDateTime.MIN;
+        DateParser.parseOrDefault(args[3], DateParser.MIN) : DateParser.MIN;
 
     System.out.println("Input: " + input);
     System.out.println("Output: " + output);

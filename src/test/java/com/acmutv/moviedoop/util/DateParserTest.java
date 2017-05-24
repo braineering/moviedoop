@@ -29,6 +29,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static java.util.Calendar.*;
@@ -95,6 +96,36 @@ public class DateParserTest {
     String actual = DateParser.toString(date);
 
     String expected = "27/06/1990T00:00:00";
+
+    Assert.assertEquals(expected, actual);
+  }
+
+  /**
+   * Tests the date stringify.
+   * The minimum value (01/01/0T00:00:00).
+   */
+  @Test
+  public void test_tostring_min() {
+    LocalDateTime date = DateParser.MIN;
+
+    String actual = DateParser.toString(date);
+
+    String expected = "01/01/0001T00:00:00";
+
+    Assert.assertEquals(expected, actual);
+  }
+
+  /**
+   * Tests the date stringify.
+   * The maximum value (31/12/+999999999T23:59:59).
+   */
+  @Test
+  public void test_tostring_max() {
+    LocalDateTime date = DateParser.MAX;
+
+    String actual = DateParser.toString(date);
+
+    String expected = "31/12/+999999999T23:59:59";
 
     Assert.assertEquals(expected, actual);
   }

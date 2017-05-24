@@ -51,8 +51,12 @@ public class DateParser {
           .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
           .toFormatter();
 
+  public static final LocalDateTime MIN = LocalDateTime.of(0,1,1,0,0,0);
+
+  public static final LocalDateTime MAX = LocalDateTime.MAX;
+
   /**
-   * Parses {@code line} as date and time (i.e. dd/mm/yyyt, dd/mm/yyyyThh:mm:ss).
+   * Parses {@code line} as date and time (i.e. dd/mm/yyyy, dd/mm/yyyyThh:mm:ss).
    *
    * @param line the string to parse.
    * @return the date;

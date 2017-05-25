@@ -259,25 +259,15 @@
   </dependencies>
 
   <profiles>
-    <!-- PROFILE: wc -->
+
+    <!-- PROFILE: query1_1 -->
     <profile>
-      <id>wc</id>
+      <id>query1_1</id>
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
       <properties>
-        <project.main>com.acmutv.moviedoop.WordCount</project.main>
-      </properties>
-    </profile>
-
-    <!-- PROFILE: query1 -->
-    <profile>
-      <id>query1</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <project.main>com.acmutv.moviedoop.Query1</project.main>
+        <project.main>com.acmutv.moviedoop.Query1_1</project.main>
       </properties>
     </profile>
 
@@ -292,6 +282,17 @@
       </properties>
     </profile>
 
+    <!-- PROFILE: query1_3 -->
+    <profile>
+      <id>query1_3</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <properties>
+        <project.main>com.acmutv.moviedoop.Query1_3</project.main>
+      </properties>
+    </profile>
+
     <!-- PROFILE: query2 -->
     <profile>
       <id>query2</id>
@@ -303,6 +304,17 @@
       </properties>
     </profile>
 
+    <!-- PROFILE: query1_4 -->
+    <profile>
+      <id>query1_4</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <properties>
+        <project.main>com.acmutv.moviedoop.Query1_4</project.main>
+      </properties>
+    </profile>
+
     <!-- PROFILE: query3 -->
     <profile>
       <id>query3</id>
@@ -311,17 +323,6 @@
       </activation>
       <properties>
         <project.main>com.acmutv.moviedoop.Query3</project.main>
-      </properties>
-    </profile>
-
-    <!-- PROFILE: query3_2 -->
-    <profile>
-      <id>query3_2</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <project.main>com.acmutv.moviedoop.Query3_2</project.main>
       </properties>
     </profile>
 

@@ -25,36 +25,35 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.MovieTopKWithinPeriodMapper;
-import com.acmutv.moviedoop.reduce.MovieTopKReducer;
+import com.acmutv.moviedoop.map.FilterRatingsByScoreAndTimestampMapper;
+import com.acmutv.moviedoop.reduce.MaxRatingReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-import java.io.IOException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * A MapReduce job that returns the top-{@code rank} movies for the period from {@code startDate1} to
- * {@code endDate1} and their rating variation with respect to the classification in period from
- * {@code startDate2} to {@code endDate2}.
+ * A MapReduce job that returns movies with rate greater/equal to the specified {@code threshold}
+ * and valuated starting from the specified {@code startDate}.
+ * The job does not leverage inner joins.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query3_2 {
+public class Query1_1 {
 
   /**
    * The job name.
    */
-  private static final String JOB_NAME = "Query3_2";
+  private static final String JOB_NAME = "Query1_1";
 
   /**
    * The job main method.
@@ -64,59 +63,48 @@ public class Query3_2 {
    */
   public static void main(String[] args) throws Exception {
     if (args.length < 3) {
-      System.err.println("Usage: Query3 [input] [output] [rankSize] (startDate1) (endDate1) (startDate2) (endDate2)");
+      System.err.println("Usage: Query1_1 [inputRatings] [output] [ratingThreshold] (startDate)");
       System.exit(1);
     }
 
+    // USER PARAMETERS
     final Path input = new Path(args[0]);
     final Path output = new Path(args[1]);
-    final Integer rankSize = Integer.valueOf(args[2]);
-    LocalDateTime startDate1 = (args.length > 3) ?
+    final Double ratingThreshold = Double.valueOf(args[2]);
+    final LocalDateTime startDate = (args.length > 3) ?
         DateParser.parseOrDefault(args[3], DateParser.MIN) : DateParser.MIN;
-    LocalDateTime endDate1 = (args.length > 4) ?
-        DateParser.parseOrDefault(args[4], DateParser.MAX) : DateParser.MAX;
-    LocalDateTime startDate2 = (args.length > 5) ?
-        DateParser.parseOrDefault(args[5], null) : null;
-    LocalDateTime endDate2 = (args.length > 6 && startDate2 != null) ?
-        DateParser.parseOrDefault(args[6], null) : null;
 
+    // USER PARAMETERS RESUME
     System.out.println("Input: " + input);
     System.out.println("Output: " + output);
-    System.out.println("Rank Size: " + rankSize);
-    System.out.println("Start Date 1: " + DateParser.toString(startDate1));
-    System.out.println("End Date 1: " + DateParser.toString(endDate1));
-    System.out.println("Start Date 2: " + DateParser.toString(startDate2));
-    System.out.println("End Date 2: " + DateParser.toString(endDate2));
+    System.out.println("Rating Threshold: " + ratingThreshold);
+    System.out.println("Start Date: " + DateParser.toString(startDate));
 
+    // CONTEXT CONFIGURATION
     Configuration config = new Configuration();
-    config.setInt("rankSize", rankSize);
-    config.set("startDate1", DateParser.toString(startDate1));
-    config.set("endDate1", DateParser.toString(endDate1));
-    config.set("startDate2", DateParser.toString(startDate2));
-    config.set("endDate2", DateParser.toString(endDate2));
+    config.setDouble("ratingThreshold", ratingThreshold);
+    config.setLong("startDate", DateParser.toSeconds(startDate));
 
-    Job job = configJob(config);
+    // JOB CONFIGURATION
+    Job job = Job.getInstance(config, JOB_NAME);
+    job.setJarByClass(Query1_1.class);
+
+    // MAP CONFIGURATION
     FileInputFormat.addInputPath(job, input);
+    job.setMapperClass(FilterRatingsByScoreAndTimestampMapper.class);
+    job.setMapOutputKeyClass(LongWritable.class);
+    job.setMapOutputValueClass(DoubleWritable.class);
+
+    // REDUCE CONFIGURATION
+    job.setReducerClass(MaxRatingReducer.class);
+    job.setNumReduceTasks(1);
+
+    // OUTPUT CONFIGURATION
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(DoubleWritable.class);
     FileOutputFormat.setOutputPath(job, output);
 
+    // JOB EXECUTION
     System.exit(job.waitForCompletion(true) ? 0 : 1);
-  }
-
-  /**
-   * Configures job.
-   *
-   * @param config the job configuration.
-   * @return the job.
-   * @throws IOException when job cannot be configured.
-   */
-  private static Job configJob(Configuration config) throws IOException {
-    Job job = Job.getInstance(config, JOB_NAME);
-    job.setJarByClass(Query3_2.class);
-    job.setMapperClass(MovieTopKWithinPeriodMapper.class);
-    job.setReducerClass(MovieTopKReducer.class);
-    job.setOutputKeyClass(NullWritable.class);
-    job.setOutputValueClass(Text.class);
-    job.setNumReduceTasks(1);
-    return job;
   }
 }

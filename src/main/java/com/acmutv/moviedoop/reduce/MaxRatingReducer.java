@@ -23,25 +23,22 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query1_2;
-import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import com.acmutv.moviedoop.Query1_1;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
- * The mapper for the {@link Query1_2} job.
+ * The reducer for the {@link Query1_1} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MoviesMapper extends Mapper<Object, Text, LongWritable, Text> {
+public class MaxRatingReducer extends Reducer<LongWritable,DoubleWritable,LongWritable,DoubleWritable> {
 
   /**
    * The movie id to emit.
@@ -49,23 +46,27 @@ public class MoviesMapper extends Mapper<Object, Text, LongWritable, Text> {
   private LongWritable movieId = new LongWritable();
 
   /**
-   * The movie title to emit.
+   * The movie rating to emit.
    */
-  private Text movieTitle = new Text();
+  private DoubleWritable movieRating = new DoubleWritable();
 
   /**
-   * The mapping routine.
+   * The reduction routine.
    *
    * @param key the input key.
-   * @param value the input value.
+   * @param values the input values.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> movie = RecordParser.parse(value.toString(), new String[] {"id","title","genres"},",");
-    this.movieId.set(Long.valueOf(movie.get("id")));
-    this.movieTitle.set("M" + movie.get("title"));
-    ctx.write(this.movieId, this.movieTitle);
+  public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
+    double max = 0.0;
+    for (DoubleWritable value : values) {
+      max = (value.get() > max) ? value.get() : max;
+    }
+    this.movieId.set(key.get());
+    this.movieRating.set(max);
+    ctx.write(this.movieId, this.movieRating);
   }
+
 }

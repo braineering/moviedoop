@@ -23,25 +23,35 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query1;
-import com.acmutv.moviedoop.map.MovieFilterByRatingMapper;
-import org.apache.hadoop.io.*;
-import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import com.acmutv.moviedoop.Query1_2;
+import com.acmutv.moviedoop.util.RecordParser;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
- * The reducer for the {@link Query1} job.
+ * The mapper for the {@link Query1_2} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MovieMaxRatingReducer extends Reducer<LongWritable,DoubleWritable,LongWritable,DoubleWritable> {
+public class FilterRatingsByScoreAndTimestampJoinMapper extends Mapper<Object, Text, LongWritable, Text> {
+
+  /**
+   * The movie rating threshold.
+   */
+  private Double ratingThreshold;
+
+  /**
+   * The starting date for movie rating.
+   */
+  private long startDate;
 
   /**
    * The movie id to emit.
@@ -51,25 +61,35 @@ public class MovieMaxRatingReducer extends Reducer<LongWritable,DoubleWritable,L
   /**
    * The movie rating to emit.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private Text movieRating = new Text();
 
   /**
-   * The reduction routine.
+   * Configures the mapper.
+   * @param ctx the job context.
+   */
+  protected void setup(Context ctx) {
+    this.ratingThreshold = Double.valueOf(ctx.getConfiguration().get("ratingThreshold"));
+    this.startDate = ctx.getConfiguration().getLong("startDate", Long.MIN_VALUE);
+  }
+
+  /**
+   * The mapping routine.
    *
    * @param key the input key.
-   * @param values the input values.
+   * @param value the input value.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
-    double max = 0.0;
-    for (DoubleWritable value : values) {
-      max = (value.get() > max) ? value.get() : max;
+  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
+    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
+    long movieId = Long.valueOf(rating.get("movieId"));
+    double score = Double.valueOf(rating.get("score"));
+    long timestamp = Long.valueOf(rating.get("timestamp"));
+    if (timestamp >= this.startDate && score >= this.ratingThreshold) {
+      this.movieId.set(movieId);
+      this.movieRating.set("R" + score);
+      ctx.write(this.movieId, this.movieRating);
     }
-    this.movieId.set(key.get());
-    this.movieRating.set(max);
-    ctx.write(this.movieId, this.movieRating);
   }
-
 }

@@ -25,23 +25,22 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query1_2;
+import com.acmutv.moviedoop.Query1_1;
 import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 import java.util.Map;
 
 /**
- * The mapper for the {@link Query1_2} job.
+ * The mapper for the {@link Query1_1} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RatingsFilterMapper extends Mapper<Object, Text, LongWritable, Text> {
+public class FilterRatingsByScoreAndTimestampMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
 
   /**
    * The movie rating threshold.
@@ -61,14 +60,14 @@ public class RatingsFilterMapper extends Mapper<Object, Text, LongWritable, Text
   /**
    * The movie rating to emit.
    */
-  private Text movieRating = new Text();
+  private DoubleWritable movieRating = new DoubleWritable();
 
   /**
    * Configures the mapper.
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.ratingThreshold = Double.valueOf(ctx.getConfiguration().get("ratingThreshold"));
+    this.ratingThreshold = ctx.getConfiguration().getDouble("ratingThreshold", Double.MIN_VALUE);
     this.startDate = ctx.getConfiguration().getLong("startDate", Long.MIN_VALUE);
   }
 
@@ -83,14 +82,13 @@ public class RatingsFilterMapper extends Mapper<Object, Text, LongWritable, Text
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
     Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
-    long movieId = Long.valueOf(rating.get("movieId"));
     double score = Double.valueOf(rating.get("score"));
     long timestamp = Long.valueOf(rating.get("timestamp"));
-    System.out.printf("# MAP # Input (%d,%f,%d)\n", movieId, score, timestamp);
+
     if (timestamp >= this.startDate && score >= this.ratingThreshold) {
+      Long movieId = Long.valueOf(rating.get("movieId"));
       this.movieId.set(movieId);
-      this.movieRating.set("R" + score);
-      System.out.printf("# MAP # Write (%d,%f)\n", movieId, score);
+      this.movieRating.set(score);
       ctx.write(this.movieId, this.movieRating);
     }
   }

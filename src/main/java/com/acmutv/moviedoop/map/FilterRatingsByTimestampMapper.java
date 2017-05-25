@@ -23,42 +23,36 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.map;
 
 import com.acmutv.moviedoop.Query1_1;
 import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.Mapper;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URI;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The reducer for the {@link Query1_1} job.
+ * The mapper for the {@link Query1_1} job.
+ * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
+ * the `movieRatingTimestampLowerBound`.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MaxRatingJoin2MovieTitleReducer extends Reducer<LongWritable,DoubleWritable,Text,DoubleWritable> {
+public class FilterRatingsByTimestampMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
 
   /**
-   * Map (movieId,movieTitle)
+   * The lower bound for the movie rating timestamp.
    */
-  private Map<Long,String> movieIdToMovieTitle = new HashMap<>();
+  private long movieRatingTimestampLowerBound;
 
   /**
-   * The movie title to emit.
+   * The movie id to emit.
    */
-  private Text movieTitle = new Text();
+  private LongWritable movieId = new LongWritable();
 
   /**
    * The movie rating to emit.
@@ -66,46 +60,32 @@ public class MaxRatingJoin2MovieTitleReducer extends Reducer<LongWritable,Double
   private DoubleWritable movieRating = new DoubleWritable();
 
   /**
-   * Configures the reducer.
+   * Configures the mapper.
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    try {
-      for (URI uri : ctx.getCacheFiles()) {
-        Path path = new Path(uri);
-        BufferedReader br = new BufferedReader(
-            new InputStreamReader(
-                new FileInputStream(path.getName())));
-        String line;
-        while ((line = br.readLine()) != null) {
-          Map<String,String> movie = RecordParser.parse(line, new String[] {"id","title","genres"},",");
-          long movieId = Long.valueOf(movie.get("id"));
-          String movieTitle = movie.get("title");
-          this.movieIdToMovieTitle.put(movieId, movieTitle);
-        }
-      }
-    } catch (IOException exc) {
-      exc.printStackTrace();
-    }
+    this.movieRatingTimestampLowerBound = ctx.getConfiguration().getLong("movie.rating.timestamp.lb", Long.MIN_VALUE);
   }
 
   /**
-   * The reduction routine.
+   * The mapping routine.
    *
    * @param key the input key.
-   * @param values the input values.
+   * @param value the input value.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
-    double max = 0.0;
-    for (DoubleWritable value : values) {
-      max = (value.get() > max) ? value.get() : max;
-    }
-    this.movieTitle.set(this.movieIdToMovieTitle.get(key.get()));
-    this.movieRating.set(max);
-    ctx.write(this.movieTitle, this.movieRating);
-  }
+  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
+    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
 
+    long timestamp = Long.valueOf(rating.get("timestamp"));
+    if (timestamp >= this.movieRatingTimestampLowerBound) {
+      long movieId = Long.valueOf(rating.get("movieId"));
+      double score = Double.valueOf(rating.get("score"));
+      this.movieId.set(movieId);
+      this.movieRating.set(score);
+      ctx.write(this.movieId, this.movieRating);
+    }
+  }
 }

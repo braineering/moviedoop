@@ -45,7 +45,7 @@ import java.io.IOException;
 public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Text, Text, DoubleWritable> {
 
   /**
-   * The average rating threshold.
+   * The lower bound for the movie average rating.
    */
   private double movieAverageRatingLowerBound;
 
@@ -55,12 +55,13 @@ public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Te
   private Text movieTitle = new Text();
 
   /**
-   * The movie rating to emit.
+   * The movie average rating to emit.
    */
   private DoubleWritable movieAverageRating = new DoubleWritable();
 
   /**
    * Configures the reducer.
+   *
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {

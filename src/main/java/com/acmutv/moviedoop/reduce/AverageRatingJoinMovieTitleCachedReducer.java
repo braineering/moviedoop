@@ -23,14 +23,15 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query1_3;
+import com.acmutv.moviedoop.Query1_1;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -41,28 +42,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The mapper for the {@link Query1_3} job.
+ * The reducer for the {@link Query1_1} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class FilterRatingsByScoreAndTimestampMapper2 extends Mapper<Object,Text,Text,DoubleWritable> {
+public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritable,DoubleWritable,Text,DoubleWritable> {
 
   /**
-   * Map (movieId,movieTitle)
+   * The cached map (movieId,movieTitle)
    */
   private Map<Long,String> movieIdToMovieTitle = new HashMap<>();
 
   /**
-   * The movie rating threshold.
+   * The lower bound for the movie average rating.
    */
-  private Double ratingThreshold;
-
-  /**
-   * The starting date for movie rating.
-   */
-  private long startDate;
+  private double movieAverageRatingLowerBound;
 
   /**
    * The movie title to emit.
@@ -70,17 +66,17 @@ public class FilterRatingsByScoreAndTimestampMapper2 extends Mapper<Object,Text,
   private Text movieTitle = new Text();
 
   /**
-   * The movie rating to emit.
+   * The movie average rating to emit.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private DoubleWritable movieAverageRating = new DoubleWritable();
 
   /**
-   * Configures the mapper.
+   * Configures the reducer.
+   *
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.ratingThreshold = ctx.getConfiguration().getDouble("ratingThreshold", Double.MIN_VALUE);
-    this.startDate = ctx.getConfiguration().getLong("startDate", Long.MIN_VALUE);
+    this.movieAverageRatingLowerBound = ctx.getConfiguration().getDouble("movie.rating.avg.lb", Double.MIN_VALUE);
     try {
       for (URI uri : ctx.getCacheFiles()) {
         Path path = new Path(uri);
@@ -101,24 +97,29 @@ public class FilterRatingsByScoreAndTimestampMapper2 extends Mapper<Object,Text,
   }
 
   /**
-   * The mapping routine.
+   * The reduction routine.
    *
    * @param key the input key.
-   * @param value the input value.
+   * @param values the input values.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
-    long movieId = Long.valueOf(rating.get("movieId"));
-    double score = Double.valueOf(rating.get("score"));
-    long timestamp = Long.valueOf(rating.get("timestamp"));
+  public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
+    long num = 0L;
+    double avgRating = 0.0;
 
-    if (timestamp >= this.startDate && score >= this.ratingThreshold) {
-      this.movieTitle.set(this.movieIdToMovieTitle.get(movieId));
-      this.movieRating.set(score);
-      ctx.write(this.movieTitle, this.movieRating);
+    for (DoubleWritable value : values) {
+        double rating = value.get();
+        avgRating = ((avgRating * num) + rating) / (num + 1);
+        num += 1;
+    }
+
+    if (avgRating >= this.movieAverageRatingLowerBound) {
+      this.movieTitle.set(this.movieIdToMovieTitle.get(key.get()));
+      this.movieAverageRating.set(avgRating);
+      ctx.write(this.movieTitle, this.movieAverageRating);
     }
   }
+
 }

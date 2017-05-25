@@ -34,12 +34,19 @@ import java.io.IOException;
 
 /**
  * The reducer for the {@link Query1_3} job.
+ * It emits (movieTitle,avgRating) where avgRating is the average rating greater than or equal to
+ * `movieAverageRatingLowerBound`.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MaxRatingReducer2 extends Reducer<Text,DoubleWritable,Text,DoubleWritable> {
+public class AverageRatingFilterReducer extends Reducer<Text,DoubleWritable,Text,DoubleWritable> {
+
+  /**
+   * The lower bound for the movie average rating.
+   */
+  private double movieAverageRatingLowerBound;
 
   /**
    * The movie title to emit.
@@ -47,9 +54,18 @@ public class MaxRatingReducer2 extends Reducer<Text,DoubleWritable,Text,DoubleWr
   private Text movieTitle = new Text();
 
   /**
-   * The movie rating to emit.
+   * The movie average rating to emit.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private DoubleWritable movieAverageRating = new DoubleWritable();
+
+  /**
+   * Configures the reducer.
+   *
+   * @param ctx the job context.
+   */
+  protected void setup(Context ctx) {
+    this.movieAverageRatingLowerBound = ctx.getConfiguration().getDouble("movie.rating.avg.lb", Double.MIN_VALUE);
+  }
 
   /**
    * The reduction routine.
@@ -61,13 +77,20 @@ public class MaxRatingReducer2 extends Reducer<Text,DoubleWritable,Text,DoubleWr
    * @throws InterruptedException when the context cannot be written.
    */
   public void reduce(Text key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
-    double max = 0.0;
+    long num = 0L;
+    double avgRating = 0.0;
+
     for (DoubleWritable value : values) {
-      max = (value.get() > max) ? value.get() : max;
+      double rating = value.get();
+      avgRating = ((avgRating * num) + rating) / (num + 1);
+      num += 1;
     }
-    this.movieTitle.set(key.toString());
-    this.movieRating.set(max);
-    ctx.write(this.movieTitle, this.movieRating);
+
+    if (avgRating >= this.movieAverageRatingLowerBound) {
+      this.movieTitle.set(key.toString());
+      this.movieAverageRating.set(avgRating);
+      ctx.write(this.movieTitle, this.movieAverageRating);
+    }
   }
 
 }

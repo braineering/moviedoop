@@ -48,12 +48,17 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MaxRatingJoin2MovieTitleReducer extends Reducer<LongWritable,DoubleWritable,Text,DoubleWritable> {
+public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritable,DoubleWritable,Text,DoubleWritable> {
 
   /**
-   * Map (movieId,movieTitle)
+   * The cached map (movieId,movieTitle)
    */
   private Map<Long,String> movieIdToMovieTitle = new HashMap<>();
+
+  /**
+   * The lower bound for the movie average rating.
+   */
+  private double movieAverageRatingLowerBound;
 
   /**
    * The movie title to emit.
@@ -61,15 +66,17 @@ public class MaxRatingJoin2MovieTitleReducer extends Reducer<LongWritable,Double
   private Text movieTitle = new Text();
 
   /**
-   * The movie rating to emit.
+   * The movie average rating to emit.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private DoubleWritable movieAverageRating = new DoubleWritable();
 
   /**
    * Configures the reducer.
+   *
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
+    this.movieAverageRatingLowerBound = ctx.getConfiguration().getDouble("movie.rating.avg.lb", Double.MIN_VALUE);
     try {
       for (URI uri : ctx.getCacheFiles()) {
         Path path = new Path(uri);
@@ -99,13 +106,20 @@ public class MaxRatingJoin2MovieTitleReducer extends Reducer<LongWritable,Double
    * @throws InterruptedException when the context cannot be written.
    */
   public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
-    double max = 0.0;
+    long num = 0L;
+    double avgRating = 0.0;
+
     for (DoubleWritable value : values) {
-      max = (value.get() > max) ? value.get() : max;
+        double rating = value.get();
+        avgRating = ((avgRating * num) + rating) / (num + 1);
+        num += 1;
     }
-    this.movieTitle.set(this.movieIdToMovieTitle.get(key.get()));
-    this.movieRating.set(max);
-    ctx.write(this.movieTitle, this.movieRating);
+
+    if (avgRating >= this.movieAverageRatingLowerBound) {
+      this.movieTitle.set(this.movieIdToMovieTitle.get(key.get()));
+      this.movieAverageRating.set(avgRating);
+      ctx.write(this.movieTitle, this.movieAverageRating);
+    }
   }
 
 }

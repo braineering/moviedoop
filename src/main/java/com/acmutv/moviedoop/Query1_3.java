@@ -25,15 +25,14 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.FilterRatingsByScoreAndTimestampMapper;
-import com.acmutv.moviedoop.reduce.MaxRatingJoin2MovieTitleReducer;
+import com.acmutv.moviedoop.map.FilterRatingsByTimestampJoinMovieTitleCachedMapper;
+import com.acmutv.moviedoop.reduce.AverageRatingFilterReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -45,7 +44,7 @@ import java.time.LocalDateTime;
  * A MapReduce job that returns movies with rate greater/equal to the specified {@code threshold}
  * and valuated starting from the specified {@code startDate}.
  * The job leverages inner joins (replication joins).
- * The job leverages distributed caching (on reducer).
+ * The job leverages distributed caching (on mapper).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
@@ -66,7 +65,7 @@ public class Query1_3 {
    */
   public static void main(String[] args) throws Exception {
     if (args.length < 4) {
-      System.err.println("Usage: Query1_1 [inputRatings] [inputMovies] [output] [ratingThreshold] (startDate)");
+      System.err.println("Usage: Query1_3 [inputRatings] [inputMovies] [output] [avgRatingLB] (ratingTimestampLB)");
       System.exit(1);
     }
 
@@ -74,21 +73,21 @@ public class Query1_3 {
     final Path inputRatings = new Path(args[0]);
     final Path inputMovies = new Path(args[1]);
     final Path output = new Path(args[2]);
-    final Double ratingThreshold = Double.valueOf(args[3]);
-    final LocalDateTime startDate = (args.length > 4) ?
+    final Double averageRatingLowerBound = Double.valueOf(args[3]);
+    final LocalDateTime ratingTimestampLowerBound = (args.length > 4) ?
         DateParser.parseOrDefault(args[4], DateParser.MIN) : DateParser.MIN;
 
     // USER PARAMETERS RESUME
     System.out.println("Input Ratings: " + inputRatings);
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
-    System.out.println("Rating Threshold: " + ratingThreshold);
-    System.out.println("Start Date: " + DateParser.toString(startDate));
+    System.out.println("Average Rating Lower Bound: " + averageRatingLowerBound);
+    System.out.println("Rating Timestamp Lower Bound: " + DateParser.toString(ratingTimestampLowerBound));
 
     // CONTEXT CONFIGURATION
     Configuration config = new Configuration();
-    config.setDouble("ratingThreshold", ratingThreshold);
-    config.setLong("startDate", DateParser.toSeconds(startDate));
+    config.setDouble("movie.rating.avg.lb", averageRatingLowerBound);
+    config.setLong("movie.rating.timestamp.lb", DateParser.toSeconds(ratingTimestampLowerBound));
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, JOB_NAME);
@@ -99,12 +98,12 @@ public class Query1_3 {
 
     // MAP CONFIGURATION
     FileInputFormat.addInputPath(job, inputRatings);
-    job.setMapperClass(FilterRatingsByScoreAndTimestampMapper.class);
-    job.setMapOutputKeyClass(LongWritable.class);
+    job.setMapperClass(FilterRatingsByTimestampJoinMovieTitleCachedMapper.class);
+    job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(DoubleWritable.class);
 
     // REDUCE CONFIGURATION
-    job.setReducerClass(MaxRatingJoin2MovieTitleReducer.class);
+    job.setReducerClass(AverageRatingFilterReducer.class);
     job.setNumReduceTasks(1);
 
     // OUTPUT CONFIGURATION

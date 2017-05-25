@@ -23,73 +23,74 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query1_2;
-import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.hadoop.io.LongWritable;
+import com.acmutv.moviedoop.Query1_3;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
- * The mapper for the {@link Query1_2} job.
+ * The reducer for the {@link Query1_3} job.
+ * It emits (movieTitle,avgRating) where avgRating is the average rating greater than or equal to
+ * `movieAverageRatingLowerBound`.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class FilterRatingsByScoreAndTimestampJoinMapper extends Mapper<Object, Text, LongWritable, Text> {
+public class AverageRatingFilterReducer extends Reducer<Text,DoubleWritable,Text,DoubleWritable> {
 
   /**
-   * The movie rating threshold.
+   * The lower bound for the movie average rating.
    */
-  private Double ratingThreshold;
+  private double movieAverageRatingLowerBound;
 
   /**
-   * The starting date for movie rating.
+   * The movie title to emit.
    */
-  private long startDate;
+  private Text movieTitle = new Text();
 
   /**
-   * The movie id to emit.
+   * The movie average rating to emit.
    */
-  private LongWritable movieId = new LongWritable();
+  private DoubleWritable movieAverageRating = new DoubleWritable();
 
   /**
-   * The movie rating to emit.
-   */
-  private Text movieRating = new Text();
-
-  /**
-   * Configures the mapper.
+   * Configures the reducer.
+   *
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.ratingThreshold = Double.valueOf(ctx.getConfiguration().get("ratingThreshold"));
-    this.startDate = ctx.getConfiguration().getLong("startDate", Long.MIN_VALUE);
+    this.movieAverageRatingLowerBound = ctx.getConfiguration().getDouble("movie.rating.avg.lb", Double.MIN_VALUE);
   }
 
   /**
-   * The mapping routine.
+   * The reduction routine.
    *
    * @param key the input key.
-   * @param value the input value.
+   * @param values the input values.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
-    long movieId = Long.valueOf(rating.get("movieId"));
-    double score = Double.valueOf(rating.get("score"));
-    long timestamp = Long.valueOf(rating.get("timestamp"));
-    if (timestamp >= this.startDate && score >= this.ratingThreshold) {
-      this.movieId.set(movieId);
-      this.movieRating.set("R" + score);
-      ctx.write(this.movieId, this.movieRating);
+  public void reduce(Text key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
+    long num = 0L;
+    double avgRating = 0.0;
+
+    for (DoubleWritable value : values) {
+      double rating = value.get();
+      avgRating = ((avgRating * num) + rating) / (num + 1);
+      num += 1;
+    }
+
+    if (avgRating >= this.movieAverageRatingLowerBound) {
+      this.movieTitle.set(key.toString());
+      this.movieAverageRating.set(avgRating);
+      ctx.write(this.movieTitle, this.movieAverageRating);
     }
   }
+
 }

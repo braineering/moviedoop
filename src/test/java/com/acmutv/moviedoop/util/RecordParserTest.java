@@ -26,8 +26,15 @@
 package com.acmutv.moviedoop.util;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,10 +49,10 @@ public class RecordParserTest {
 
   /**
    * Tests the record parsing.
-   * Best case.
+   * Unquoted case.
    */
   @Test
-  public void test() {
+  public void test_unquoted() {
     String attributes[] = {"key1", "key2", "key3"};
     String delimiter = " ";
     String line = "val1 val2 val3";
@@ -58,4 +65,38 @@ public class RecordParserTest {
 
     Assert.assertEquals(expected, actual);
   }
+
+  /**
+   * Tests the record parsing.
+   * Quoted case.
+   */
+  @Test
+  public void test_quoted() {
+    String attributes[] = {"key1", "key2", "key3"};
+    String delimiter = ",(?=(?:[^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$)";
+    String line = "val1,\"val2, val2bis, val2tris\",val3";
+
+    Map<String,String> actual = RecordParser.parse(line, attributes, delimiter);
+    Map<String,String> expected = new HashMap<>();
+    expected.put("key1", "val1");
+    expected.put("key2", "val2, val2bis, val2tris");
+    expected.put("key3", "val3");
+
+    Assert.assertEquals(expected, actual);
+  }
+
+  @Test
+  @Ignore
+  public void test_movies() throws IOException {
+    BufferedReader br = Files.newBufferedReader(Paths.get("/home/gmarciani/Downloads/ml-20m/movies.csv"));
+    String attributes[] = {"id", "title", "genres"};
+    String delimiter = ",(?=(?:[^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$)";
+    String line;
+    while ((line = br.readLine()) != null) {
+      RecordParser.parse(line, attributes, delimiter);
+    }
+  }
+
+
+
 }

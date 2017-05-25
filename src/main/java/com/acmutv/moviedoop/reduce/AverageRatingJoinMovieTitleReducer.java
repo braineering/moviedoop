@@ -25,21 +25,29 @@
  */
 package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query1_4;
+import com.acmutv.moviedoop.Query1_1;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 
 /**
- * The reducer for the {@link Query1_4} job.
+ * The reducer for the {@link Query1_1} job.
+ * It joins (movieId,rating) and (movieId,movieTitle), and emits (movieTitle,avgRating)
+ * where avgRating is the average rating greater than or equal to `movieAverageRatingLowerBound`.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MaxRatingReducer2 extends Reducer<Text,DoubleWritable,Text,DoubleWritable> {
+public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Text, Text, DoubleWritable> {
+
+  /**
+   * The lower bound for the movie average rating.
+   */
+  private double movieAverageRatingLowerBound;
 
   /**
    * The movie title to emit.
@@ -47,9 +55,18 @@ public class MaxRatingReducer2 extends Reducer<Text,DoubleWritable,Text,DoubleWr
   private Text movieTitle = new Text();
 
   /**
-   * The movie rating to emit.
+   * The movie average rating to emit.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private DoubleWritable movieAverageRating = new DoubleWritable();
+
+  /**
+   * Configures the reducer.
+   *
+   * @param ctx the job context.
+   */
+  protected void setup(Context ctx) {
+    this.movieAverageRatingLowerBound = ctx.getConfiguration().getDouble("movie.rating.avg.lb", Double.MIN_VALUE);
+  }
 
   /**
    * The reduction routine.
@@ -60,14 +77,29 @@ public class MaxRatingReducer2 extends Reducer<Text,DoubleWritable,Text,DoubleWr
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(Text key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
-    double max = 0.0;
-    for (DoubleWritable value : values) {
-      max = (value.get() > max) ? value.get() : max;
+  public void reduce(LongWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+
+    long num = 0L;
+    double avgRating = 0.0;
+
+    for (Text value : values) {
+      if (value.charAt(0) == 'R') { // rating
+        double rating = Double.valueOf(value.toString().substring(1));
+        avgRating = ((avgRating * num) + rating) / (num + 1);
+        num += 1;
+      } else if (value.charAt(0) == 'M') { // movie
+        String movieTitle = value.toString().substring(1);
+        this.movieTitle.set(movieTitle);
+      } else {
+        final String errmsg = String.format("Object %s is neither a rating nor a movie", value.toString());
+        throw new IOException(errmsg);
+      }
     }
-    this.movieTitle.set(key.toString());
-    this.movieRating.set(max);
-    ctx.write(this.movieTitle, this.movieRating);
+
+    if (avgRating >= this.movieAverageRatingLowerBound) {
+      this.movieAverageRating.set(avgRating);
+      ctx.write(this.movieTitle, this.movieAverageRating);
+    }
   }
 
 }

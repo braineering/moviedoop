@@ -51,9 +51,9 @@ public class RecordParser {
    */
   public static Map<String,String> parse(String line, String[] attributes, String delimiter) {
     Map<String,String> map = new HashMap<>();
-    String[] values = line.split(delimiter);
+    String[] values = line.split(delimiter, -1);
     for (int i = 0; i < values.length; i++) {
-      map.put(attributes[i], values[i]);
+      map.put(attributes[i], values[i].replaceAll("^\"|\"$", ""));
     }
     return map;
   }

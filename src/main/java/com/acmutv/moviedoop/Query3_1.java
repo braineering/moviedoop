@@ -41,7 +41,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 
 /**
@@ -56,9 +55,9 @@ import java.time.LocalDateTime;
 public class Query3_1 extends Configured implements Tool {
 
   /**
-   * The job name.
+   * The program name.
    */
-  private static final String JOB_NAME = "Query3_1";
+  private static final String PROGRAM_NAME = "Query3_1";
 
   @Override
   public int run(String[] args) throws Exception {
@@ -83,6 +82,9 @@ public class Query3_1 extends Configured implements Tool {
         DateParser.parseOrDefault(args[6], DateParser.MAX) : DateParser.MAX;
 
     // USER PARAMETERS RESUME
+    System.out.println("############################################################################");
+    System.out.printf("%s\n", PROGRAM_NAME);
+    System.out.println("****************************************************************************");
     System.out.println("Input: " + input);
     System.out.println("Output: " + output);
     System.out.println("Movie Rank Size: " + rankSize);
@@ -90,6 +92,7 @@ public class Query3_1 extends Configured implements Tool {
     System.out.println("Movie Rating Timestamp Upper Bound (1): " + DateParser.toString(ratingTimestampUB1));
     System.out.println("Movie Rating Timestamp Lower Bound (2): " + DateParser.toString(ratingTimestampLB2));
     System.out.println("Movie Rating Timestamp Upper Bound (2): " + DateParser.toString(ratingTimestampUB2));
+    System.out.println("############################################################################");
 
     // CONTEXT CONFIGURATION
     Configuration config = new Configuration();
@@ -100,7 +103,7 @@ public class Query3_1 extends Configured implements Tool {
     config.setLong("movie.rating.timestamp.ub.2", DateParser.toSeconds(ratingTimestampUB2));
 
     // JOB CONFIGURATION
-    Job job = Job.getInstance(config, JOB_NAME);
+    Job job = Job.getInstance(config, PROGRAM_NAME);
     job.setJarByClass(QuerySort.class);
 
     // MAP CONFIGURATION

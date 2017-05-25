@@ -57,11 +57,9 @@ import java.time.LocalDateTime;
 public class Query1_2 extends Configured implements Tool {
 
   /**
-   * The job name.
+   * The program name.
    */
-  private static final String JOB_NAME = "Query1_2";
-
-
+  private static final String PROGRAM_NAME = "Query1_2";
 
   @Override
   public int run(String[] args) throws Exception {
@@ -80,11 +78,15 @@ public class Query1_2 extends Configured implements Tool {
         DateParser.parseOrDefault(args[4], DateParser.MIN) : DateParser.MIN;
 
     // USER PARAMETERS RESUME
+    System.out.println("############################################################################");
+    System.out.printf("%s\n", PROGRAM_NAME);
+    System.out.println("****************************************************************************");
     System.out.println("Input Ratings: " + inputRatings);
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
     System.out.println("Movie Average Rating Lower Bound: " + averageRatingLowerBound);
     System.out.println("Movie Rating Timestamp Lower Bound: " + DateParser.toString(ratingTimestampLowerBound));
+    System.out.println("############################################################################");
 
     // CONTEXT CONFIGURATION
     Configuration config = new Configuration();
@@ -92,7 +94,7 @@ public class Query1_2 extends Configured implements Tool {
     config.setLong("movie.rating.timestamp.lb", DateParser.toSeconds(ratingTimestampLowerBound));
 
     // JOB CONFIGURATION
-    Job job = Job.getInstance(config, JOB_NAME);
+    Job job = Job.getInstance(config, PROGRAM_NAME);
     job.setJarByClass(Query1_2.class);
     for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());

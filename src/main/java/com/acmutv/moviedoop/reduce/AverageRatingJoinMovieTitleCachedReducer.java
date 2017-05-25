@@ -90,6 +90,7 @@ public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritab
           String movieTitle = movie.get("title");
           this.movieIdToMovieTitle.put(movieId, movieTitle);
         }
+        br.close();
       }
     } catch (IOException exc) {
       exc.printStackTrace();

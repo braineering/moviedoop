@@ -54,9 +54,9 @@ import java.time.LocalDateTime;
 public class QuerySort extends Configured implements Tool {
 
   /**
-   * The job name.
+   * The program name.
    */
-  private static final String JOB_NAME = "QuerySort";
+  private static final String PROGRAM_NAME = "QuerySort";
 
   @Override
   public int run(String[] args) throws Exception {
@@ -76,11 +76,15 @@ public class QuerySort extends Configured implements Tool {
         DateParser.parseOrDefault(args[4], DateParser.MAX) : DateParser.MAX;
 
     // USER PARAMETERS RESUME
+    System.out.println("############################################################################");
+    System.out.printf("%s\n", PROGRAM_NAME);
+    System.out.println("****************************************************************************");
     System.out.println("Input: " + input);
     System.out.println("Output: " + output);
     System.out.println("Movie Rank Size: " + rankSize);
     System.out.println("Movie Rating Timestamp Lower Bound: " + DateParser.toString(ratingTimestampLB));
     System.out.println("Movie Rating Timestamp Upper Bound: " + DateParser.toString(ratingTimestampUB));
+    System.out.println("############################################################################");
 
     // CONTEXT CONFIGURATION
     Configuration config = new Configuration();
@@ -89,7 +93,7 @@ public class QuerySort extends Configured implements Tool {
     config.setLong("movie.rating.timestamp.ub", DateParser.toSeconds(ratingTimestampUB));
 
     // JOB CONFIGURATION
-    Job job = Job.getInstance(config, JOB_NAME);
+    Job job = Job.getInstance(config, PROGRAM_NAME);
     job.setJarByClass(QuerySort.class);
 
     // MAP CONFIGURATION

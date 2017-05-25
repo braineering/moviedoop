@@ -25,16 +25,15 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.FilterRatingsByTimestampMapper;
-import com.acmutv.moviedoop.reduce.AverageRatingJoinMovieTitleCachedReducer;
+import com.acmutv.moviedoop.map.MoviesTopKWithinPeriodMapper;
+import com.acmutv.moviedoop.reduce.MoviesTopKReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -42,75 +41,81 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 
 /**
- * A map/reduce program that returns movies with rate greater/equal to the specified {@code threshold}
- * and valuated starting from the specified {@code startDate}.
- * The program leverages inner joins (replication joins).
- * The program leverages distributed caching (on reducer).
+ * A map/reduce program that returns the top-`rankSize` movies for the period from
+ * `ratingTimestampLB1` to `ratingTimestampUB1` and their rating variation with respect to the
+ * classification in period from `ratingTimestampLB2` to `ratingTimestampUB2`.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query1_2 extends Configured implements Tool {
+public class Query3_1 extends Configured implements Tool {
 
   /**
    * The job name.
    */
-  private static final String JOB_NAME = "Query1_2";
-
-
+  private static final String JOB_NAME = "Query3_1";
 
   @Override
   public int run(String[] args) throws Exception {
-    if (args.length < 4) {
-      System.out.println("Usage: Query1_2 [inputRatings] [inputMovies] [output] [avgRatingLB] (ratingTimestampLB)");
+    if (args.length < 3) {
+      System.out.println("Usage: QuerySort [input] [output] [rankSize] " +
+          "(ratingTimestampLB1) (ratingTimestampUB1) (ratingTimestampLB2) (ratingTimestampUB2)");
       ToolRunner.printGenericCommandUsage(System.out);
       return 2;
     }
 
     // USER PARAMETERS
-    final Path inputRatings = new Path(args[0]);
-    final Path inputMovies = new Path(args[1]);
-    final Path output = new Path(args[2]);
-    final Double averageRatingLowerBound = Double.valueOf(args[3]);
-    final LocalDateTime ratingTimestampLowerBound = (args.length > 4) ?
-        DateParser.parseOrDefault(args[4], DateParser.MIN) : DateParser.MIN;
+    final Path input = new Path(args[0]);
+    final Path output = new Path(args[1]);
+    final Integer rankSize = Integer.valueOf(args[2]);
+    LocalDateTime ratingTimestampLB1 = (args.length > 3) ?
+        DateParser.parseOrDefault(args[3], DateParser.MIN) : DateParser.MIN;
+    LocalDateTime ratingTimestampUB1 = (args.length > 4) ?
+        DateParser.parseOrDefault(args[4], DateParser.MAX) : DateParser.MAX;
+    LocalDateTime ratingTimestampLB2 = (args.length > 5) ?
+        DateParser.parseOrDefault(args[5], DateParser.MIN) : DateParser.MIN;
+    LocalDateTime ratingTimestampUB2 = (args.length > 6) ?
+        DateParser.parseOrDefault(args[6], DateParser.MAX) : DateParser.MAX;
 
     // USER PARAMETERS RESUME
-    System.out.println("Input Ratings: " + inputRatings);
-    System.out.println("Input Movies: " + inputMovies);
+    System.out.println("Input: " + input);
     System.out.println("Output: " + output);
-    System.out.println("Movie Average Rating Lower Bound: " + averageRatingLowerBound);
-    System.out.println("Movie Rating Timestamp Lower Bound: " + DateParser.toString(ratingTimestampLowerBound));
+    System.out.println("Movie Rank Size: " + rankSize);
+    System.out.println("Movie Rating Timestamp Lower Bound (1): " + DateParser.toString(ratingTimestampLB1));
+    System.out.println("Movie Rating Timestamp Upper Bound (1): " + DateParser.toString(ratingTimestampUB1));
+    System.out.println("Movie Rating Timestamp Lower Bound (2): " + DateParser.toString(ratingTimestampLB2));
+    System.out.println("Movie Rating Timestamp Upper Bound (2): " + DateParser.toString(ratingTimestampUB2));
 
     // CONTEXT CONFIGURATION
     Configuration config = new Configuration();
-    config.setDouble("movie.rating.avg.lb", averageRatingLowerBound);
-    config.setLong("movie.rating.timestamp.lb", DateParser.toSeconds(ratingTimestampLowerBound));
+    config.setInt("movie.rank.size", rankSize);
+    config.setLong("movie.rating.timestamp.lb.1", DateParser.toSeconds(ratingTimestampLB1));
+    config.setLong("movie.rating.timestamp.ub.1", DateParser.toSeconds(ratingTimestampUB1));
+    config.setLong("movie.rating.timestamp.lb.2", DateParser.toSeconds(ratingTimestampLB2));
+    config.setLong("movie.rating.timestamp.ub.2", DateParser.toSeconds(ratingTimestampUB2));
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, JOB_NAME);
-    job.setJarByClass(Query1_2.class);
-    for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
-      job.addCacheFile(status.getPath().toUri());
-    }
+    job.setJarByClass(QuerySort.class);
 
     // MAP CONFIGURATION
-    FileInputFormat.addInputPath(job, inputRatings);
-    job.setMapperClass(FilterRatingsByTimestampMapper.class);
+    FileInputFormat.addInputPath(job, input);
+    job.setMapperClass(MoviesTopKWithinPeriodMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(DoubleWritable.class);
 
     // REDUCE CONFIGURATION
-    job.setReducerClass(AverageRatingJoinMovieTitleCachedReducer.class);
+    job.setReducerClass(MoviesTopKReducer.class);
     job.setNumReduceTasks(1);
 
     // OUTPUT CONFIGURATION
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(DoubleWritable.class);
+    job.setOutputKeyClass(NullWritable.class);
+    job.setOutputValueClass(Text.class);
     FileOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION
@@ -124,7 +129,7 @@ public class Query1_2 extends Configured implements Tool {
    * @throws Exception when the program cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new Query1_2(), args);
+    int res = ToolRunner.run(new Configuration(), new Query3_1(), args);
     System.exit(res);
   }
 }

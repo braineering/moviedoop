@@ -29,6 +29,7 @@ import com.acmutv.moviedoop.map.FilterRatingsByTimestampJoinMovieTitleCachedMapp
 import com.acmutv.moviedoop.reduce.AverageRatingFilterReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -37,36 +38,34 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
 import java.time.LocalDateTime;
 
 /**
- * A MapReduce job that returns movies with rate greater/equal to the specified {@code threshold}
+ * A map/reduce program that returns movies with rate greater/equal to the specified {@code threshold}
  * and valuated starting from the specified {@code startDate}.
- * The job leverages inner joins (replication joins).
- * The job leverages distributed caching (on mapper).
+ * The program leverages inner joins (replication joins).
+ * The program leverages distributed caching (on mapper).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query1_3 {
+public class Query1_3 extends Configured implements Tool {
 
   /**
    * The job name.
    */
   private static final String JOB_NAME = "Query1_3";
 
-  /**
-   * The job main method.
-   *
-   * @param args the job arguments.
-   * @throws Exception when job cannot be executed.
-   */
-  public static void main(String[] args) throws Exception {
+  @Override
+  public int run(String[] args) throws Exception {
     if (args.length < 4) {
-      System.err.println("Usage: Query1_3 [inputRatings] [inputMovies] [output] [avgRatingLB] (ratingTimestampLB)");
-      System.exit(1);
+      System.out.println("Usage: Query1_3 [inputRatings] [inputMovies] [output] [avgRatingLB] (ratingTimestampLB)");
+      ToolRunner.printGenericCommandUsage(System.out);
+      return 2;
     }
 
     // USER PARAMETERS
@@ -81,8 +80,8 @@ public class Query1_3 {
     System.out.println("Input Ratings: " + inputRatings);
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
-    System.out.println("Average Rating Lower Bound: " + averageRatingLowerBound);
-    System.out.println("Rating Timestamp Lower Bound: " + DateParser.toString(ratingTimestampLowerBound));
+    System.out.println("Movie Average Rating Lower Bound: " + averageRatingLowerBound);
+    System.out.println("Movie Rating Timestamp Lower Bound: " + DateParser.toString(ratingTimestampLowerBound));
 
     // CONTEXT CONFIGURATION
     Configuration config = new Configuration();
@@ -112,6 +111,17 @@ public class Query1_3 {
     FileOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
+    return job.waitForCompletion(true) ? 0 : 1;
+  }
+
+  /**
+   * The program main method.
+   *
+   * @param args the program arguments.
+   * @throws Exception when the program cannot be executed.
+   */
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(new Configuration(), new Query1_3(), args);
+    System.exit(res);
   }
 }

@@ -25,19 +25,18 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.MoviesJMapper;
-import com.acmutv.moviedoop.map.FilterRatingsByTimestampJMapper;
-import com.acmutv.moviedoop.reduce.AverageRatingJoinMovieTitleReducer;
+import com.acmutv.moviedoop.map.MoviesTopKWithinPeriodMapper;
+import com.acmutv.moviedoop.reduce.MoviesTopKReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -45,66 +44,67 @@ import org.apache.hadoop.util.ToolRunner;
 import java.time.LocalDateTime;
 
 /**
- * A map/reduce program that returns movies with rate greater/equal to the specified {@code threshold}
- * and valuated starting from the specified {@code startDate}.
- * The program leverages inner joins (repartition joins).
+ * A map/reduce program that returns the total classification of movies for the period from
+ * `ratingTimestampLB` and `ratingTimestampUB`.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query1_1 extends Configured implements Tool {
+public class QuerySort extends Configured implements Tool {
 
   /**
    * The job name.
    */
-  private static final String JOB_NAME = "Query1_1";
+  private static final String JOB_NAME = "QuerySort";
 
   @Override
   public int run(String[] args) throws Exception {
-    if (args.length < 4) {
-      System.out.println("Usage: Query1_1 [inputRatings] [inputMovies] [output] [avgRatingLB] (ratingTimestampLB)");
+    if (args.length < 3) {
+      System.out.println("Usage: QuerySort [input] [output] [rankSize] (ratingTimestampLB) (ratingTimestampUB)");
       ToolRunner.printGenericCommandUsage(System.out);
       return 2;
     }
 
     // USER PARAMETERS
-    final Path inputRatings = new Path(args[0]);
-    final Path inputMovies = new Path(args[1]);
-    final Path output = new Path(args[2]);
-    final Double averageRatingLowerBound = Double.valueOf(args[3]);
-    final LocalDateTime ratingTimestampLowerBound = (args.length > 4) ?
-        DateParser.parseOrDefault(args[4], DateParser.MIN) : DateParser.MIN;
+    final Path input = new Path(args[0]);
+    final Path output = new Path(args[1]);
+    final Integer rankSize = Integer.valueOf(args[2]);
+    LocalDateTime ratingTimestampLB = (args.length > 3) ?
+        DateParser.parseOrDefault(args[3], DateParser.MIN) : DateParser.MIN;
+    LocalDateTime ratingTimestampUB = (args.length > 4) ?
+        DateParser.parseOrDefault(args[4], DateParser.MAX) : DateParser.MAX;
 
     // USER PARAMETERS RESUME
-    System.out.println("Input Ratings: " + inputRatings);
-    System.out.println("Input Movies: " + inputMovies);
+    System.out.println("Input: " + input);
     System.out.println("Output: " + output);
-    System.out.println("Movie Average Rating Lower Bound: " + averageRatingLowerBound);
-    System.out.println("Movie Rating Timestamp Lower Bound: " + DateParser.toString(ratingTimestampLowerBound));
+    System.out.println("Movie Rank Size: " + rankSize);
+    System.out.println("Movie Rating Timestamp Lower Bound: " + DateParser.toString(ratingTimestampLB));
+    System.out.println("Movie Rating Timestamp Upper Bound: " + DateParser.toString(ratingTimestampUB));
 
     // CONTEXT CONFIGURATION
     Configuration config = new Configuration();
-    config.setDouble("movie.rating.avg.lb", averageRatingLowerBound);
-    config.setLong("movie.rating.timestamp.lb", DateParser.toSeconds(ratingTimestampLowerBound));
+    config.setInt("movie.rank.size", rankSize);
+    config.setLong("movie.rating.timestamp.lb", DateParser.toSeconds(ratingTimestampLB));
+    config.setLong("movie.rating.timestamp.ub", DateParser.toSeconds(ratingTimestampUB));
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, JOB_NAME);
-    job.setJarByClass(Query1_1.class);
+    job.setJarByClass(QuerySort.class);
 
     // MAP CONFIGURATION
-    MultipleInputs.addInputPath(job, inputRatings, TextInputFormat.class, FilterRatingsByTimestampJMapper.class);
-    MultipleInputs.addInputPath(job, inputMovies, TextInputFormat.class, MoviesJMapper.class);
+    FileInputFormat.addInputPath(job, input);
+    job.setMapperClass(MoviesTopKWithinPeriodMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
-    job.setMapOutputValueClass(Text.class);
+    job.setMapOutputValueClass(DoubleWritable.class);
 
     // REDUCE CONFIGURATION
-    job.setReducerClass(AverageRatingJoinMovieTitleReducer.class);
+    job.setReducerClass(MoviesTopKReducer.class);
     job.setNumReduceTasks(1);
 
     // OUTPUT CONFIGURATION
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(DoubleWritable.class);
+    job.setOutputKeyClass(NullWritable.class);
+    job.setOutputValueClass(Text.class);
     FileOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION

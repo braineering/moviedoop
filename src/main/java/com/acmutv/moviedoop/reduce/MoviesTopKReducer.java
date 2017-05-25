@@ -23,45 +23,32 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query3;
+import com.acmutv.moviedoop.QueryTopK;
 import com.acmutv.moviedoop.struct.BestMap;
-import com.acmutv.moviedoop.util.DateParser;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * The mapper for the {@link Query3} job.
- * It produces the top K movies, expressed by tuples (movieId,rating), rated within the interval
- * {@code startDate} and {@code endDate}.
+ * The reducer for the {@link QueryTopK} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MovieTopKWithinPeriodMapper extends Mapper<Object,Text,NullWritable,Text> {
+public class MoviesTopKReducer extends Reducer<NullWritable,Text,NullWritable,Text> {
 
   /**
-   * The rank size.
+   * The movies rank size.
    */
-  private int rankSize;
-
-  /**
-   * The start date.
-   */
-  private LocalDateTime startDate;
-
-  /**
-   * The end date.
-   */
-  private LocalDateTime endDate;
+  private int moviesRankSize;
 
   /**
    * The rank data structure.
@@ -74,49 +61,39 @@ public class MovieTopKWithinPeriodMapper extends Mapper<Object,Text,NullWritable
   private Text tuple = new Text();
 
   /**
-   * Configures the mapper.
+   * Configures the reducer.
+   *
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.rankSize = Integer.valueOf(ctx.getConfiguration().get("rankSize"));
-    this.startDate = DateParser.parse(ctx.getConfiguration().get("startDate1"));
-    this.endDate = DateParser.parse(ctx.getConfiguration().get("endDate1"));
-    System.out.println("# [SETUP MAP] # rankSize: " + this.rankSize);
-    System.out.println("# [SETUP MAP] # startDate: " + this.startDate);
-    System.out.println("# [SETUP MAP] # endDate: " + this.endDate);
-    this.rank.setMaxSize(this.rankSize);
+    this.moviesRankSize = Integer.valueOf(ctx.getConfiguration().get("movie.rank.size"));
+    this.rank.setMaxSize(this.moviesRankSize);
   }
 
   /**
-   * The mapping routine.
+   * The reduction routine.
    *
    * @param key the input key.
-   * @param value the input value.
+   * @param values the input values.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
-    System.out.println("# [MAP] # Record: " + rating);
-
-    LocalDateTime timestamp = DateParser.parse(rating.get("timestamp"));
-
-    if (timestamp.isAfter(this.startDate) && timestamp.isBefore(this.endDate)) {
-      Long movieId = Long.valueOf(rating.get("movieId"));
-      Double score = Double.valueOf(rating.get("score"));
+  public void reduce(NullWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+    for (Text value : values) {
+      Map<String,String> rankRecord = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
+      System.out.println("# [RED] # Record: " + rankRecord);
+      Long movieId = Long.valueOf(rankRecord.get("movieId"));
+      Double score = Double.valueOf(rankRecord.get("score"));
       this.rank.put(movieId, score);
+      System.out.println("# [RED] # Rank: " + this.rank);
     }
-  }
 
-  /**
-   * Flushes the mapper.
-   * @param ctx the job context.
-   */
-  protected void cleanup(Context ctx) throws IOException, InterruptedException {
-    for (Map.Entry<Long,Double> entry : this.rank.entrySet()) {
+    for (Map.Entry<Long,Double> entry :
+        this.rank.entrySet().stream().sorted((e1,e2)-> e2.getValue().compareTo(e1.getValue())).collect(Collectors.toList())) {
       this.tuple.set(entry.getKey() + "," + entry.getValue());
       ctx.write(NullWritable.get(), this.tuple);
     }
   }
+
 }

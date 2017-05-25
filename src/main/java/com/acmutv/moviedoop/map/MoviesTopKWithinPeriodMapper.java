@@ -23,32 +23,43 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query3;
+import com.acmutv.moviedoop.QueryTopK;
 import com.acmutv.moviedoop.struct.BestMap;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
- * The reducer for the {@link Query3} job.
+ * The mapper for the {@link QueryTopK} job.
+ * It produces the top K movies, expressed by tuples (movieId,rating), rated within the interval
+ * {@code startDate} and {@code endDate}.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MovieTopKReducer extends Reducer<NullWritable,Text,NullWritable,Text> {
+public class MoviesTopKWithinPeriodMapper extends Mapper<Object,Text,NullWritable,Text> {
 
   /**
-   * The rank size.
+   * The movies rank size.
    */
-  private int rankSize;
+  private int moviesRankSize;
+
+  /**
+   * The lower bound for the movie rating timestamp.
+   */
+  private long movieRatingTimestampLowerBound;
+
+  /**
+   * The upper bound for the movie rating timestamp.
+   */
+  private long movieRatingTimestampUpperBound;
 
   /**
    * The rank data structure.
@@ -61,33 +72,47 @@ public class MovieTopKReducer extends Reducer<NullWritable,Text,NullWritable,Tex
   private Text tuple = new Text();
 
   /**
-   * The reduction routine.
+   * Configures the mapper.
+   *
+   * @param ctx the job context.
+   */
+  protected void setup(Context ctx) {
+    this.moviesRankSize = Integer.valueOf(ctx.getConfiguration().get("movie.rank.size"));
+    this.movieRatingTimestampLowerBound = ctx.getConfiguration().getLong("movie.rating.timestamp.lb", Long.MIN_VALUE);
+    this.movieRatingTimestampUpperBound = ctx.getConfiguration().getLong("movie.rating.timestamp.ub", Long.MIN_VALUE);
+    this.rank.setMaxSize(this.moviesRankSize);
+  }
+
+  /**
+   * The mapping routine.
    *
    * @param key the input key.
-   * @param values the input values.
+   * @param value the input value.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(NullWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
-    this.rankSize = Integer.valueOf(ctx.getConfiguration().get("rankSize"));
-    System.out.println("# [SETUP RED] # rankSize: " + this.rankSize);
-    this.rank.setMaxSize(this.rankSize);
+  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
+    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
 
-    for (Text value : values) {
-      Map<String,String> rankRecord = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
-      System.out.println("# [RED] # Record: " + rankRecord);
-      Long movieId = Long.valueOf(rankRecord.get("movieId"));
-      Double score = Double.valueOf(rankRecord.get("score"));
+    long timestamp = Long.valueOf(rating.get("timestamp"));
+    if (timestamp >= this.movieRatingTimestampLowerBound
+        && timestamp >= this.movieRatingTimestampUpperBound) {
+      long movieId = Long.valueOf(rating.get("movieId"));
+      double score = Double.valueOf(rating.get("score"));
       this.rank.put(movieId, score);
-      System.out.println("# [RED] # Rank: " + this.rank);
     }
+  }
 
-    for (Map.Entry<Long,Double> entry :
-        this.rank.entrySet().stream().sorted((e1,e2)-> e2.getValue().compareTo(e1.getValue())).collect(Collectors.toList())) {
+  /**
+   * Flushes the mapper.
+   *
+   * @param ctx the job context.
+   */
+  protected void cleanup(Context ctx) throws IOException, InterruptedException {
+    for (Map.Entry<Long,Double> entry : this.rank.entrySet()) {
       this.tuple.set(entry.getKey() + "," + entry.getValue());
       ctx.write(NullWritable.get(), this.tuple);
     }
   }
-
 }

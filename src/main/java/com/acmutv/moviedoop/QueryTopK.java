@@ -25,10 +25,11 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.MovieTopKWithinPeriodMapper;
-import com.acmutv.moviedoop.reduce.MovieTopKReducer;
+import com.acmutv.moviedoop.map.MoviesTopKWithinPeriodMapper;
+import com.acmutv.moviedoop.reduce.MoviesTopKReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -37,88 +38,87 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
-import java.io.IOException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * A MapReduce job that returns the top-{@code rank} movies for the period from {@code startDate1} to
- * {@code endDate1} and their rating variation with respect to the classification in period from
- * {@code startDate2} to {@code endDate2}.
+ * A map/reduce program that returns the top-`rankSize` movies for the period from `ratingTimestampLB`
+ * and `ratingTimestampUB`.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query3 {
+public class QueryTopK extends Configured implements Tool {
 
   /**
    * The job name.
    */
-  private static final String JOB_NAME = "Query3";
+  private static final String JOB_NAME = "QueryTopK";
 
-  /**
-   * The job main method.
-   *
-   * @param args the job arguments.
-   * @throws Exception when job cannot be executed.
-   */
-  public static void main(String[] args) throws Exception {
+  @Override
+  public int run(String[] args) throws Exception {
     if (args.length < 3) {
-      System.err.println("Usage: Query3 [input] [output] [rankSize] (startDate1) (endDate1) (startDate2) (endDate2)");
-      System.exit(1);
+      System.out.println("Usage: QueryTopK [input] [output] [rankSize] (ratingTimestampLB) (ratingTimestampUB)");
+      ToolRunner.printGenericCommandUsage(System.out);
+      return 2;
     }
 
+    // USER PARAMETERS
     final Path input = new Path(args[0]);
     final Path output = new Path(args[1]);
     final Integer rankSize = Integer.valueOf(args[2]);
-    LocalDateTime startDate1 = (args.length > 3) ?
+    LocalDateTime ratingTimestampLB = (args.length > 3) ?
         DateParser.parseOrDefault(args[3], DateParser.MIN) : DateParser.MIN;
-    LocalDateTime endDate1 = (args.length > 4) ?
+    LocalDateTime ratingTimestampUB = (args.length > 4) ?
         DateParser.parseOrDefault(args[4], DateParser.MAX) : DateParser.MAX;
-    LocalDateTime startDate2 = (args.length > 5) ?
-        DateParser.parseOrDefault(args[5], null) : null;
-    LocalDateTime endDate2 = (args.length > 6 && startDate2 != null) ?
-        DateParser.parseOrDefault(args[6], null) : null;
 
+    // USER PARAMETERS RESUME
     System.out.println("Input: " + input);
     System.out.println("Output: " + output);
-    System.out.println("Rank Size: " + rankSize);
-    System.out.println("Start Date 1: " + DateParser.toString(startDate1));
-    System.out.println("End Date 1: " + DateParser.toString(endDate1));
-    System.out.println("Start Date 2: " + DateParser.toString(startDate2));
-    System.out.println("End Date 2: " + DateParser.toString(endDate2));
+    System.out.println("Movie Rank Size: " + rankSize);
+    System.out.println("Movie Rating Timestamp Lower Bound: " + DateParser.toString(ratingTimestampLB));
+    System.out.println("Movie Rating Timestamp Upper Bound: " + DateParser.toString(ratingTimestampUB));
 
+    // CONTEXT CONFIGURATION
     Configuration config = new Configuration();
-    config.setInt("rankSize", rankSize);
-    config.set("startDate1", DateParser.toString(startDate1));
-    config.set("endDate1", DateParser.toString(endDate1));
-    config.set("startDate2", DateParser.toString(startDate2));
-    config.set("endDate2", DateParser.toString(endDate2));
+    config.setInt("movie.rank.size", rankSize);
+    config.setLong("movie.rating.timestamp.lb", DateParser.toSeconds(ratingTimestampLB));
+    config.setLong("movie.rating.timestamp.ub", DateParser.toSeconds(ratingTimestampUB));
 
-    Job job = configJob(config);
+    // JOB CONFIGURATION
+    Job job = Job.getInstance(config, JOB_NAME);
+    job.setJarByClass(QueryTopK.class);
+
+    // MAP CONFIGURATION
     FileInputFormat.addInputPath(job, input);
+    job.setMapperClass(MoviesTopKWithinPeriodMapper.class);
+    job.setMapOutputKeyClass(LongWritable.class);
+    job.setMapOutputValueClass(DoubleWritable.class);
+
+    // REDUCE CONFIGURATION
+    job.setReducerClass(MoviesTopKReducer.class);
+    job.setNumReduceTasks(1);
+
+    // OUTPUT CONFIGURATION
+    job.setOutputKeyClass(NullWritable.class);
+    job.setOutputValueClass(Text.class);
     FileOutputFormat.setOutputPath(job, output);
 
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
+    // JOB EXECUTION
+    return job.waitForCompletion(true) ? 0 : 1;
   }
 
   /**
-   * Configures job.
+   * The program main method.
    *
-   * @param config the job configuration.
-   * @return the job.
-   * @throws IOException when job cannot be configured.
+   * @param args the program arguments.
+   * @throws Exception when the program cannot be executed.
    */
-  private static Job configJob(Configuration config) throws IOException {
-    Job job = Job.getInstance(config, JOB_NAME);
-    job.setJarByClass(Query3.class);
-    job.setMapperClass(MovieTopKWithinPeriodMapper.class);
-    job.setReducerClass(MovieTopKReducer.class);
-    job.setOutputKeyClass(NullWritable.class);
-    job.setOutputValueClass(Text.class);
-    job.setNumReduceTasks(1);
-    return job;
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(new Configuration(), new Query1_1(), args);
+    System.exit(res);
   }
 }

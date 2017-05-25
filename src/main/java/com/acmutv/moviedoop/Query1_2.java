@@ -55,7 +55,7 @@ public class Query1_2 {
   /**
    * The job name.
    */
-  private static final String JOB_NAME = "Query1";
+  private static final String JOB_NAME = "Query1_2";
 
   /**
    * The job main method.
@@ -65,7 +65,7 @@ public class Query1_2 {
    */
   public static void main(String[] args) throws Exception {
     if (args.length < 4) {
-      System.err.println("Usage: Query1 [inputRatings] [inputMovies] [output] [ratingThreshold] (startDate)");
+      System.err.println("Usage: Query1_1 [inputRatings] [inputMovies] [output] [ratingThreshold] (startDate)");
       System.exit(1);
     }
 

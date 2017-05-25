@@ -25,22 +25,34 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query1_1;
+import com.acmutv.moviedoop.Query1_4;
 import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.hadoop.io.*;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The mapper for the {@link Query1_1} job.
+ * The mapper for the {@link Query1_4} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class FilterRatingsByScoreAndTimestampMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
+public class FilterRatingsByScoreAndTimestampMapper2 extends Mapper<Object,Text,Text,DoubleWritable> {
+
+  /**
+   * Map (movieId,movieTitle)
+   */
+  private Map<Long,String> movieIdToMovieTitle = new HashMap<>();
 
   /**
    * The movie rating threshold.
@@ -53,9 +65,9 @@ public class FilterRatingsByScoreAndTimestampMapper extends Mapper<Object,Text,L
   private long startDate;
 
   /**
-   * The movie id to emit.
+   * The movie title to emit.
    */
-  private LongWritable movieId = new LongWritable();
+  private Text movieTitle = new Text();
 
   /**
    * The movie rating to emit.
@@ -69,6 +81,23 @@ public class FilterRatingsByScoreAndTimestampMapper extends Mapper<Object,Text,L
   protected void setup(Context ctx) {
     this.ratingThreshold = ctx.getConfiguration().getDouble("ratingThreshold", Double.MIN_VALUE);
     this.startDate = ctx.getConfiguration().getLong("startDate", Long.MIN_VALUE);
+    try {
+      for (URI uri : ctx.getCacheFiles()) {
+        Path path = new Path(uri);
+        BufferedReader br = new BufferedReader(
+            new InputStreamReader(
+                new FileInputStream(path.getName())));
+        String line;
+        while ((line = br.readLine()) != null) {
+          Map<String,String> movie = RecordParser.parse(line, new String[] {"id","title","genres"},",");
+          long movieId = Long.valueOf(movie.get("id"));
+          String movieTitle = movie.get("title");
+          this.movieIdToMovieTitle.put(movieId, movieTitle);
+        }
+      }
+    } catch (IOException exc) {
+      exc.printStackTrace();
+    }
   }
 
   /**
@@ -82,14 +111,14 @@ public class FilterRatingsByScoreAndTimestampMapper extends Mapper<Object,Text,L
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
     Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
+    long movieId = Long.valueOf(rating.get("movieId"));
     double score = Double.valueOf(rating.get("score"));
     long timestamp = Long.valueOf(rating.get("timestamp"));
 
     if (timestamp >= this.startDate && score >= this.ratingThreshold) {
-      Long movieId = Long.valueOf(rating.get("movieId"));
-      this.movieId.set(movieId);
+      this.movieTitle.set(this.movieIdToMovieTitle.get(movieId));
       this.movieRating.set(score);
-      ctx.write(this.movieId, this.movieRating);
+      ctx.write(this.movieTitle, this.movieRating);
     }
   }
 }

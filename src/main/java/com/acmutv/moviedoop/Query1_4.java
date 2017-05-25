@@ -26,7 +26,9 @@
 package com.acmutv.moviedoop;
 
 import com.acmutv.moviedoop.map.FilterRatingsByScoreAndTimestampMapper;
+import com.acmutv.moviedoop.map.FilterRatingsByScoreAndTimestampMapper2;
 import com.acmutv.moviedoop.reduce.MaxRatingJoin2MovieTitleReducer;
+import com.acmutv.moviedoop.reduce.MaxRatingReducer2;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -45,18 +47,18 @@ import java.time.LocalDateTime;
  * A MapReduce job that returns movies with rate greater/equal to the specified {@code threshold}
  * and valuated starting from the specified {@code startDate}.
  * The job leverages inner joins (replication joins).
- * The job leverages distributed caching (on reducer).
+ * The job leverages distributed caching (on mapper).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query1_3 {
+public class Query1_4 {
 
   /**
    * The job name.
    */
-  private static final String JOB_NAME = "Query1_3";
+  private static final String JOB_NAME = "Query1_1";
 
   /**
    * The job main method.
@@ -92,19 +94,22 @@ public class Query1_3 {
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, JOB_NAME);
-    job.setJarByClass(Query1_3.class);
+    job.setJarByClass(Query1_4.class);
     for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
     }
 
     // MAP CONFIGURATION
     FileInputFormat.addInputPath(job, inputRatings);
-    job.setMapperClass(FilterRatingsByScoreAndTimestampMapper.class);
-    job.setMapOutputKeyClass(LongWritable.class);
+    job.setMapperClass(FilterRatingsByScoreAndTimestampMapper2.class);
+    job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(DoubleWritable.class);
 
+    // COMBINE CONFIGURATION
+    job.setCombinerClass(MaxRatingReducer2.class);
+
     // REDUCE CONFIGURATION
-    job.setReducerClass(MaxRatingJoin2MovieTitleReducer.class);
+    job.setReducerClass(MaxRatingReducer2.class);
     job.setNumReduceTasks(1);
 
     // OUTPUT CONFIGURATION

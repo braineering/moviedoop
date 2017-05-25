@@ -25,7 +25,7 @@
  */
 package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query1;
+import com.acmutv.moviedoop.Query1_1;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
@@ -40,10 +40,9 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.zip.GZIPInputStream;
 
 /**
- * The reducer for the {@link Query1} job.
+ * The reducer for the {@link Query1_1} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}

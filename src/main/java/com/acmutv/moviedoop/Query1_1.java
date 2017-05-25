@@ -47,12 +47,12 @@ import java.time.LocalDateTime;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query1 {
+public class Query1_1 {
 
   /**
    * The job name.
    */
-  private static final String JOB_NAME = "Query1";
+  private static final String JOB_NAME = "Query1_1";
 
   /**
    * The job main method.
@@ -62,7 +62,7 @@ public class Query1 {
    */
   public static void main(String[] args) throws Exception {
     if (args.length < 3) {
-      System.err.println("Usage: Query1 [inputRatings] [output] [ratingThreshold] (startDate)");
+      System.err.println("Usage: Query1_1 [inputRatings] [output] [ratingThreshold] (startDate)");
       System.exit(1);
     }
 
@@ -86,7 +86,7 @@ public class Query1 {
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, JOB_NAME);
-    job.setJarByClass(Query1.class);
+    job.setJarByClass(Query1_1.class);
 
     // MAP CONFIGURATION
     FileInputFormat.addInputPath(job, input);

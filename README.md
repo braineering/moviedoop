@@ -26,7 +26,8 @@ where *[JOB]* is the name of the job to build.
 The following jobs are available:
 * **wc** the standard word counter.
 * **query1** the 1st query with no inner join.
-* **query1_2** the 1st query with inner join (replication join).
+* **query1_2** the 1st query with inner join (repartition join).
+* **query1_3** the 1st query with inner join (replication join).
 * **query2** the 2nd query.
 * **query3** the 3rd query with no inner join.
 * **query3_bis** the 3rd query with inner join.

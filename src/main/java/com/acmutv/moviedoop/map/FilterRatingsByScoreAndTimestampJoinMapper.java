@@ -41,7 +41,7 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RatingsFilterMapper extends Mapper<Object, Text, LongWritable, Text> {
+public class FilterRatingsByScoreAndTimestampJoinMapper extends Mapper<Object, Text, LongWritable, Text> {
 
   /**
    * The movie rating threshold.
@@ -86,11 +86,9 @@ public class RatingsFilterMapper extends Mapper<Object, Text, LongWritable, Text
     long movieId = Long.valueOf(rating.get("movieId"));
     double score = Double.valueOf(rating.get("score"));
     long timestamp = Long.valueOf(rating.get("timestamp"));
-    System.out.printf("# MAP # Input (%d,%f,%d)\n", movieId, score, timestamp);
     if (timestamp >= this.startDate && score >= this.ratingThreshold) {
       this.movieId.set(movieId);
       this.movieRating.set("R" + score);
-      System.out.printf("# MAP # Write (%d,%f)\n", movieId, score);
       ctx.write(this.movieId, this.movieRating);
     }
   }

@@ -26,11 +26,8 @@
 package com.acmutv.moviedoop.reduce;
 
 import com.acmutv.moviedoop.Query1;
-import com.acmutv.moviedoop.map.MovieFilterByRatingMapper;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
@@ -41,7 +38,7 @@ import java.io.IOException;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MovieMaxRatingReducer extends Reducer<LongWritable,DoubleWritable,LongWritable,DoubleWritable> {
+public class MaxRatingReducer extends Reducer<LongWritable,DoubleWritable,LongWritable,DoubleWritable> {
 
   /**
    * The movie id to emit.

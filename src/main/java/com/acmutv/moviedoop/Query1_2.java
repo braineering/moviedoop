@@ -25,19 +25,17 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.MoviesMapper;
-import com.acmutv.moviedoop.map.RatingsFilterMapper;
-import com.acmutv.moviedoop.reduce.RatingsMoviesJoinReducer;
+import com.acmutv.moviedoop.map.MoviesJoinMapper;
+import com.acmutv.moviedoop.map.FilterRatingsByScoreAndTimestampJoinMapper;
+import com.acmutv.moviedoop.reduce.MaxRatingJoin1MovieTitleReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.ObjectWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
-import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
@@ -96,13 +94,13 @@ public class Query1_2 {
     job.setJarByClass(Query1_2.class);
 
     // MAP CONFIGURATION
-    MultipleInputs.addInputPath(job, inputRatings, TextInputFormat.class, RatingsFilterMapper.class);
-    MultipleInputs.addInputPath(job, inputMovies, TextInputFormat.class, MoviesMapper.class);
+    MultipleInputs.addInputPath(job, inputRatings, TextInputFormat.class, FilterRatingsByScoreAndTimestampJoinMapper.class);
+    MultipleInputs.addInputPath(job, inputMovies, TextInputFormat.class, MoviesJoinMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(Text.class);
 
     // REDUCE CONFIGURATION
-    job.setReducerClass(RatingsMoviesJoinReducer.class);
+    job.setReducerClass(MaxRatingJoin1MovieTitleReducer.class);
     job.setNumReduceTasks(1);
 
     // OUTPUT CONFIGURATION

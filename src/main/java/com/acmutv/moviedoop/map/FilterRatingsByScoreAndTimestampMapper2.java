@@ -25,7 +25,7 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query1_4;
+import com.acmutv.moviedoop.Query1_3;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
@@ -41,7 +41,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The mapper for the {@link Query1_4} job.
+ * The mapper for the {@link Query1_3} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}

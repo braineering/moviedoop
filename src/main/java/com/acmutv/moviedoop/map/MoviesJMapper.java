@@ -23,22 +23,26 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.map;
 
 import com.acmutv.moviedoop.Query1_1;
-import org.apache.hadoop.io.*;
-import org.apache.hadoop.mapreduce.Reducer;
+import com.acmutv.moviedoop.util.RecordParser;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
- * The reducer for the {@link Query1_1} job.
+ * The mapper for the {@link Query1_1} job.
+ * It emits (movieId,'M'movieTitle).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MaxRatingReducer extends Reducer<LongWritable,DoubleWritable,LongWritable,DoubleWritable> {
+public class MoviesJMapper extends Mapper<Object, Text, LongWritable, Text> {
 
   /**
    * The movie id to emit.
@@ -46,27 +50,23 @@ public class MaxRatingReducer extends Reducer<LongWritable,DoubleWritable,LongWr
   private LongWritable movieId = new LongWritable();
 
   /**
-   * The movie rating to emit.
+   * The movie title to emit.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private Text movieTitle = new Text();
 
   /**
-   * The reduction routine.
+   * The mapping routine.
    *
    * @param key the input key.
-   * @param values the input values.
+   * @param value the input value.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
-    double max = 0.0;
-    for (DoubleWritable value : values) {
-      max = (value.get() > max) ? value.get() : max;
-    }
-    this.movieId.set(key.get());
-    this.movieRating.set(max);
-    ctx.write(this.movieId, this.movieRating);
+  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
+    Map<String,String> movie = RecordParser.parse(value.toString(), new String[] {"id","title","genres"},",");
+    this.movieId.set(Long.valueOf(movie.get("id")));
+    this.movieTitle.set("M" + movie.get("title"));
+    ctx.write(this.movieId, this.movieTitle);
   }
-
 }

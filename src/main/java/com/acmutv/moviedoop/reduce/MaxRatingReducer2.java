@@ -25,7 +25,7 @@
  */
 package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query1_4;
+import com.acmutv.moviedoop.Query1_3;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -33,7 +33,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import java.io.IOException;
 
 /**
- * The reducer for the {@link Query1_4} job.
+ * The reducer for the {@link Query1_3} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}

@@ -25,36 +25,29 @@
  */
 package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query1_2;
-import com.acmutv.moviedoop.model.MovieWritable;
-import com.acmutv.moviedoop.model.RatingsWritable;
+import com.acmutv.moviedoop.Query1_1;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
- * The reducer for the {@link Query1_2} job.
+ * The reducer for the {@link Query1_1} job.
+ * It joins (movieId,rating) and (movieId,movieTitle), and emits (movieTitle,avgRating)
+ * where avgRating is the average rating greater than or equal to `movieAverageRatingLowerBound`.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MaxRatingJoin1MovieTitleReducer extends Reducer<LongWritable, Text, Text, DoubleWritable> {
+public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Text, Text, DoubleWritable> {
 
   /**
-   * The map (movieId, movieRating) for the inner join.
+   * The average rating threshold.
    */
-  private Map<Long, Double> ratings = new HashMap<>();
-
-  /**
-   * The map (movieId,movieTitle) for the inner join.
-   */
-  private Map<Long, String> movies = new HashMap<>();
+  private double movieAverageRatingLowerBound;
 
   /**
    * The movie title to emit.
@@ -64,7 +57,15 @@ public class MaxRatingJoin1MovieTitleReducer extends Reducer<LongWritable, Text,
   /**
    * The movie rating to emit.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private DoubleWritable movieAverageRating = new DoubleWritable();
+
+  /**
+   * Configures the reducer.
+   * @param ctx the job context.
+   */
+  protected void setup(Context ctx) {
+    this.movieAverageRatingLowerBound = ctx.getConfiguration().getDouble("movie.rating.avg.lb", Double.MIN_VALUE);
+  }
 
   /**
    * The reduction routine.
@@ -77,34 +78,26 @@ public class MaxRatingJoin1MovieTitleReducer extends Reducer<LongWritable, Text,
    */
   public void reduce(LongWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
 
-    this.ratings.clear();
-    this.movies.clear();
+    long num = 0L;
+    double avgRating = 0.0;
 
     for (Text value : values) {
-      if (value.toString().startsWith("R")) {
-        long movieId = key.get();
+      if (value.charAt(0) == 'R') { // rating
         double rating = Double.valueOf(value.toString().substring(1));
-        if (this.ratings.getOrDefault(movieId, Double.MIN_VALUE).compareTo(rating) < 0) {
-          this.ratings.put(movieId, rating);
-        }
-      } else if (value.toString().startsWith("M")) {
-        long movieId = key.get();
+        avgRating = ((avgRating * num) + rating) / (num + 1);
+        num += 1;
+      } else if (value.charAt(0) == 'M') { // movie
         String movieTitle = value.toString().substring(1);
-        this.movies.put(movieId, movieTitle);
+        this.movieTitle.set(movieTitle);
       } else {
-        final String errmsg = String.format("Object is neither %s nor %s",
-            RatingsWritable.class.getName(), MovieWritable.class.getName());
+        final String errmsg = String.format("Object %s is neither a rating nor a movie", value.toString());
         throw new IOException(errmsg);
       }
     }
 
-    for (Map.Entry<Long, Double> entryRating : this.ratings.entrySet()) {
-      long movieId = entryRating.getKey();
-      double score = entryRating.getValue();
-      String movieTitle = this.movies.get(movieId);
-      this.movieTitle.set(movieTitle);
-      this.movieRating.set(score);
-      ctx.write(this.movieTitle, this.movieRating);
+    if (avgRating >= this.movieAverageRatingLowerBound) {
+      this.movieAverageRating.set(avgRating);
+      ctx.write(this.movieTitle, this.movieAverageRating);
     }
   }
 

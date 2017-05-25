@@ -24,10 +24,9 @@ Build the job:
     
 where *[JOB]* is the name of the job to build.
 The following jobs are available:
-* **query1_1** the 1st query with no inner join.
-* **query1_2** the 1st query with inner join (repartition join).
-* **query1_3** the 1st query with inner join (replication join, distributed cache on reducer).
-* **query1_4** the 1st query with inner join (replication join, distributed cache on mapper).
+* **query1_1** the 1st query with inner join (repartition join).
+* **query1_2** the 1st query with inner join (replication join, distributed cache on reducer).
+* **query1_3** the 1st query with inner join (replication join, distributed cache on mapper).
 * **query2** the 2nd query.
 * **query3** the 3rd query with no inner join.
 * **query3_bis** the 3rd query with inner join.
@@ -60,29 +59,17 @@ Stop Hadoop:
     $hadoop_home> sbin/stop-dfs.sh
 
 
-### Query1
+### Query1_1
 
-    $hadoop_home> bin/hadoop jar [JAR] [RATINGS] [OUTDIR] [SCORE] (START_DATE)
+    $hadoop_home> bin/hadoop jar [JAR] [RATINGS] [MOVIES] [OUTDIR] [AVG_RATING_LB] (RATING_TIMESTAMP_LB)
     
-where 
-*[JAR]* is the local absolute path to the JAR,
-*[RATINGS]* is the HDFS absolute path to the directory containing the ratings data set,
-*[OUTDIR]* is the HDFS absolute path to the directory for the output,
-*[SCORE]* is the rating threshold and 
-*(START\_DATE)* is the optional lower bound for the timestamp (i.e. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss).
-
-
-### Query1_2
-
-    $hadoop_home> bin/hadoop jar [JAR] [RATINGS] [MOVIES] [OUTDIR] [SCORE] (START_DATE)
-    
-where 
-*[JAR]* is the local absolute path to the JAR,
-*[RATINGS]* is the HDFS absolute path to the directory containing the ratings data set,
-*[RATINGS]* is the HDFS absolute path to the directory containing the movies data set,
-*[OUTDIR]* is the HDFS absolute path to the directory for the output,
-*[SCORE]* is the rating threshold and 
-*(START\_DATE)* is the optional lower bound for the timestamp (i.e. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss).
+where:
+* *[JAR]* is the local absolute path to the JAR,
+* *[RATINGS]* is the HDFS absolute path to the directory containing the ratings data set,
+* *[MOVIES]* is the HDFS absolute path to the directory containing the movies data set,
+* *[OUTDIR]* is the HDFS absolute path to the directory for the output,
+* *[AVG_RATING_LB]* is the lower bound for the average rating and 
+* *(RATING_TIMESTAMP_LB)* is the optional lower bound for the rating timestamp (i.e. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss).
 
 
 ## Authors

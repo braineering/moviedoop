@@ -25,49 +25,34 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query1_4;
+import com.acmutv.moviedoop.Query1_1;
 import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Mapper;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URI;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The mapper for the {@link Query1_4} job.
+ * The mapper for the {@link Query1_1} job.
+ * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
+ * the `movieRatingTimestampLowerBound`.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class FilterRatingsByScoreAndTimestampMapper2 extends Mapper<Object,Text,Text,DoubleWritable> {
+public class FilterRatingsByTimestampMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
 
   /**
-   * Map (movieId,movieTitle)
+   * The lower bound for the movie rating timestamp.
    */
-  private Map<Long,String> movieIdToMovieTitle = new HashMap<>();
+  private long movieRatingTimestampLowerBound;
 
   /**
-   * The movie rating threshold.
+   * The movie id to emit.
    */
-  private Double ratingThreshold;
-
-  /**
-   * The starting date for movie rating.
-   */
-  private long startDate;
-
-  /**
-   * The movie title to emit.
-   */
-  private Text movieTitle = new Text();
+  private LongWritable movieId = new LongWritable();
 
   /**
    * The movie rating to emit.
@@ -79,25 +64,7 @@ public class FilterRatingsByScoreAndTimestampMapper2 extends Mapper<Object,Text,
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.ratingThreshold = ctx.getConfiguration().getDouble("ratingThreshold", Double.MIN_VALUE);
-    this.startDate = ctx.getConfiguration().getLong("startDate", Long.MIN_VALUE);
-    try {
-      for (URI uri : ctx.getCacheFiles()) {
-        Path path = new Path(uri);
-        BufferedReader br = new BufferedReader(
-            new InputStreamReader(
-                new FileInputStream(path.getName())));
-        String line;
-        while ((line = br.readLine()) != null) {
-          Map<String,String> movie = RecordParser.parse(line, new String[] {"id","title","genres"},",");
-          long movieId = Long.valueOf(movie.get("id"));
-          String movieTitle = movie.get("title");
-          this.movieIdToMovieTitle.put(movieId, movieTitle);
-        }
-      }
-    } catch (IOException exc) {
-      exc.printStackTrace();
-    }
+    this.movieRatingTimestampLowerBound = ctx.getConfiguration().getLong("movie.rating.timestamp.lb", Long.MIN_VALUE);
   }
 
   /**
@@ -111,14 +78,14 @@ public class FilterRatingsByScoreAndTimestampMapper2 extends Mapper<Object,Text,
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
     Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
-    long movieId = Long.valueOf(rating.get("movieId"));
-    double score = Double.valueOf(rating.get("score"));
-    long timestamp = Long.valueOf(rating.get("timestamp"));
 
-    if (timestamp >= this.startDate && score >= this.ratingThreshold) {
-      this.movieTitle.set(this.movieIdToMovieTitle.get(movieId));
+    long timestamp = Long.valueOf(rating.get("timestamp"));
+    if (timestamp >= this.movieRatingTimestampLowerBound) {
+      long movieId = Long.valueOf(rating.get("movieId"));
+      double score = Double.valueOf(rating.get("score"));
+      this.movieId.set(movieId);
       this.movieRating.set(score);
-      ctx.write(this.movieTitle, this.movieRating);
+      ctx.write(this.movieId, this.movieRating);
     }
   }
 }

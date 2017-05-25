@@ -27,7 +27,7 @@ package com.acmutv.moviedoop;
 
 import com.acmutv.moviedoop.map.GenresMapper;
 import com.acmutv.moviedoop.map.RatingsMapper;
-import com.acmutv.moviedoop.reduce.RatingsMoviesJoinReducer;
+import com.acmutv.moviedoop.reduce.RatingsGenresJoinReducer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
@@ -89,7 +89,7 @@ public class Query2 {
     job.setMapOutputValueClass(Text.class);
 
     // REDUCERS CONFIGURATION
-    job.setReducerClass(RatingsMoviesJoinReducer.class);
+    job.setReducerClass(RatingsGenresJoinReducer.class);
     job.setNumReduceTasks(1);
 
     // OUTPUT CONFIGURATION

@@ -25,21 +25,14 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.FilterRatingsByScoreAndTimestampMapper;
 import com.acmutv.moviedoop.map.GenresMapper;
 import com.acmutv.moviedoop.map.RatingsMapper;
-import com.acmutv.moviedoop.reduce.MaxRatingJoin2MovieTitleReducer;
 import com.acmutv.moviedoop.reduce.RatingsGenresJoinReducer;
-import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -85,7 +78,6 @@ public class Query2 {
     // CONTEXT CONFIGURATION
     Configuration config = new Configuration();
 
-    /* OLD JOIN
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, JOB_NAME);
     job.setJarByClass(Query2.class);
@@ -101,32 +93,6 @@ public class Query2 {
     job.setNumReduceTasks(1);
 
     // OUTPUT CONFIGURATION
-    FileOutputFormat.setOutputPath(job, output);
-
-    // JOB EXECUTION
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
-    */
-
-    // JOB CONFIGURATION
-    Job job = Job.getInstance(config, JOB_NAME);
-    job.setJarByClass(Query2.class);
-    for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
-      job.addCacheFile(status.getPath().toUri());
-    }
-
-    // MAP CONFIGURATION
-    FileInputFormat.addInputPath(job, inputRatings);
-    job.setMapperClass(RatingsMapper.class);
-    job.setMapOutputKeyClass(LongWritable.class);
-    job.setMapOutputValueClass(DoubleWritable.class);
-
-    // REDUCE CONFIGURATION
-    job.setReducerClass(MaxRatingJoin2MovieTitleReducer.class);
-    job.setNumReduceTasks(1);
-
-    // OUTPUT CONFIGURATION
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(DoubleWritable.class);
     FileOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION

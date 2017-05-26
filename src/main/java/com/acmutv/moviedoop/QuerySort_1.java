@@ -90,7 +90,12 @@ public class QuerySort_1 extends Configured implements Tool {
   /**
    * The default frequency for sorting partitioner.
    */
-  private static final double MOVIE_SORTING_PARTITION_FREQUENCY = .01;
+  private static final double MOVIE_SORTING_PARTITION_FREQUENCY = 0.01;
+
+  /**
+   * The default maximum number of splits for sorting partition.
+   */
+  private static final int MOVIE_SORTING_PARTITION_SPLITS_MAX = 100;
 
   @Override
   public int run(String[] args) throws Exception {
@@ -116,9 +121,11 @@ public class QuerySort_1 extends Configured implements Tool {
     final int SORTING_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.sorting.reduce.cardinality", String.valueOf(MOVIE_SORTING_REDUCE_CARDINALITY)));
     final int SORTING_PARTITION_SAMPLES = Integer.valueOf(config.get("movie.sorting.partition.samples", String.valueOf(MOVIE_SORTING_PARTITION_SAMPLES)));
     final double SORTING_PARTITION_FREQUENCY = Double.valueOf(config.get("movie.sorting.partition.frequency", String.valueOf(MOVIE_SORTING_PARTITION_FREQUENCY)));
+    final int SORTING_PARTITION_SPLITS_MAX = Integer.valueOf(config.get("movie.sorting.partition.splits.max", String.valueOf(MOVIE_SORTING_PARTITION_SPLITS_MAX)));
     config.unset("movie.sorting.reduce.cardinality");
     config.unset("movie.sorting.partition.samples");
     config.unset("movie.sorting.partition.frequency");
+    config.unset("movie.sorting.partition.splits.max");
 
     // CONTEXT RESUME
     System.out.println("############################################################################");
@@ -132,6 +139,7 @@ public class QuerySort_1 extends Configured implements Tool {
     System.out.println("Movie Sorting Reduce Cardinality: " + SORTING_REDUCE_CARDINALITY);
     System.out.println("Movie Sorting Partition Samples: " + SORTING_PARTITION_SAMPLES);
     System.out.println("Movie Sorting Partition Frequency: " + SORTING_PARTITION_FREQUENCY);
+    System.out.println("Movie Sorting Partition Max Splits: " + SORTING_PARTITION_SPLITS_MAX);
     System.out.println("############################################################################");
 
     // JOB AVERAGE RATINGS: CONFIGURATION
@@ -200,10 +208,11 @@ public class QuerySort_1 extends Configured implements Tool {
 
       // JOB SORT BY AVERAGE RATING: PARTITIONER CONFIGURATION
       if (SORTING_REDUCE_CARDINALITY > 1) {
-        //jobSortByRating.setPartitionerClass(TotalOrderPartitioner.class);
-        //TotalOrderPartitioner.setPartitionFile(jobSortByRating.getConfiguration(), parts);
-        //jobSortByRating.getConfiguration().set("mapreduce.output.textoutputformat.separator", "");
-        //InputSampler.RandomSampler<Text,Text> sampler = new InputSampler.RandomSampler<>(SORTING_PARTITION_FREQUENCY, SORTING_PARTITION_SAMPLES, 100);
+        jobSortByRating.setPartitionerClass(TotalOrderPartitioner.class);
+        TotalOrderPartitioner.setPartitionFile(jobSortByRating.getConfiguration(), parts);
+        jobSortByRating.getConfiguration().set("mapreduce.output.textoutputformat.separator", "");
+        InputSampler.RandomSampler<Text,Text> sampler = new InputSampler.RandomSampler<>(SORTING_PARTITION_FREQUENCY, SORTING_PARTITION_SAMPLES, SORTING_PARTITION_SPLITS_MAX);
+        InputSampler.writePartitionFile(jobSortByRating, sampler);
       }
 
       // JOB SORT BY AVERAGE RATING: EXECUTION

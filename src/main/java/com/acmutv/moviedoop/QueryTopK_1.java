@@ -129,26 +129,26 @@ public class QueryTopK_1 extends Configured implements Tool {
     int code = jobAverageRatings.waitForCompletion(true) ? 0 : 1;
 
     if (code == 0) {
-      // JOB AVERAGE: CONFIGURATION
-      Job jobTopRatings = Job.getInstance(config, PROGRAM_NAME + "_TOP-RATINGS");
+      // JOB TOP BY RATING: CONFIGURATION
+      Job jobTopRatings = Job.getInstance(config, PROGRAM_NAME + "_TOP-BY-RATING");
       jobTopRatings.setJarByClass(QueryTopK_1.class);
 
-      // JOB AVERAGE: MAP CONFIGURATION
+      // JOB TOP BY RATING: MAP CONFIGURATION
       FileInputFormat.addInputPath(jobTopRatings, staging);
       jobTopRatings.setMapperClass(MoviesTopKTreeMapMapper.class);
       jobTopRatings.setMapOutputKeyClass(NullWritable.class);
       jobTopRatings.setMapOutputValueClass(Text.class);
 
-      // JOB AVERAGE: REDUCE CONFIGURATION
+      // JOB TOP BY RATING: REDUCE CONFIGURATION
       jobTopRatings.setReducerClass(MoviesTopKTreeMapReducer.class);
       jobTopRatings.setNumReduceTasks(1);
 
-      // JOB AVERAGE: OUTPUT CONFIGURATION
+      // JOB TOP BY RATING: OUTPUT CONFIGURATION
       jobTopRatings.setOutputKeyClass(NullWritable.class);
       jobTopRatings.setOutputValueClass(Text.class);
       FileOutputFormat.setOutputPath(jobTopRatings, output);
 
-      // JOB AVERAGE: JOB EXECUTION
+      // JOB TOP BY RATING: JOB EXECUTION
       code = jobTopRatings.waitForCompletion(true) ? 0 : 1;
     }
 

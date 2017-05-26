@@ -78,7 +78,7 @@ public class Query1_1 extends Configured implements Tool {
       return 2;
     }
 
-    // USER PARAMETERS
+    // PATHS
     final Path inputRatings = new Path(args[0]);
     final Path inputMovies = new Path(args[1]);
     final Path output = new Path(args[2]);

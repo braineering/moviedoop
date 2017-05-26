@@ -25,10 +25,10 @@
  */
 package com.acmutv.moviedoop;
 
+import com.acmutv.moviedoop.map.AverageRatingAsKeyMapper;
 import com.acmutv.moviedoop.map.FilterRatingsByTimeIntervalMapper;
-import com.acmutv.moviedoop.map.MoviesTopKTreeMapMapper;
 import com.acmutv.moviedoop.reduce.AverageRatingReducer;
-import com.acmutv.moviedoop.reduce.MoviesTopKTreeMapReducer;
+import com.acmutv.moviedoop.reduce.ValueReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -39,8 +39,13 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
+import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -72,6 +77,21 @@ public class QuerySort_1 extends Configured implements Tool {
    */
   private static final LocalDateTime MOVIE_RATINGS_TIMESTAMP_UB = DateParser.MAX;
 
+  /**
+   * The default number of sorting reducers.
+   */
+  private static final int MOVIE_SORTING_REDUCE_CARDINALITY = 10;
+
+  /**
+   * The default number of sorting partitioner samples.
+   */
+  private static final int MOVIE_SORTING_PARTITION_SAMPLES = 10;
+
+  /**
+   * The default frequency for sorting partitioner.
+   */
+  private static final double MOVIE_SORTING_PARTITION_FREQUENCY = .01;
+
   @Override
   public int run(String[] args) throws Exception {
     if (args.length < 2) {
@@ -82,13 +102,23 @@ public class QuerySort_1 extends Configured implements Tool {
 
     // PATHS
     final Path input = new Path(args[0]);
-    final Path staging = new Path(args[1] + "_staging");
+    final Path parts = new Path(args[1] + "_partitions.lst");
+    final Path staging1 = new Path(args[1] + "_staging1");
+    final Path staging2 = new Path(args[1] + "_staging2");
     final Path output = new Path(args[1]);
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
     config.setIfUnset("movie.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
     config.setIfUnset("movie.rating.timestamp.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_UB));
+
+    // OTHER CONFIGURATION
+    final int SORTING_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.sorting.reduce.cardinality", String.valueOf(MOVIE_SORTING_REDUCE_CARDINALITY)));
+    final int SORTING_PARTITION_SAMPLES = Integer.valueOf(config.get("movie.sorting.partition.samples", String.valueOf(MOVIE_SORTING_PARTITION_SAMPLES)));
+    final double SORTING_PARTITION_FREQUENCY = Double.valueOf(config.get("movie.sorting.partition.frequency", String.valueOf(MOVIE_SORTING_PARTITION_FREQUENCY)));
+    config.unset("movie.sorting.reduce.cardinality");
+    config.unset("movie.sorting.partition.samples");
+    config.unset("movie.sorting.partition.frequency");
 
     // CONTEXT RESUME
     System.out.println("############################################################################");
@@ -98,6 +128,10 @@ public class QuerySort_1 extends Configured implements Tool {
     System.out.println("Output: " + output);
     System.out.println("Movie Rating Timestamp Lower Bound (Total Ranking): " + config.get("movie.rating.timestamp.lb"));
     System.out.println("Movie Rating Timestamp Upper Bound (Total Ranking): " + config.get("movie.rating.timestamp.ub"));
+    System.out.println("----------------------------------------------------------------------------");
+    System.out.println("Movie Sorting Reduce Cardinality: " + SORTING_REDUCE_CARDINALITY);
+    System.out.println("Movie Sorting Partition Samples: " + SORTING_PARTITION_SAMPLES);
+    System.out.println("Movie Sorting Partition Frequency: " + SORTING_PARTITION_FREQUENCY);
     System.out.println("############################################################################");
 
     // JOB AVERAGE RATINGS: CONFIGURATION
@@ -117,37 +151,67 @@ public class QuerySort_1 extends Configured implements Tool {
     // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION
     jobAverageRatings.setOutputKeyClass(NullWritable.class);
     jobAverageRatings.setOutputValueClass(Text.class);
-    FileOutputFormat.setOutputPath(jobAverageRatings, staging);
+    FileOutputFormat.setOutputPath(jobAverageRatings, staging1);
 
     // JOB AVERAGE RATINGS: EXECUTION
     int code = jobAverageRatings.waitForCompletion(true) ? 0 : 1;
 
     if (code == 0) {
-      // JOB AVERAGE: CONFIGURATION
-      Job jobTopRatings = Job.getInstance(config, PROGRAM_NAME + "_TOP-RATINGS");
-      jobTopRatings.setJarByClass(QuerySort_1.class);
+      // JOB RATING AS KEY: CONFIGURATION
+      Job jobRatingAsKey = Job.getInstance(config, PROGRAM_NAME + "_RATING-AS-KEY");
+      jobRatingAsKey.setJarByClass(QuerySort_1.class);
 
-      // JOB AVERAGE: MAP CONFIGURATION
-      FileInputFormat.addInputPath(jobTopRatings, staging);
-      jobTopRatings.setMapperClass(MoviesTopKTreeMapMapper.class);
-      jobTopRatings.setMapOutputKeyClass(NullWritable.class);
-      jobTopRatings.setMapOutputValueClass(Text.class);
+      // JOB RATING AS KEY: MAP CONFIGURATION
+      FileInputFormat.addInputPath(jobRatingAsKey, staging1);
+      jobRatingAsKey.setMapperClass(AverageRatingAsKeyMapper.class);
 
-      // JOB AVERAGE: REDUCE CONFIGURATION
-      jobTopRatings.setReducerClass(MoviesTopKTreeMapReducer.class);
-      jobTopRatings.setNumReduceTasks(1);
+      // JOB RATING AS KEY: REDUCE CONFIGURATION
+      jobRatingAsKey.setNumReduceTasks(0);
 
-      // JOB AVERAGE: OUTPUT CONFIGURATION
-      jobTopRatings.setOutputKeyClass(NullWritable.class);
-      jobTopRatings.setOutputValueClass(Text.class);
-      FileOutputFormat.setOutputPath(jobTopRatings, output);
+      // JOB RATING AS KEY: OUTPUT CONFIGURATION
+      jobRatingAsKey.setOutputKeyClass(Text.class);
+      jobRatingAsKey.setOutputValueClass(Text.class);
+      jobRatingAsKey.setOutputFormatClass(SequenceFileOutputFormat.class);
+      SequenceFileOutputFormat.setOutputPath(jobRatingAsKey, staging2);
 
-      // JOB AVERAGE: JOB EXECUTION
-      code = jobTopRatings.waitForCompletion(true) ? 0 : 1;
+      // JOB RATING AS KEY: JOB EXECUTION
+      code = jobRatingAsKey.waitForCompletion(true) ? 0 : 1;
+    }
+
+    if (code == 0) {
+      // JOB SORT BY AVERAGE RATING: CONFIGURATION
+      Job jobSortByRating = Job.getInstance(config, PROGRAM_NAME + "_SORT-BY-AVERAGE-RATING");
+      jobSortByRating.setJarByClass(QuerySort_1.class);
+
+      // JOB SORT BY AVERAGE RATING: MAP CONFIGURATION
+      jobSortByRating.setInputFormatClass(SequenceFileInputFormat.class);
+      SequenceFileInputFormat.addInputPath(jobSortByRating, staging2);
+      jobSortByRating.setMapperClass(Mapper.class);
+
+      // JOB SORT BY AVERAGE RATING: REDUCE CONFIGURATION
+      jobSortByRating.setReducerClass(ValueReducer.class);
+      jobSortByRating.setNumReduceTasks(SORTING_REDUCE_CARDINALITY);
+
+      // JOB SORT BY AVERAGE RATING: OUTPUT CONFIGURATION
+      jobSortByRating.setOutputKeyClass(Text.class);
+      jobSortByRating.setOutputValueClass(Text.class);
+      FileOutputFormat.setOutputPath(jobSortByRating, output);
+
+      // JOB SORT BY AVERAGE RATING: PARTITIONER CONFIGURATION
+      //jobSortByRating.setPartitionerClass(TotalOrderPartitioner.class);
+      //TotalOrderPartitioner.setPartitionFile(jobSortByRating.getConfiguration(), parts);
+      //jobSortByRating.getConfiguration().set("mapreduce.output.textoutputformat.separator", "");
+      //InputSampler.RandomSampler<Text,Text> sampler = new InputSampler.RandomSampler<>(SORTING_PARTITION_FREQUENCY, SORTING_PARTITION_SAMPLES, 100);
+
+      // JOB SORT BY AVERAGE RATING: EXECUTION
+      code = jobSortByRating.waitForCompletion(true) ? 0 : 1;
     }
 
     // CLEAN STAGING OUTPUT
-    FileSystem.get(config).delete(staging, true);
+    FileSystem fs = FileSystem.get(config);
+    fs.delete(staging1, true);
+    fs.delete(staging2, true);
+    fs.delete(parts, true);
 
     return code;
   }

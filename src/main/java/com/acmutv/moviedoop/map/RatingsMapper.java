@@ -27,6 +27,7 @@ package com.acmutv.moviedoop.map;
 
 import com.acmutv.moviedoop.Query2;
 import com.acmutv.moviedoop.util.RecordParser;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -36,12 +37,14 @@ import java.util.Map;
 
 /**
  * The mapper for the {@link Query2} job.
+ * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
+ * the `movieRatingTimestampLowerBound`.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RatingsMapper extends Mapper<Object, Text, LongWritable, Text> {
+public class RatingsMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
 
   /**
    * The movie id to emit.
@@ -51,7 +54,8 @@ public class RatingsMapper extends Mapper<Object, Text, LongWritable, Text> {
   /**
    * The movie rating to emit.
    */
-  private Text movieRating = new Text();
+  private DoubleWritable movieRating = new DoubleWritable();
+
 
   /**
    * The mapping routine.
@@ -63,16 +67,12 @@ public class RatingsMapper extends Mapper<Object, Text, LongWritable, Text> {
    * @throws InterruptedException when the context cannot be written.
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-
     Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
+
     long movieId = Long.valueOf(rating.get("movieId"));
     double score = Double.valueOf(rating.get("score"));
-    System.out.printf("# MAP # Input (%d,%f)\n", movieId, score);
-
     this.movieId.set(movieId);
-    this.movieRating.set("R" + score);
-    System.out.printf("# MAP # Write (%d,%f)\n", movieId, score);
+    this.movieRating.set(score);
     ctx.write(this.movieId, this.movieRating);
-
   }
 }

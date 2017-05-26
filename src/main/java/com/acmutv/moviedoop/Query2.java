@@ -27,14 +27,16 @@ package com.acmutv.moviedoop;
 
 import com.acmutv.moviedoop.map.GenresMapper;
 import com.acmutv.moviedoop.map.RatingsMapper;
-import com.acmutv.moviedoop.reduce.RatingsGenresJoinReducer;
+import com.acmutv.moviedoop.reduce.Query2RatingJoinGenreCachedReducer;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 /**
@@ -82,7 +84,7 @@ public class Query2 {
     Job job = Job.getInstance(config, JOB_NAME);
     job.setJarByClass(Query2.class);
 
-    // MAPPERS CONFIGURATION
+   /* // MAPPERS CONFIGURATION
     MultipleInputs.addInputPath(job, inputRatings, TextInputFormat.class, RatingsMapper.class);
     MultipleInputs.addInputPath(job, inputMovies, TextInputFormat.class, GenresMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
@@ -96,6 +98,29 @@ public class Query2 {
     FileOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION
+    System.exit(job.waitForCompletion(true) ? 0 : 1);*/
+
+    for (FileStatus status : FileSystem.get(config).listStatus(inputRatings)) {
+      job.addCacheFile(status.getPath().toUri());
+    }
+
+    // MAP CONFIGURATION
+    FileInputFormat.addInputPath(job, inputMovies);
+    job.setMapperClass(RatingsMapper.class);
+    job.setMapOutputKeyClass(LongWritable.class);
+    job.setMapOutputValueClass(DoubleWritable.class);
+
+    // REDUCE CONFIGURATION
+    job.setReducerClass(Query2RatingJoinGenreCachedReducer.class);
+    job.setNumReduceTasks(1);
+
+    // OUTPUT CONFIGURATION
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(DoubleWritable.class);
+    FileOutputFormat.setOutputPath(job, output);
+
+    // JOB EXECUTION
     System.exit(job.waitForCompletion(true) ? 0 : 1);
+
   }
 }

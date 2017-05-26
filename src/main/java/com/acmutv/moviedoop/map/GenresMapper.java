@@ -25,7 +25,6 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query1_2;
 import com.acmutv.moviedoop.Query2;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.LongWritable;
@@ -36,6 +35,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
 
 /**
  * The mapper for the {@link Query2} job.
@@ -67,12 +67,11 @@ public class GenresMapper extends Mapper<Object, Text, LongWritable, Text> {
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
     Map<String,String> movie = RecordParser.parse(value.toString(), new String[] {"id","title","genres"},",");
+
     this.movieId.set(Long.valueOf(movie.get("id")));
-
     List<String> genres = Arrays.asList(movie.get("genres").split("|"));
-
     for (String genre: genres) {
-      this.genre.set("G" + genre);
+      this.genre.set(genre);
       System.out.println("Genre = "+ this.genre);
       ctx.write(this.movieId, this.genre);
     }

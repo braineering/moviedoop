@@ -104,6 +104,8 @@ public class RatingsGenresJoinReducer extends Reducer<LongWritable, Text, Text, 
       double score = entryRating.getValue();
       String movieGenre = this.genres.get(movieId);
 
+      //
+
       this.genre.set(movieGenre);
       this.movieRating.set(score);
       System.out.printf("# RED # Write (%s,%f)\n", movieGenre, score);

@@ -74,9 +74,9 @@ public class FilterRatingsByTimeIntervalMapper extends Mapper<Object,Text,LongWr
    */
   protected void setup(Context ctx) {
     this.movieRatingTimestampLowerBound =
-        DateParser.toSeconds(ctx.getConfiguration().get("movie.topk.timestamp.lb"));
+        DateParser.toSeconds(ctx.getConfiguration().get("movie.topk.rating.timestamp.lb"));
     this.movieRatingTimestampUpperBound =
-        DateParser.toSeconds(ctx.getConfiguration().get("movie.topk.timestamp.ub"));
+        DateParser.toSeconds(ctx.getConfiguration().get("movie.topk.rating.timestamp.ub"));
   }
 
   /**

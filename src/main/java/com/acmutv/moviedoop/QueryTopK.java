@@ -92,8 +92,8 @@ public class QueryTopK extends Configured implements Tool {
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
     config.setIfUnset("movie.topk.size", String.valueOf(MOVIE_RANK_SIZE));
-    config.setIfUnset("movie.topk.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
-    config.setIfUnset("movie.topk.timestamp.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_UB));
+    config.setIfUnset("movie.topk.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
+    config.setIfUnset("movie.topk.rating.timestamp.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_UB));
 
     // CONTEXT RESUME
     System.out.println("############################################################################");
@@ -102,8 +102,8 @@ public class QueryTopK extends Configured implements Tool {
     System.out.println("Input: " + input);
     System.out.println("Output: " + output);
     System.out.println("Movie Top Rank Size: " + config.get("movie.topk.size"));
-    System.out.println("Movie Rating Timestamp Lower Bound (Top Ranking): " + config.get("movie.topk.timestamp.lb"));
-    System.out.println("Movie Rating Timestamp Upper Bound (Top Ranking): " + config.get("movie.topk.timestamp.ub"));
+    System.out.println("Movie Rating Timestamp Lower Bound (Top Ranking): " + config.get("movie.topk.rating.timestamp.lb"));
+    System.out.println("Movie Rating Timestamp Upper Bound (Top Ranking): " + config.get("movie.topk.rating.timestamp.ub"));
     System.out.println("############################################################################");
 
     // JOB AVERAGE RATINGS: CONFIGURATION

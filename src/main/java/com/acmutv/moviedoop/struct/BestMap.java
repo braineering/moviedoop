@@ -106,7 +106,8 @@ public class BestMap extends HashMap<Long,Double> {
         }
       }
       //LOGGER.debug("min ({},{})", this.minKey, this.minValue);
-    } else */if (super.size() < this.maxSize) {
+    } else */
+    if (super.size() < this.maxSize) {
       res = super.put(key, value);
       //LOGGER.debug("added ({},{})", key, value);
       if (value < this.minValue) {
@@ -114,7 +115,7 @@ public class BestMap extends HashMap<Long,Double> {
         this.minValue  = value;
         //LOGGER.debug("min ({},{})", this.minKey, this.minValue);
       }
-    } else if (value > this.minValue) {
+    } else if (value >= this.minValue) {
       super.remove(this.minKey);
       //LOGGER.debug("removed ({})", this.minKey);
       res = super.put(key, value);

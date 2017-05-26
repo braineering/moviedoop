@@ -105,7 +105,7 @@ public class QueryTopK_2 extends Configured implements Tool {
     System.out.println("Input: " + input);
     System.out.println("Output: " + output);
     System.out.println("Movie Top Rank Size: " + config.get("movie.topk.size"));
-    System.out.println("Movie Rating Timestamp Lower Bound (Top Ranking): " + config.get("movie..timestamp.lb"));
+    System.out.println("Movie Rating Timestamp Lower Bound (Top Ranking): " + config.get("movie.rating.timestamp.lb"));
     System.out.println("Movie Rating Timestamp Upper Bound (Top Ranking): " + config.get("movie.rating.timestamp.ub"));
     System.out.println("############################################################################");
 

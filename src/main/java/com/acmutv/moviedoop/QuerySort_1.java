@@ -80,12 +80,12 @@ public class QuerySort_1 extends Configured implements Tool {
   /**
    * The default number of sorting reducers.
    */
-  private static final int MOVIE_SORTING_REDUCE_CARDINALITY = 10;
+  private static final int MOVIE_SORTING_REDUCE_CARDINALITY = 1;
 
   /**
    * The default number of sorting partitioner samples.
    */
-  private static final int MOVIE_SORTING_PARTITION_SAMPLES = 10;
+  private static final int MOVIE_SORTING_PARTITION_SAMPLES = 1000;
 
   /**
    * The default frequency for sorting partitioner.
@@ -182,6 +182,7 @@ public class QuerySort_1 extends Configured implements Tool {
       // JOB SORT BY AVERAGE RATING: CONFIGURATION
       Job jobSortByRating = Job.getInstance(config, PROGRAM_NAME + "_SORT-BY-AVERAGE-RATING");
       jobSortByRating.setJarByClass(QuerySort_1.class);
+      jobSortByRating.setSortComparatorClass(LongWritable.DecreasingComparator.class);
 
       // JOB SORT BY AVERAGE RATING: MAP CONFIGURATION
       jobSortByRating.setInputFormatClass(SequenceFileInputFormat.class);
@@ -198,10 +199,12 @@ public class QuerySort_1 extends Configured implements Tool {
       FileOutputFormat.setOutputPath(jobSortByRating, output);
 
       // JOB SORT BY AVERAGE RATING: PARTITIONER CONFIGURATION
-      //jobSortByRating.setPartitionerClass(TotalOrderPartitioner.class);
-      //TotalOrderPartitioner.setPartitionFile(jobSortByRating.getConfiguration(), parts);
-      //jobSortByRating.getConfiguration().set("mapreduce.output.textoutputformat.separator", "");
-      //InputSampler.RandomSampler<Text,Text> sampler = new InputSampler.RandomSampler<>(SORTING_PARTITION_FREQUENCY, SORTING_PARTITION_SAMPLES, 100);
+      if (SORTING_REDUCE_CARDINALITY > 1) {
+        //jobSortByRating.setPartitionerClass(TotalOrderPartitioner.class);
+        //TotalOrderPartitioner.setPartitionFile(jobSortByRating.getConfiguration(), parts);
+        //jobSortByRating.getConfiguration().set("mapreduce.output.textoutputformat.separator", "");
+        //InputSampler.RandomSampler<Text,Text> sampler = new InputSampler.RandomSampler<>(SORTING_PARTITION_FREQUENCY, SORTING_PARTITION_SAMPLES, 100);
+      }
 
       // JOB SORT BY AVERAGE RATING: EXECUTION
       code = jobSortByRating.waitForCompletion(true) ? 0 : 1;

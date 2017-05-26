@@ -78,24 +78,29 @@ public class QuerySort_1 extends Configured implements Tool {
   private static final LocalDateTime MOVIE_RATINGS_TIMESTAMP_UB = DateParser.MAX;
 
   /**
-   * The default number of sorting reducers.
+   * The default number of reducers for the averaging job.
    */
-  private static final int MOVIE_SORTING_REDUCE_CARDINALITY = 1;
+  private static final int MOVIE_AVERAGE_REDUCE_CARDINALITY = 1;
+
+  /**
+   * The default number of reducers for the sorting job.
+   */
+  private static final int MOVIE_SORT_REDUCE_CARDINALITY = 1;
 
   /**
    * The default number of sorting partitioner samples.
    */
-  private static final int MOVIE_SORTING_PARTITION_SAMPLES = 1000;
+  private static final int MOVIE_SORT_PARTITION_SAMPLES = 1000;
 
   /**
    * The default frequency for sorting partitioner.
    */
-  private static final double MOVIE_SORTING_PARTITION_FREQUENCY = 0.01;
+  private static final double MOVIE_SORT_PARTITION_FREQUENCY = 0.01;
 
   /**
    * The default maximum number of splits for sorting partition.
    */
-  private static final int MOVIE_SORTING_PARTITION_SPLITS_MAX = 100;
+  private static final int MOVIE_SORT_PARTITION_SPLITS_MAX = 100;
 
   @Override
   public int run(String[] args) throws Exception {
@@ -118,14 +123,16 @@ public class QuerySort_1 extends Configured implements Tool {
     config.setIfUnset("movie.rating.timestamp.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_UB));
 
     // OTHER CONFIGURATION
-    final int SORTING_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.sorting.reduce.cardinality", String.valueOf(MOVIE_SORTING_REDUCE_CARDINALITY)));
-    final int SORTING_PARTITION_SAMPLES = Integer.valueOf(config.get("movie.sorting.partition.samples", String.valueOf(MOVIE_SORTING_PARTITION_SAMPLES)));
-    final double SORTING_PARTITION_FREQUENCY = Double.valueOf(config.get("movie.sorting.partition.frequency", String.valueOf(MOVIE_SORTING_PARTITION_FREQUENCY)));
-    final int SORTING_PARTITION_SPLITS_MAX = Integer.valueOf(config.get("movie.sorting.partition.splits.max", String.valueOf(MOVIE_SORTING_PARTITION_SPLITS_MAX)));
-    config.unset("movie.sorting.reduce.cardinality");
-    config.unset("movie.sorting.partition.samples");
-    config.unset("movie.sorting.partition.frequency");
-    config.unset("movie.sorting.partition.splits.max");
+    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
+    final int SORT_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.sort.reduce.cardinality", String.valueOf(MOVIE_SORT_REDUCE_CARDINALITY)));
+    final int SORT_PARTITION_SAMPLES = Integer.valueOf(config.get("movie.sort.partition.samples", String.valueOf(MOVIE_SORT_PARTITION_SAMPLES)));
+    final double SORT_PARTITION_FREQUENCY = Double.valueOf(config.get("movie.sort.partition.frequency", String.valueOf(MOVIE_SORT_PARTITION_FREQUENCY)));
+    final int SORT_PARTITION_SPLITS_MAX = Integer.valueOf(config.get("movie.sort.partition.splits.max", String.valueOf(MOVIE_SORT_PARTITION_SPLITS_MAX)));
+    config.unset("movie.sort.reduce.cardinality");
+    config.unset("movie.average.reduce.cardinality");
+    config.unset("movie.sort.partition.samples");
+    config.unset("movie.sort.partition.frequency");
+    config.unset("movie.sort.partition.splits.max");
 
     // CONTEXT RESUME
     System.out.println("############################################################################");
@@ -136,10 +143,11 @@ public class QuerySort_1 extends Configured implements Tool {
     System.out.println("Movie Rating Timestamp Lower Bound (Total Ranking): " + config.get("movie.rating.timestamp.lb"));
     System.out.println("Movie Rating Timestamp Upper Bound (Total Ranking): " + config.get("movie.rating.timestamp.ub"));
     System.out.println("----------------------------------------------------------------------------");
-    System.out.println("Movie Sorting Reduce Cardinality: " + SORTING_REDUCE_CARDINALITY);
-    System.out.println("Movie Sorting Partition Samples: " + SORTING_PARTITION_SAMPLES);
-    System.out.println("Movie Sorting Partition Frequency: " + SORTING_PARTITION_FREQUENCY);
-    System.out.println("Movie Sorting Partition Max Splits: " + SORTING_PARTITION_SPLITS_MAX);
+    System.out.println("Reduce Cardinality (average): " + AVERAGE_REDUCE_CARDINALITY);
+    System.out.println("Reduce Cardinality (sort): " + SORT_REDUCE_CARDINALITY);
+    System.out.println("Movie Sorting Partition Samples: " + SORT_PARTITION_SAMPLES);
+    System.out.println("Movie Sorting Partition Frequency: " + SORT_PARTITION_FREQUENCY);
+    System.out.println("Movie Sorting Partition Max Splits: " + SORT_PARTITION_SPLITS_MAX);
     System.out.println("############################################################################");
 
     // JOB AVERAGE RATINGS: CONFIGURATION
@@ -154,7 +162,7 @@ public class QuerySort_1 extends Configured implements Tool {
 
     // JOB AVERAGE RATINGS: REDUCE CONFIGURATION
     jobAverageRatings.setReducerClass(AverageRatingReducer.class);
-    jobAverageRatings.setNumReduceTasks(1);
+    jobAverageRatings.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION
     jobAverageRatings.setOutputKeyClass(NullWritable.class);
@@ -199,7 +207,7 @@ public class QuerySort_1 extends Configured implements Tool {
 
       // JOB SORT BY AVERAGE RATING: REDUCE CONFIGURATION
       jobSortByRating.setReducerClass(ValueReducer.class);
-      jobSortByRating.setNumReduceTasks(SORTING_REDUCE_CARDINALITY);
+      jobSortByRating.setNumReduceTasks(SORT_REDUCE_CARDINALITY);
 
       // JOB SORT BY AVERAGE RATING: OUTPUT CONFIGURATION
       jobSortByRating.setOutputKeyClass(Text.class);
@@ -207,11 +215,11 @@ public class QuerySort_1 extends Configured implements Tool {
       FileOutputFormat.setOutputPath(jobSortByRating, output);
 
       // JOB SORT BY AVERAGE RATING: PARTITIONER CONFIGURATION
-      if (SORTING_REDUCE_CARDINALITY > 1) {
+      if (SORT_REDUCE_CARDINALITY > 1) {
         jobSortByRating.setPartitionerClass(TotalOrderPartitioner.class);
         TotalOrderPartitioner.setPartitionFile(jobSortByRating.getConfiguration(), parts);
         jobSortByRating.getConfiguration().set("mapreduce.output.textoutputformat.separator", "");
-        InputSampler.RandomSampler<Text,Text> sampler = new InputSampler.RandomSampler<>(SORTING_PARTITION_FREQUENCY, SORTING_PARTITION_SAMPLES, SORTING_PARTITION_SPLITS_MAX);
+        InputSampler.RandomSampler<Text,Text> sampler = new InputSampler.RandomSampler<>(SORT_PARTITION_FREQUENCY, SORT_PARTITION_SAMPLES, SORT_PARTITION_SPLITS_MAX);
         InputSampler.writePartitionFile(jobSortByRating, sampler);
       }
 

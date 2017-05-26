@@ -76,6 +76,16 @@ public class QueryTopK_1 extends Configured implements Tool {
    */
   private static final LocalDateTime MOVIE_RATINGS_TIMESTAMP_UB = DateParser.MAX;
 
+  /**
+   * The default number of reducers for the averaging job.
+   */
+  private static final int MOVIE_AVERAGE_REDUCE_CARDINALITY = 1;
+
+  /**
+   * The default number of reducers for the ranking job.
+   */
+  private static final int MOVIE_TOPK_REDUCE_CARDINALITY = 1;
+
   @Override
   public int run(String[] args) throws Exception {
     if (args.length < 2) {
@@ -95,6 +105,12 @@ public class QueryTopK_1 extends Configured implements Tool {
     config.setIfUnset("movie.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
     config.setIfUnset("movie.rating.timestamp.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_UB));
 
+    // OTHER CONFIGURATION
+    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
+    final int TOPK_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.topk.reduce.cardinality", String.valueOf(MOVIE_TOPK_REDUCE_CARDINALITY)));
+    config.unset("movie.average.reduce.cardinality");
+    config.unset("movie.topk.reduce.cardinality");
+
     // CONTEXT RESUME
     System.out.println("############################################################################");
     System.out.printf("%s\n", PROGRAM_NAME);
@@ -104,6 +120,9 @@ public class QueryTopK_1 extends Configured implements Tool {
     System.out.println("Movie Top Rank Size: " + config.get("movie.topk.size"));
     System.out.println("Movie Rating Timestamp Lower Bound (Top Ranking): " + config.get("movie.rating.timestamp.lb"));
     System.out.println("Movie Rating Timestamp Upper Bound (Top Ranking): " + config.get("movie.rating.timestamp.ub"));
+    System.out.println("----------------------------------------------------------------------------");
+    System.out.println("Reduce Cardinality (average): " + AVERAGE_REDUCE_CARDINALITY);
+    System.out.println("Reduce Cardinality (topk): " + TOPK_REDUCE_CARDINALITY);
     System.out.println("############################################################################");
 
     // JOB AVERAGE RATINGS: CONFIGURATION
@@ -118,7 +137,7 @@ public class QueryTopK_1 extends Configured implements Tool {
 
     // JOB AVERAGE RATINGS: REDUCE CONFIGURATION
     jobAverageRatings.setReducerClass(AverageRatingReducer.class);
-    jobAverageRatings.setNumReduceTasks(1);
+    jobAverageRatings.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION
     jobAverageRatings.setOutputKeyClass(NullWritable.class);
@@ -141,7 +160,7 @@ public class QueryTopK_1 extends Configured implements Tool {
 
       // JOB TOP BY RATING: REDUCE CONFIGURATION
       jobTopRatings.setReducerClass(MoviesTopKTreeMapReducer.class);
-      jobTopRatings.setNumReduceTasks(1);
+      jobTopRatings.setNumReduceTasks(TOPK_REDUCE_CARDINALITY);
 
       // JOB TOP BY RATING: OUTPUT CONFIGURATION
       jobTopRatings.setOutputKeyClass(NullWritable.class);

@@ -70,6 +70,11 @@ public class Query1_1 extends Configured implements Tool {
    */
   private static final LocalDateTime MOVIE_RATINGS_TIMESTAMP_LB = DateParser.MIN;
 
+  /**
+   * The default number of reducers for the averaging job.
+   */
+  private static final int MOVIE_AVERAGE_REDUCE_CARDINALITY = 1;
+
   @Override
   public int run(String[] args) throws Exception {
     if (args.length < 3) {
@@ -88,7 +93,11 @@ public class Query1_1 extends Configured implements Tool {
     config.setIfUnset("movie.rating.average.lb", String.valueOf(MOVIE_RATING_AVERAGE_LB));
     config.setIfUnset("movie.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
 
-    // USER PARAMETERS RESUME
+    // OTHER CONFIGURATION
+    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
+    config.unset("movie.average.reduce.cardinality");
+
+    // CONFIGURATION RESUME
     System.out.println("############################################################################");
     System.out.printf("%s\n", PROGRAM_NAME);
     System.out.println("****************************************************************************");
@@ -97,6 +106,8 @@ public class Query1_1 extends Configured implements Tool {
     System.out.println("Output: " + output);
     System.out.println("Movie Average Rating Lower Bound: " + config.get("movie.rating.average.lb"));
     System.out.println("Movie Rating Timestamp Lower Bound: " + config.get("movie.rating.timestamp.lb"));
+    System.out.println("----------------------------------------------------------------------------");
+    System.out.println("Reduce Cardinality (average): " + AVERAGE_REDUCE_CARDINALITY);
     System.out.println("############################################################################");
 
     // JOB CONFIGURATION
@@ -111,7 +122,7 @@ public class Query1_1 extends Configured implements Tool {
 
     // REDUCE CONFIGURATION
     job.setReducerClass(AverageRatingJoinMovieTitleReducer.class);
-    job.setNumReduceTasks(1);
+    job.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // OUTPUT CONFIGURATION
     job.setOutputKeyClass(Text.class);

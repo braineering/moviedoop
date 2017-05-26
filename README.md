@@ -79,6 +79,16 @@ Notice that the following program options are available:
 * `movie.rating.average.lb`: the lower bound for the movie average rating;
 * `movie.rating.timestamp.lb`: the lower bound for the movie rating timestamp (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss).
 
+Here is an example:
+
+    $hadoop_home> bin/hadoop jar moviedoop-1.0.jar \
+    query1_1 \
+    -D movie.rating.average.lb=2.5 \
+    -D movie.rating.timestamp.lb=01/01/1970 \
+    /moviedoop/_test/input/ratings \
+    /moviedoop/_test/input/movies \
+    /moviedoop/_test/output/query1_1
+
 
 ### Query3_*
 
@@ -99,6 +109,18 @@ Notice that the following program options are available:
 * `movie.rank.rating.timestamp.lb`: the lower bound for the movie rating timestamp considered for total ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
 * `movie.rank.rating.timestamp.ub`: the upper bound for the movie rating timestamp considered for total ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
 
+Here is an example:
+
+    $hadoop_home> bin/hadoop jar moviedoop-1.0.jar \
+    query3_1 \
+    -D movie.topk.size=10 \
+    -D movie.topk.rating.timestamp.lb=01/01/1990 \
+    -D movie.topk.rating.timestamp.lb=01/01/1991 \
+    -D movie.rank.rating.timestamp.lb=01/01/1988 \
+    -D movie.rank.rating.timestamp.lb=01/01/1989 \
+    /moviedoop/_test/input/ratings \
+    /moviedoop/_test/input/movies \
+    /moviedoop/_test/output/query3_1
 
 ## Authors
 Giacomo Marciani, [gmarciani@acm.org](mailto:gmarciani@acm.org)

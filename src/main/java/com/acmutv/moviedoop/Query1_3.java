@@ -60,10 +60,20 @@ public class Query1_3 extends Configured implements Tool {
    */
   private static final String PROGRAM_NAME = "Query1_3";
 
+  /**
+   * The default lower bound for movie average rating.
+   */
+  private static final double MOVIE_RATING_AVERAGE_LB = 2.5;
+
+  /**
+   * The default lower bound for movie ratings timestamp.
+   */
+  private static final LocalDateTime MOVIE_RATINGS_TIMESTAMP_LB = DateParser.MIN;
+
   @Override
   public int run(String[] args) throws Exception {
-    if (args.length < 4) {
-      System.out.println("Usage: Query1_3 [inputRatings] [inputMovies] [output] [avgRatingLB] (ratingTimestampLB)");
+    if (args.length < 3) {
+      System.err.printf("Usage: %s [-D prop=val] <inRatings> <inMovies> <out>\n", PROGRAM_NAME);
       ToolRunner.printGenericCommandUsage(System.out);
       return 2;
     }
@@ -72,9 +82,11 @@ public class Query1_3 extends Configured implements Tool {
     final Path inputRatings = new Path(args[0]);
     final Path inputMovies = new Path(args[1]);
     final Path output = new Path(args[2]);
-    final Double averageRatingLowerBound = Double.valueOf(args[3]);
-    final LocalDateTime ratingTimestampLowerBound = (args.length > 4) ?
-        DateParser.parseOrDefault(args[4], DateParser.MIN) : DateParser.MIN;
+
+    // CONTEXT CONFIGURATION
+    Configuration config = super.getConf();
+    config.setIfUnset("movie.rating.average.lb", String.valueOf(MOVIE_RATING_AVERAGE_LB));
+    config.setIfUnset("movie.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
 
     // USER PARAMETERS RESUME
     System.out.println("############################################################################");
@@ -83,14 +95,9 @@ public class Query1_3 extends Configured implements Tool {
     System.out.println("Input Ratings: " + inputRatings);
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
-    System.out.println("Movie Average Rating Lower Bound: " + averageRatingLowerBound);
-    System.out.println("Movie Rating Timestamp Lower Bound: " + DateParser.toString(ratingTimestampLowerBound));
+    System.out.println("Movie Average Rating Lower Bound: " + config.get("movie.rating.average.lb"));
+    System.out.println("Movie Rating Timestamp Lower Bound: " + config.get("movie.rating.timestamp.lb"));
     System.out.println("############################################################################");
-
-    // CONTEXT CONFIGURATION
-    Configuration config = new Configuration();
-    config.setDouble("movie.rating.avg.lb", averageRatingLowerBound);
-    config.setLong("movie.rating.timestamp.lb", DateParser.toSeconds(ratingTimestampLowerBound));
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME);

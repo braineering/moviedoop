@@ -76,7 +76,9 @@ public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritab
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.movieAverageRatingLowerBound = ctx.getConfiguration().getDouble("movie.rating.avg.lb", Double.MIN_VALUE);
+    this.movieAverageRatingLowerBound =
+        Double.valueOf(ctx.getConfiguration().get("movie.rating.average.lb"));
+
     try {
       for (URI uri : ctx.getCacheFiles()) {
         Path path = new Path(uri);

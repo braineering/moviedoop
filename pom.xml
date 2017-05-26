@@ -9,7 +9,7 @@
   <version>1.0</version>
   <packaging>jar</packaging>
 
-  <name>com.acmutv.moviedoop.AppMain</name>
+  <name>Moviedoop</name>
   <description>
     A batch processing application for movie analtics, leveraging Hadoop.
     Coursework in Structures and Architectures for Big Data 2016/2017.

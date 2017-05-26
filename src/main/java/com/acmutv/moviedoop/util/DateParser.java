@@ -104,4 +104,14 @@ public class DateParser {
   public static long toSeconds(LocalDateTime date) {
     return date.toEpochSecond(ZoneOffset.UTC);
   }
+
+  /**
+   * Returns the seconds from epoch.
+   *
+   * @param date the date to convert.
+   * @return the seconds from epoch.
+   */
+  public static long toSeconds(String date) {
+    return DateParser.parse(date).toEpochSecond(ZoneOffset.UTC);
+  }
 }

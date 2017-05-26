@@ -40,7 +40,6 @@ public class MoviedoopDriver {
    * The driver main method.
    *
    * @param args the job arguments.
-   * @throws Exception when job cannot be executed.
    */
   public static void main(String[] args) {
     int exitCode = -1;
@@ -62,10 +61,9 @@ public class MoviedoopDriver {
           "A map/reduce program that sorts movies according to their average rating and period. " +
               "The program leverages inner joins implemented with replication pattern (reduce).");
 
-      driver.addClass("query_topk", QuerySort.class,
+      driver.addClass("query_topk", QueryTopK.class,
           "A map/reduce program that calculates top-K movies according to their average rating and period. " +
               "The program leverages inner joins implemented with replication pattern (reduce).");
-
 
       exitCode = driver.run(args);
     } catch (Throwable exc) {

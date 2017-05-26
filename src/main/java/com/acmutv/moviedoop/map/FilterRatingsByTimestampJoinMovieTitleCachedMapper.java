@@ -26,6 +26,7 @@
 package com.acmutv.moviedoop.map;
 
 import com.acmutv.moviedoop.Query1_3;
+import com.acmutv.moviedoop.util.DateParser;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
@@ -76,7 +77,9 @@ public class FilterRatingsByTimestampJoinMovieTitleCachedMapper extends Mapper<O
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.movieRatingTimestampLowerBound = ctx.getConfiguration().getLong("movie.rating.timestamp.lb", Long.MIN_VALUE);
+    this.movieRatingTimestampLowerBound =
+        DateParser.toSeconds(ctx.getConfiguration().get("movie.rating.timestamp.lb"));
+
     try {
       for (URI uri : ctx.getCacheFiles()) {
         Path path = new Path(uri);

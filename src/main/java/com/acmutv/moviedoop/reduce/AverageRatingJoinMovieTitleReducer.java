@@ -65,7 +65,8 @@ public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Te
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.movieAverageRatingLowerBound = ctx.getConfiguration().getDouble("movie.rating.avg.lb", Double.MIN_VALUE);
+    this.movieAverageRatingLowerBound =
+        Double.valueOf(ctx.getConfiguration().get("movie.rating.average.lb"));
   }
 
   /**

@@ -95,7 +95,7 @@ public class Query3_1 extends Configured implements Tool {
     System.out.println("############################################################################");
 
     // CONTEXT CONFIGURATION
-    Configuration config = new Configuration();
+    Configuration config = super.getConf();
     config.setInt("movie.rank.size", rankSize);
     config.setLong("movie.rating.timestamp.lb.1", DateParser.toSeconds(ratingTimestampLB1));
     config.setLong("movie.rating.timestamp.ub.1", DateParser.toSeconds(ratingTimestampUB1));

@@ -87,7 +87,7 @@ public class QuerySort extends Configured implements Tool {
     System.out.println("############################################################################");
 
     // CONTEXT CONFIGURATION
-    Configuration config = new Configuration();
+    Configuration config = super.getConf();
     config.setInt("movie.rank.size", rankSize);
     config.setLong("movie.rating.timestamp.lb", DateParser.toSeconds(ratingTimestampLB));
     config.setLong("movie.rating.timestamp.ub", DateParser.toSeconds(ratingTimestampUB));
@@ -122,7 +122,7 @@ public class QuerySort extends Configured implements Tool {
    * @throws Exception when the program cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new Query1_1(), args);
+    int res = ToolRunner.run(new Configuration(), new QuerySort(), args);
     System.exit(res);
   }
 }

@@ -26,32 +26,28 @@
 package com.acmutv.moviedoop.reduce;
 
 import com.acmutv.moviedoop.Query1_3;
+import com.acmutv.moviedoop.QueryTopK;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 
 /**
- * The reducer for the {@link Query1_3} job.
- * It emits (movieTitle,avgRating) where avgRating is the average rating greater than or equal to
- * `movieAverageRatingLowerBound`.
+ * The reducer for the {@link QueryTopK} job.
+ * It emits (movieId,avgRating) where avgRating is the average rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRatingFilterReducer extends Reducer<Text,DoubleWritable,Text,DoubleWritable> {
+public class AverageRatingReducer extends Reducer<LongWritable,DoubleWritable,LongWritable,DoubleWritable> {
 
   /**
-   * The lower bound for the movie average rating.
+   * The movie id to emit.
    */
-  private double movieAverageRatingLowerBound;
-
-  /**
-   * The movie title to emit.
-   */
-  private Text movieTitle = new Text();
+  private LongWritable movieTitle = new LongWritable();
 
   /**
    * The movie average rating to emit.
@@ -64,8 +60,7 @@ public class AverageRatingFilterReducer extends Reducer<Text,DoubleWritable,Text
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.movieAverageRatingLowerBound =
-        Double.valueOf(ctx.getConfiguration().get("movie.rating.average.lb"));
+    //
   }
 
   /**
@@ -77,7 +72,7 @@ public class AverageRatingFilterReducer extends Reducer<Text,DoubleWritable,Text
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(Text key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
+  public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
     long num = 0L;
     double avgRating = 0.0;
 
@@ -87,11 +82,9 @@ public class AverageRatingFilterReducer extends Reducer<Text,DoubleWritable,Text
       num += 1;
     }
 
-    if (avgRating >= this.movieAverageRatingLowerBound) {
-      this.movieTitle.set(key.toString());
-      this.movieAverageRating.set(avgRating);
-      ctx.write(this.movieTitle, this.movieAverageRating);
-    }
+    this.movieTitle.set(key.get());
+    this.movieAverageRating.set(avgRating);
+    ctx.write(this.movieTitle, this.movieAverageRating);
   }
 
 }

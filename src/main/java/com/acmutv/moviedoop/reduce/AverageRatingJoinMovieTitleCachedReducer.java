@@ -110,13 +110,15 @@ public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritab
    */
   public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
     long num = 0L;
-    double avgRating = 0.0;
+    double sum = 0.0;
 
     for (DoubleWritable value : values) {
-        double rating = value.get();
-        avgRating = ((avgRating * num) + rating) / (num + 1);
-        num += 1;
+      double rating = value.get();
+      sum += rating;
+      num++;
     }
+
+    double avgRating = sum / num;
 
     if (avgRating >= this.movieAverageRatingLowerBound) {
       this.movieTitle.set(this.movieIdToMovieTitle.get(key.get()));

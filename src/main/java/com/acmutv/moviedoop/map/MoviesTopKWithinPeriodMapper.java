@@ -25,7 +25,7 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.QueryTopK;
+import com.acmutv.moviedoop.QueryTopK_1;
 import com.acmutv.moviedoop.struct.BestMap;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.NullWritable;
@@ -36,7 +36,7 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * The mapper for the {@link QueryTopK} job.
+ * The mapper for the {@link QueryTopK_1} job.
  * It produces the top K movies, expressed by tuples (movieId,rating), rated within the interval
  * {@code startDate} and {@code endDate}.
  *

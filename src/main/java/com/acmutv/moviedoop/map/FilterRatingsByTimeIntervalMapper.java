@@ -25,8 +25,7 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query1_1;
-import com.acmutv.moviedoop.QueryTopK;
+import com.acmutv.moviedoop.QueryTopK_1;
 import com.acmutv.moviedoop.util.DateParser;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.DoubleWritable;
@@ -38,7 +37,7 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * The mapper for the {@link QueryTopK} job.
+ * The mapper for the {@link QueryTopK_1} job.
  * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
  * the `movieRatingTimestampLowerBound`.
  *
@@ -74,9 +73,9 @@ public class FilterRatingsByTimeIntervalMapper extends Mapper<Object,Text,LongWr
    */
   protected void setup(Context ctx) {
     this.movieRatingTimestampLowerBound =
-        DateParser.toSeconds(ctx.getConfiguration().get("movie.topk.rating.timestamp.lb"));
+        DateParser.toSeconds(ctx.getConfiguration().get("movie.rating.timestamp.lb"));
     this.movieRatingTimestampUpperBound =
-        DateParser.toSeconds(ctx.getConfiguration().get("movie.topk.rating.timestamp.ub"));
+        DateParser.toSeconds(ctx.getConfiguration().get("movie.rating.timestamp.ub"));
   }
 
   /**

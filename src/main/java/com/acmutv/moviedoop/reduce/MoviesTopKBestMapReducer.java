@@ -25,7 +25,8 @@
  */
 package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.QueryTopK;
+import com.acmutv.moviedoop.QueryTopK_1;
+import com.acmutv.moviedoop.QueryTopK_2;
 import com.acmutv.moviedoop.struct.BestMap;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.NullWritable;
@@ -34,21 +35,24 @@ import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
- * The reducer for the {@link QueryTopK} job.
+ * The reducer for the {@link QueryTopK_2} job.
+ * It emits the top-`moviesTopKSize` (movieId,avgRating).
+ * It leverages BestMap.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MoviesTopKReducer extends Reducer<NullWritable,Text,NullWritable,Text> {
+public class MoviesTopKBestMapReducer extends Reducer<NullWritable,Text,NullWritable,Text> {
 
   /**
    * The movies rank size.
    */
-  private int moviesRankSize;
+  private int moviesTopKSize;
 
   /**
    * The rank data structure.
@@ -66,8 +70,8 @@ public class MoviesTopKReducer extends Reducer<NullWritable,Text,NullWritable,Te
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.moviesRankSize = Integer.valueOf(ctx.getConfiguration().get("movie.rank.size"));
-    this.rank.setMaxSize(this.moviesRankSize);
+    this.moviesTopKSize = Integer.valueOf(ctx.getConfiguration().get("movie.topk.size"));
+    this.rank.setMaxSize(this.moviesTopKSize);
   }
 
   /**
@@ -82,11 +86,11 @@ public class MoviesTopKReducer extends Reducer<NullWritable,Text,NullWritable,Te
   public void reduce(NullWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
     for (Text value : values) {
       Map<String,String> rankRecord = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
-      System.out.println("# [RED] # Record: " + rankRecord);
-      Long movieId = Long.valueOf(rankRecord.get("movieId"));
-      Double score = Double.valueOf(rankRecord.get("score"));
+
+      long movieId = Long.valueOf(rankRecord.get("movieId"));
+      double score = Double.valueOf(rankRecord.get("score"));
+
       this.rank.put(movieId, score);
-      System.out.println("# [RED] # Rank: " + this.rank);
     }
 
     for (Map.Entry<Long,Double> entry :

@@ -26,12 +26,12 @@
 package com.acmutv.moviedoop;
 
 import com.acmutv.moviedoop.map.*;
-import com.acmutv.moviedoop.reduce.AverageRatingJoinMovieTitleReducer;
 import com.acmutv.moviedoop.reduce.AverageRatingReducer;
-import com.acmutv.moviedoop.reduce.MoviesTopKReducer;
+import com.acmutv.moviedoop.reduce.MoviesTopKTreeMapReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -39,8 +39,6 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.MultipleInputs;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -48,19 +46,20 @@ import org.apache.hadoop.util.ToolRunner;
 import java.time.LocalDateTime;
 
 /**
- * A map/reduce program that returns the top-`rankSize` movies for the period from `ratingTimestampLB`
- * and `ratingTimestampUB`.
+ * A map/reduce program that returns the top-`rankSize` movies considering average ratings in
+ * period from `ratingTimestampLB` and `ratingTimestampUB`.
+ * It leverages TreeMap.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class QueryTopK extends Configured implements Tool {
+public class QueryTopK_1 extends Configured implements Tool {
 
   /**
    * The program name.
    */
-  private static final String PROGRAM_NAME = "QueryTopK";
+  private static final String PROGRAM_NAME = "QueryTopK_1";
 
   /**
    * The default movies rank size.
@@ -85,15 +84,16 @@ public class QueryTopK extends Configured implements Tool {
       return 2;
     }
 
-    // USER ARGUMENTS
+    // PATHS
     final Path input = new Path(args[0]);
+    final Path staging = new Path(args[1] + "_staging");
     final Path output = new Path(args[1]);
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
     config.setIfUnset("movie.topk.size", String.valueOf(MOVIE_RANK_SIZE));
-    config.setIfUnset("movie.topk.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
-    config.setIfUnset("movie.topk.rating.timestamp.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_UB));
+    config.setIfUnset("movie.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
+    config.setIfUnset("movie.rating.timestamp.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_UB));
 
     // CONTEXT RESUME
     System.out.println("############################################################################");
@@ -102,13 +102,13 @@ public class QueryTopK extends Configured implements Tool {
     System.out.println("Input: " + input);
     System.out.println("Output: " + output);
     System.out.println("Movie Top Rank Size: " + config.get("movie.topk.size"));
-    System.out.println("Movie Rating Timestamp Lower Bound (Top Ranking): " + config.get("movie.topk.rating.timestamp.lb"));
-    System.out.println("Movie Rating Timestamp Upper Bound (Top Ranking): " + config.get("movie.topk.rating.timestamp.ub"));
+    System.out.println("Movie Rating Timestamp Lower Bound (Top Ranking): " + config.get("movie.rating.timestamp.lb"));
+    System.out.println("Movie Rating Timestamp Upper Bound (Top Ranking): " + config.get("movie.rating.timestamp.ub"));
     System.out.println("############################################################################");
 
     // JOB AVERAGE RATINGS: CONFIGURATION
     Job jobAverageRatings = Job.getInstance(config, PROGRAM_NAME + "_AVERAGE-RATINGS");
-    jobAverageRatings.setJarByClass(QueryTopK.class);
+    jobAverageRatings.setJarByClass(QueryTopK_1.class);
 
     // JOB AVERAGE RATINGS: MAP CONFIGURATION
     FileInputFormat.addInputPath(jobAverageRatings, input);
@@ -121,36 +121,41 @@ public class QueryTopK extends Configured implements Tool {
     jobAverageRatings.setNumReduceTasks(1);
 
     // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION
-    jobAverageRatings.setOutputKeyClass(Text.class);
-    jobAverageRatings.setOutputValueClass(DoubleWritable.class);
-    FileOutputFormat.setOutputPath(jobAverageRatings, output);
+    jobAverageRatings.setOutputKeyClass(NullWritable.class);
+    jobAverageRatings.setOutputValueClass(Text.class);
+    FileOutputFormat.setOutputPath(jobAverageRatings, staging);
 
     // JOB AVERAGE RATINGS: EXECUTION
-    return jobAverageRatings.waitForCompletion(true) ? 0 : 1;
+    int code = jobAverageRatings.waitForCompletion(true) ? 0 : 1;
 
-    /*
-    // JOB AVERAGE: CONFIGURATION
-    Job job = Job.getInstance(config, PROGRAM_NAME);
-    job.setJarByClass(QueryTopK.class);
+    if (code == 0) {
+      // JOB AVERAGE: CONFIGURATION
+      Job jobTopRatings = Job.getInstance(config, PROGRAM_NAME + "_TOP-RATINGS");
+      jobTopRatings.setJarByClass(QueryTopK_1.class);
 
-    // JOB AVERAGE: MAP CONFIGURATION
-    FileInputFormat.addInputPath(job, input);
-    job.setMapperClass(MoviesTopKWithinPeriodMapper.class);
-    job.setMapOutputKeyClass(LongWritable.class);
-    job.setMapOutputValueClass(DoubleWritable.class);
+      // JOB AVERAGE: MAP CONFIGURATION
+      FileInputFormat.addInputPath(jobTopRatings, staging);
+      jobTopRatings.setMapperClass(MoviesTopKTreeMapMapper.class);
+      jobTopRatings.setMapOutputKeyClass(NullWritable.class);
+      jobTopRatings.setMapOutputValueClass(Text.class);
 
-    // JOB AVERAGE: REDUCE CONFIGURATION
-    job.setReducerClass(MoviesTopKReducer.class);
-    job.setNumReduceTasks(1);
+      // JOB AVERAGE: REDUCE CONFIGURATION
+      jobTopRatings.setReducerClass(MoviesTopKTreeMapReducer.class);
+      jobTopRatings.setNumReduceTasks(1);
 
-    // JOB AVERAGE: OUTPUT CONFIGURATION
-    job.setOutputKeyClass(NullWritable.class);
-    job.setOutputValueClass(Text.class);
-    FileOutputFormat.setOutputPath(job, output);
+      // JOB AVERAGE: OUTPUT CONFIGURATION
+      jobTopRatings.setOutputKeyClass(NullWritable.class);
+      jobTopRatings.setOutputValueClass(Text.class);
+      FileOutputFormat.setOutputPath(jobTopRatings, output);
 
-    // JOB AVERAGE: JOB EXECUTION
-    return job.waitForCompletion(true) ? 0 : 1;
-   */
+      // JOB AVERAGE: JOB EXECUTION
+      code = jobTopRatings.waitForCompletion(true) ? 0 : 1;
+    }
+
+    // CLEAN STAGING OUTPUT
+    FileSystem.get(config).delete(staging, true);
+
+    return code;
   }
 
   /**
@@ -160,7 +165,7 @@ public class QueryTopK extends Configured implements Tool {
    * @throws Exception when the program cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new QueryTopK(), args);
+    int res = ToolRunner.run(new Configuration(), new QueryTopK_1(), args);
     System.exit(res);
   }
 }

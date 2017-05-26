@@ -51,7 +51,7 @@ public class BestMapTest {
     actual.put(1L, 1.0);
 
     BestMap expected = new BestMap(3);
-    expected.put(1L, 15.0);
+    expected.put(1L, 1.0);
 
     Assert.assertEquals(expected, actual);
   }
@@ -113,9 +113,9 @@ public class BestMapTest {
     actual.put(5L, 1.0);
 
     BestMap expected = new BestMap(3);
-    expected.put(5L, 5.0);
     expected.put(4L, 5.0);
     expected.put(3L, 4.0);
+    expected.put(2L, 3.0);
 
     Assert.assertEquals(expected, actual);
   }

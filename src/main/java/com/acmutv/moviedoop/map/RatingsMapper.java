@@ -25,7 +25,7 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query2;
+import com.acmutv.moviedoop.Query2_1;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -36,7 +36,7 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * The mapper for the {@link Query2} job.
+ * The mapper for the {@link Query2_1} job.
  * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
  * the `movieRatingTimestampLowerBound`.
  *
@@ -52,10 +52,9 @@ public class RatingsMapper extends Mapper<Object,Text,LongWritable,DoubleWritabl
   private LongWritable movieId = new LongWritable();
 
   /**
-   * The movie rating to emit.
+   * The genre rating to emit.
    */
   private DoubleWritable movieRating = new DoubleWritable();
-
 
   /**
    * The mapping routine.
@@ -73,6 +72,7 @@ public class RatingsMapper extends Mapper<Object,Text,LongWritable,DoubleWritabl
     double score = Double.valueOf(rating.get("score"));
     this.movieId.set(movieId);
     this.movieRating.set(score);
+    //System.out.println("MOVIE ID = "+ Long.toString(movieId) +"- SCORE:" + Double.toString(score));
     ctx.write(this.movieId, this.movieRating);
   }
 }

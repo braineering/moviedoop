@@ -25,7 +25,6 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.GenresMapper;
 import com.acmutv.moviedoop.map.RatingsMapper;
 import com.acmutv.moviedoop.reduce.Query2RatingJoinGenreCachedReducer;
 import org.apache.hadoop.conf.Configuration;
@@ -48,12 +47,12 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query2 {
+public class Query2_2 {
 
   /**
    * The part1 job name.
    */
-  private static final String JOB_NAME = "Query2";
+  private static final String JOB_NAME = "Query2_2";
 
   /**
    * The job main method.
@@ -63,7 +62,7 @@ public class Query2 {
    */
   public static void main(String[] args) throws Exception {
     if (args.length < 3) {
-      System.err.println("Usage: Query2 [inputRatings] [inputMovies] [output]");
+      System.err.println("Usage: Query2_2 [inputRatings] [inputMovies] [output]");
       System.exit(1);
     }
 
@@ -82,7 +81,7 @@ public class Query2 {
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, JOB_NAME);
-    job.setJarByClass(Query2.class);
+    job.setJarByClass(Query2_2.class);
 
    /* // MAPPERS CONFIGURATION
     MultipleInputs.addInputPath(job, inputRatings, TextInputFormat.class, RatingsMapper.class);

@@ -25,7 +25,7 @@
  */
 package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query2;
+import com.acmutv.moviedoop.Query2_2;
 import com.acmutv.moviedoop.model.MovieWritable;
 import com.acmutv.moviedoop.model.RatingsWritable;
 import org.apache.hadoop.io.DoubleWritable;
@@ -38,7 +38,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The reducer for the {@link Query2} job.
+ * The reducer for the {@link Query2_2} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}

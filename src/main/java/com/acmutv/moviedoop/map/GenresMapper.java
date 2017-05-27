@@ -25,8 +25,9 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query2;
+import com.acmutv.moviedoop.Query2_1;
 import com.acmutv.moviedoop.util.RecordParser;
+import com.apple.eawt.AppEvent;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -36,9 +37,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-
 /**
- * The mapper for the {@link Query2} job.
+ * The mapper for the {@link Query2_1} job.
+ * It emits (movieId,'M'movieTitle).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
@@ -52,9 +53,9 @@ public class GenresMapper extends Mapper<Object, Text, LongWritable, Text> {
   private LongWritable movieId = new LongWritable();
 
   /**
-   * The genre name to emit.
+   * The movie title to emit.
    */
-  private Text genre = new Text();
+  private Text genreTitle = new Text();
 
   /**
    * The mapping routine.
@@ -69,11 +70,26 @@ public class GenresMapper extends Mapper<Object, Text, LongWritable, Text> {
     Map<String,String> movie = RecordParser.parse(value.toString(), new String[] {"id","title","genres"},",");
 
     this.movieId.set(Long.valueOf(movie.get("id")));
+
+    System.out.println("I GENERI DEL FILM SONO: "+movie.get("genres"));
+
+    //String[] genres = movie.get("genres").split("|");
+
+   /* for(String genre:genres) {
+      System.out.println(genre);
+    }
+
+*/
     List<String> genres = Arrays.asList(movie.get("genres").split("|"));
+
+    for(String genre: genres) {
+      System.out.println(genre);
+    }
+
     for (String genre: genres) {
-      this.genre.set(genre);
-      System.out.println("Genre = "+ this.genre);
-      ctx.write(this.movieId, this.genre);
+      this.genreTitle.set("G" + genre);
+      System.out.println("Genre = "+ genre);
+      ctx.write(this.movieId, this.genreTitle);
     }
   }
 }

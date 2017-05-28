@@ -86,6 +86,11 @@ public class QueryTopK_1 extends Configured implements Tool {
    */
   private static final int MOVIE_TOPK_REDUCE_CARDINALITY = 1;
 
+  /**
+   * The default verbosity.
+   */
+  private static final boolean VERBOSE = false;
+
   @Override
   public int run(String[] args) throws Exception {
     if (args.length < 2) {
@@ -145,7 +150,7 @@ public class QueryTopK_1 extends Configured implements Tool {
     FileOutputFormat.setOutputPath(jobAverageRatings, staging);
 
     // JOB AVERAGE RATINGS: EXECUTION
-    int code = jobAverageRatings.waitForCompletion(true) ? 0 : 1;
+    int code = jobAverageRatings.waitForCompletion(VERBOSE) ? 0 : 1;
 
     if (code == 0) {
       // JOB TOP BY RATING: CONFIGURATION
@@ -168,7 +173,7 @@ public class QueryTopK_1 extends Configured implements Tool {
       FileOutputFormat.setOutputPath(jobTopRatings, output);
 
       // JOB TOP BY RATING: JOB EXECUTION
-      code = jobTopRatings.waitForCompletion(true) ? 0 : 1;
+      code = jobTopRatings.waitForCompletion(VERBOSE) ? 0 : 1;
     }
 
     // CLEAN STAGING OUTPUT

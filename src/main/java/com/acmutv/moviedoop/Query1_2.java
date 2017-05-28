@@ -76,6 +76,11 @@ public class Query1_2 extends Configured implements Tool {
    */
   private static final int MOVIE_AVERAGE_REDUCE_CARDINALITY = 1;
 
+  /**
+   * The default verbosity.
+   */
+  private static final boolean VERBOSE = false;
+
   @Override
   public int run(String[] args) throws Exception {
     if (args.length < 3) {
@@ -134,7 +139,7 @@ public class Query1_2 extends Configured implements Tool {
     FileOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION
-    return job.waitForCompletion(true) ? 0 : 1;
+    return job.waitForCompletion(VERBOSE) ? 0 : 1;
   }
 
   /**

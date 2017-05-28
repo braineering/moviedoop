@@ -102,6 +102,11 @@ public class QuerySort_1 extends Configured implements Tool {
    */
   private static final int MOVIE_SORT_PARTITION_SPLITS_MAX = 100;
 
+  /**
+   * The default verbosity.
+   */
+  private static final boolean VERBOSE = false;
+
   @Override
   public int run(String[] args) throws Exception {
     if (args.length < 2) {
@@ -170,7 +175,7 @@ public class QuerySort_1 extends Configured implements Tool {
     FileOutputFormat.setOutputPath(jobAverageRatings, staging1);
 
     // JOB AVERAGE RATINGS: EXECUTION
-    int code = jobAverageRatings.waitForCompletion(true) ? 0 : 1;
+    int code = jobAverageRatings.waitForCompletion(VERBOSE) ? 0 : 1;
 
     if (code == 0) {
       // JOB RATING AS KEY: CONFIGURATION
@@ -191,7 +196,7 @@ public class QuerySort_1 extends Configured implements Tool {
       SequenceFileOutputFormat.setOutputPath(jobRatingAsKey, staging2);
 
       // JOB RATING AS KEY: JOB EXECUTION
-      code = jobRatingAsKey.waitForCompletion(true) ? 0 : 1;
+      code = jobRatingAsKey.waitForCompletion(VERBOSE) ? 0 : 1;
     }
 
     if (code == 0) {
@@ -224,7 +229,7 @@ public class QuerySort_1 extends Configured implements Tool {
       }
 
       // JOB SORT BY AVERAGE RATING: EXECUTION
-      code = jobSortByRating.waitForCompletion(true) ? 0 : 1;
+      code = jobSortByRating.waitForCompletion(VERBOSE) ? 0 : 1;
     }
 
     // CLEAN STAGING OUTPUT

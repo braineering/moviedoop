@@ -104,7 +104,8 @@
     <project.main>com.acmutv.moviedoop.WordCount</project.main>
 
     <!-- Core  -->
-    <apache.hadoop.version>3.0.0-alpha2</apache.hadoop.version>
+    <!--<apache.hadoop.version>3.0.0-alpha2</apache.hadoop.version>-->
+    <apache.hadoop.version>2.8.0</apache.hadoop.version>
     <!--<apache.hadoop.version>2.7.3</apache.hadoop.version>-->
 
     <!-- GUI/CLI -->

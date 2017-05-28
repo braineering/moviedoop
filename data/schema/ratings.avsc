@@ -1,0 +1,10 @@
+{"namespace": "moviedoop.avro",
+ "type": "record",
+ "name": "Rating",
+ "fields": [
+     {"name": "userId", "type": "long"},
+     {"name": "movieId", "type": "long"},
+     {"name": "score",  "type": "float"},
+     {"name": "timestamp", "type": "long"}
+ ]
+}

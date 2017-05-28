@@ -57,6 +57,14 @@ public class MoviedoopDriver {
           "A map/reduce program that selects movies according to their rating and period. " +
               "The program leverages inner joins implemented with replication pattern (map).");
 
+      driver.addClass("query3_1", Query3_1.class,
+          "A map/reduce program that returns the comparison between " +
+              "(i) the top-`rankSize` movies, considering average ratings in period from `ratingTimestampTopKLB` \n" +
+              " and `ratingTimestampTopKUB`; and\n" +
+              " (ii) the total rank of moviues, considering average ratings in period from `ratingTimestampRankLB`\n" +
+              " and `ratingTimestampRankUB`.\n" +
+              " It leverages BestMap.");
+
       driver.addClass("query_sort_1", QuerySort_1.class,
           "A map/reduce program that sorts movies according to their average rating and period. " +
               "The program leverages the total sorting pattern.");

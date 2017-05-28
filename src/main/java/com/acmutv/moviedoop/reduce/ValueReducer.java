@@ -25,49 +25,25 @@
  */
 package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query1_1;
+import com.acmutv.moviedoop.Query1_3;
+import com.acmutv.moviedoop.QuerySort_1;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 
 /**
- * The reducer for the {@link Query1_1} job.
- * It joins (movieId,rating) and (movieId,movieTitle), and emits (movieTitle,avgRating)
- * where avgRating is the average rating greater than or equal to `movieAverageRatingLowerBound`.
+ * The reducer for the {@link QuerySort_1} job.
+ * It emits all received values as keyes.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Text, Text, DoubleWritable> {
-
-  /**
-   * The lower bound for the movie average rating.
-   */
-  private double movieAverageRatingLowerBound;
-
-  /**
-   * The movie title to emit.
-   */
-  private Text movieTitle = new Text();
-
-  /**
-   * The movie average rating to emit.
-   */
-  private DoubleWritable movieAverageRating = new DoubleWritable();
-
-  /**
-   * Configures the reducer.
-   *
-   * @param ctx the job context.
-   */
-  protected void setup(Context ctx) {
-    this.movieAverageRatingLowerBound =
-        Double.valueOf(ctx.getConfiguration().get("movie.rating.average.lb"));
-  }
+public class ValueReducer extends Reducer<Text,Text,Text,NullWritable> {
 
   /**
    * The reduction routine.
@@ -78,30 +54,9 @@ public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Te
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(LongWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
-
-    long num = 0L;
-    double sum = 0.0;
-
+  public void reduce(Text key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
     for (Text value : values) {
-      if (value.charAt(0) == 'R') { // rating
-        double rating = Double.valueOf(value.toString().substring(1));
-        sum += rating;
-        num++;
-      } else if (value.charAt(0) == 'M') { // movie
-        String movieTitle = value.toString().substring(1);
-        this.movieTitle.set(movieTitle);
-      } else {
-        final String errmsg = String.format("Object %s is neither a rating nor a movie", value.toString());
-        throw new IOException(errmsg);
-      }
-    }
-
-    double avgRating = sum / num;
-
-    if (avgRating >= this.movieAverageRatingLowerBound) {
-      this.movieAverageRating.set(avgRating);
-      ctx.write(this.movieTitle, this.movieAverageRating);
+      ctx.write(value, NullWritable.get());
     }
   }
 

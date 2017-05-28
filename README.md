@@ -20,16 +20,10 @@ The system needs to be provided with the following:
 ## Build
 Build the job:
 
-    $> mvn clean package -P [JOB]
+    $> mvn clean package -P driver
     
 where *[JOB]* is the name of the job to build.
-The following jobs are available:
-* **query1_1** the 1st query with inner join (repartition join).
-* **query1_2** the 1st query with inner join (replication join, distributed cache on reducer).
-* **query1_3** the 1st query with inner join (replication join, distributed cache on mapper).
-* **query2** the 2nd query.
-* **query3** the 3rd query with no inner join.
-* **query3_bis** the 3rd query with inner join.
+
 
 
 ## Usage
@@ -39,13 +33,23 @@ Start Hadoop:
 
 Submit the job:
 
-    $hadoop_home> bin/hadoop jar [JOB-JAR] [INDIR] [OUTDIR] [ARGS]
+    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> <PROGRAM> [HADOOP_OPTS] [PROGRAM_OPTS] <ARGS>
     
 where 
-*[JOB-JAR]* is the local absolute path to the job's JAR, 
-*[INDIR]* is the HDFS folder cotaining the input files,
-*[OUTDIR]* is the HDFS destination folder for the output and
-*[ARGS]* are other command line arguments.
+* *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR, 
+* *[PROGRAM]* is the name of the map/reduce program to execute,
+* *[HADOOP_OPTS]* are optional Hadoop options specified as `-Dopt=val`,
+* *[PROGRAM_OPTS]* are optional program options specified as `-D opt=val`,
+* *[ARGS]* are the mandatory program arguments.
+
+Notice that the following map/reduce programs are available:
+* **query1_1** the 1st query with inner join (repartition join).
+* **query1_2** the 1st query with inner join (replication join, distributed cache on reducer).
+* **query1_3** the 1st query with inner join (replication join, distributed cache on mapper).
+* **query2** the 2nd query.
+* **query3_1** the 3rd query with inner join (repartition join).
+* **query3_2** the 3rd query with inner join (replication join, distributed cache on reducer).
+* **query3_3** the 3rd query with inner join (replication join, distributed cache on mapper).
 
 Read the output:
 
@@ -59,18 +63,64 @@ Stop Hadoop:
     $hadoop_home> sbin/stop-dfs.sh
 
 
-### Query1_1
+### Query1_*
 
-    $hadoop_home> bin/hadoop jar [JAR] [RATINGS] [MOVIES] [OUTDIR] [AVG_RATING_LB] (RATING_TIMESTAMP_LB)
+    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query1_1 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>
     
 where:
-* *[JAR]* is the local absolute path to the JAR,
-* *[RATINGS]* is the HDFS absolute path to the directory containing the ratings data set,
-* *[MOVIES]* is the HDFS absolute path to the directory containing the movies data set,
-* *[OUTDIR]* is the HDFS absolute path to the directory for the output,
-* *[AVG_RATING_LB]* is the lower bound for the average rating and 
-* *(RATING_TIMESTAMP_LB)* is the optional lower bound for the rating timestamp (i.e. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss).
+* *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR,
+* *[HADOOP_OPTS]* are optional Hadoop options specified as `-Dopt=val`,
+* *[PROGRAM_OPTS]* are optional program options specified as `-D opt=val`,
+* *[IN\_RATINGS]* is the HDFS absolute path to the directory containing the ratings data set,
+* *[IN\_MOVIES]* is the HDFS absolute path to the directory containing the movies data set,
+* *[OUT]* is the HDFS absolute path to the directory for the output.
 
+Notice that the following program options are available:
+* `movie.rating.average.lb`: the lower bound for the movie average rating;
+* `movie.rating.timestamp.lb`: the lower bound for the movie rating timestamp (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss).
+
+Here is an example:
+
+    $hadoop_home> bin/hadoop jar moviedoop-1.0.jar \
+    query1_1 \
+    -D movie.rating.average.lb=2.5 \
+    -D movie.rating.timestamp.lb=01/01/1970 \
+    /moviedoop/_test/input/ratings \
+    /moviedoop/_test/input/movies \
+    /moviedoop/_test/output/query1_1
+
+
+### Query3_*
+
+    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query3_1 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>
+    
+where:
+* *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR,
+* *[HADOOP_OPTS]* are optional Hadoop options specified as `-Dopt=val`,
+* *[PROGRAM_OPTS]* are optional program options specified as `-D opt=val`,
+* *[IN\_RATINGS]* is the HDFS absolute path to the directory containing the ratings data set,
+* *[IN\_MOVIES]* is the HDFS absolute path to the directory containing the movies data set,
+* *[OUT]* is the HDFS absolute path to the directory for the output.
+
+Notice that the following program options are available:
+* `movie.topk.size`: the movies top rank size;
+* `movie.topk.rating.timestamp.lb`: the lower bound for the movie rating timestamp considered for top ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
+* `movie.topk.rating.timestamp.ub`: the upper bound for the movie rating timestamp considered for top ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
+* `movie.rank.rating.timestamp.lb`: the lower bound for the movie rating timestamp considered for total ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
+* `movie.rank.rating.timestamp.ub`: the upper bound for the movie rating timestamp considered for total ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
+
+Here is an example:
+
+    $hadoop_home> bin/hadoop jar moviedoop-1.0.jar \
+    query3_1 \
+    -D movie.topk.size=10 \
+    -D movie.topk.rating.timestamp.lb=01/01/1990 \
+    -D movie.topk.rating.timestamp.lb=01/01/1991 \
+    -D movie.rank.rating.timestamp.lb=01/01/1988 \
+    -D movie.rank.rating.timestamp.lb=01/01/1989 \
+    /moviedoop/_test/input/ratings \
+    /moviedoop/_test/input/movies \
+    /moviedoop/_test/output/query3_1
 
 ## Authors
 Giacomo Marciani, [gmarciani@acm.org](mailto:gmarciani@acm.org)

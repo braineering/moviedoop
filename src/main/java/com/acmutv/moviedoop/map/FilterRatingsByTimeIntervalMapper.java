@@ -25,17 +25,19 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query1_1;
+import com.acmutv.moviedoop.QueryTopK_1;
 import com.acmutv.moviedoop.util.DateParser;
 import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.hadoop.io.*;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 import java.util.Map;
 
 /**
- * The mapper for the {@link Query1_1} job.
+ * The mapper for the {@link QueryTopK_1} job.
  * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
  * the `movieRatingTimestampLowerBound`.
  *
@@ -43,12 +45,17 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class FilterRatingsByTimestampMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
+public class FilterRatingsByTimeIntervalMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
 
   /**
    * The lower bound for the movie rating timestamp.
    */
   private long movieRatingTimestampLowerBound;
+
+  /**
+   * The upper bound for the movie rating timestamp.
+   */
+  private long movieRatingTimestampUpperBound;
 
   /**
    * The movie id to emit.
@@ -67,6 +74,8 @@ public class FilterRatingsByTimestampMapper extends Mapper<Object,Text,LongWrita
   protected void setup(Context ctx) {
     this.movieRatingTimestampLowerBound =
         DateParser.toSeconds(ctx.getConfiguration().get("movie.rating.timestamp.lb"));
+    this.movieRatingTimestampUpperBound =
+        DateParser.toSeconds(ctx.getConfiguration().get("movie.rating.timestamp.ub"));
   }
 
   /**
@@ -82,7 +91,8 @@ public class FilterRatingsByTimestampMapper extends Mapper<Object,Text,LongWrita
     Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
 
     long timestamp = Long.valueOf(rating.get("timestamp"));
-    if (timestamp >= this.movieRatingTimestampLowerBound) {
+    if (timestamp >= this.movieRatingTimestampLowerBound
+        && timestamp <= this.movieRatingTimestampUpperBound) {
       long movieId = Long.valueOf(rating.get("movieId"));
       double score = Double.valueOf(rating.get("score"));
       this.movieId.set(movieId);

@@ -26,6 +26,7 @@
 package com.acmutv.moviedoop.map;
 
 import com.acmutv.moviedoop.Query1_1;
+import com.acmutv.moviedoop.util.DateParser;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -65,7 +66,8 @@ public class FilterRatingsByTimestampJMapper extends Mapper<Object, Text, LongWr
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.movieRatingTimestampLowerBound = ctx.getConfiguration().getLong("movie.rating.timestamp.lb", Long.MIN_VALUE);
+    this.movieRatingTimestampLowerBound =
+        DateParser.toSeconds(ctx.getConfiguration().get("movie.rating.timestamp.lb"));
   }
 
   /**

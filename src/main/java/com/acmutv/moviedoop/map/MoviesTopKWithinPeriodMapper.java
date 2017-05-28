@@ -25,25 +25,31 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.Query1_1;
-import com.acmutv.moviedoop.util.DateParser;
+import com.acmutv.moviedoop.QueryTopK_1;
+import com.acmutv.moviedoop.struct.BestMap;
 import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.hadoop.io.*;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 import java.util.Map;
 
 /**
- * The mapper for the {@link Query1_1} job.
- * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
- * the `movieRatingTimestampLowerBound`.
+ * The mapper for the {@link QueryTopK_1} job.
+ * It produces the top K movies, expressed by tuples (movieId,rating), rated within the interval
+ * {@code startDate} and {@code endDate}.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class FilterRatingsByTimestampMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
+public class MoviesTopKWithinPeriodMapper extends Mapper<Object,Text,NullWritable,Text> {
+
+  /**
+   * The movies rank size.
+   */
+  private int moviesRankSize;
 
   /**
    * The lower bound for the movie rating timestamp.
@@ -51,22 +57,30 @@ public class FilterRatingsByTimestampMapper extends Mapper<Object,Text,LongWrita
   private long movieRatingTimestampLowerBound;
 
   /**
-   * The movie id to emit.
+   * The upper bound for the movie rating timestamp.
    */
-  private LongWritable movieId = new LongWritable();
+  private long movieRatingTimestampUpperBound;
 
   /**
-   * The movie rating to emit.
+   * The rank data structure.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private BestMap rank = new BestMap();
+
+  /**
+   * The tuple (movieId,rating) to emit.
+   */
+  private Text tuple = new Text();
 
   /**
    * Configures the mapper.
+   *
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.movieRatingTimestampLowerBound =
-        DateParser.toSeconds(ctx.getConfiguration().get("movie.rating.timestamp.lb"));
+    this.moviesRankSize = Integer.valueOf(ctx.getConfiguration().get("movie.rank.size"));
+    this.movieRatingTimestampLowerBound = ctx.getConfiguration().getLong("movie.rating.timestamp.lb", Long.MIN_VALUE);
+    this.movieRatingTimestampUpperBound = ctx.getConfiguration().getLong("movie.rating.timestamp.ub", Long.MIN_VALUE);
+    this.rank.setMaxSize(this.moviesRankSize);
   }
 
   /**
@@ -82,12 +96,23 @@ public class FilterRatingsByTimestampMapper extends Mapper<Object,Text,LongWrita
     Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
 
     long timestamp = Long.valueOf(rating.get("timestamp"));
-    if (timestamp >= this.movieRatingTimestampLowerBound) {
+    if (timestamp >= this.movieRatingTimestampLowerBound
+        && timestamp >= this.movieRatingTimestampUpperBound) {
       long movieId = Long.valueOf(rating.get("movieId"));
       double score = Double.valueOf(rating.get("score"));
-      this.movieId.set(movieId);
-      this.movieRating.set(score);
-      ctx.write(this.movieId, this.movieRating);
+      this.rank.put(movieId, score);
+    }
+  }
+
+  /**
+   * Flushes the mapper.
+   *
+   * @param ctx the job context.
+   */
+  protected void cleanup(Context ctx) throws IOException, InterruptedException {
+    for (Map.Entry<Long,Double> entry : this.rank.entrySet()) {
+      this.tuple.set(entry.getKey() + "," + entry.getValue());
+      ctx.write(NullWritable.get(), this.tuple);
     }
   }
 }

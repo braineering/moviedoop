@@ -76,7 +76,9 @@ public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritab
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.movieAverageRatingLowerBound = ctx.getConfiguration().getDouble("movie.rating.avg.lb", Double.MIN_VALUE);
+    this.movieAverageRatingLowerBound =
+        Double.valueOf(ctx.getConfiguration().get("movie.rating.average.lb"));
+
     try {
       for (URI uri : ctx.getCacheFiles()) {
         Path path = new Path(uri);
@@ -90,6 +92,7 @@ public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritab
           String movieTitle = movie.get("title");
           this.movieIdToMovieTitle.put(movieId, movieTitle);
         }
+        br.close();
       }
     } catch (IOException exc) {
       exc.printStackTrace();
@@ -107,13 +110,15 @@ public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritab
    */
   public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
     long num = 0L;
-    double avgRating = 0.0;
+    double sum = 0.0;
 
     for (DoubleWritable value : values) {
-        double rating = value.get();
-        avgRating = ((avgRating * num) + rating) / (num + 1);
-        num += 1;
+      double rating = value.get();
+      sum += rating;
+      num++;
     }
+
+    double avgRating = sum / num;
 
     if (avgRating >= this.movieAverageRatingLowerBound) {
       this.movieTitle.set(this.movieIdToMovieTitle.get(key.get()));

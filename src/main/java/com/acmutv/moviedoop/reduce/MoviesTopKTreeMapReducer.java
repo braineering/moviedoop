@@ -25,39 +25,43 @@
  */
 package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query1_1;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
+import com.acmutv.moviedoop.QueryTopK_1;
+import com.acmutv.moviedoop.struct.BestMap;
+import com.acmutv.moviedoop.util.RecordParser;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
- * The reducer for the {@link Query1_1} job.
- * It joins (movieId,rating) and (movieId,movieTitle), and emits (movieTitle,avgRating)
- * where avgRating is the average rating greater than or equal to `movieAverageRatingLowerBound`.
+ * The reducer for the {@link QueryTopK_1} job.
+ * It emits the top-`moviesTopKSize` (movieId,avgRating).
+ * It leverages TreeMap.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Text, Text, DoubleWritable> {
+public class MoviesTopKTreeMapReducer extends Reducer<NullWritable,Text,NullWritable,Text> {
 
   /**
-   * The lower bound for the movie average rating.
+   * The movies rank size.
    */
-  private double movieAverageRatingLowerBound;
+  private int moviesTopKSize;
 
   /**
-   * The movie title to emit.
+   * The rank data structure.
    */
-  private Text movieTitle = new Text();
+  private TreeMap<Double,Long> rank = new TreeMap<>();
 
   /**
-   * The movie average rating to emit.
+   * The tuple (movieId,rating) to emit.
    */
-  private DoubleWritable movieAverageRating = new DoubleWritable();
+  private Text tuple = new Text();
 
   /**
    * Configures the reducer.
@@ -65,8 +69,7 @@ public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Te
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.movieAverageRatingLowerBound =
-        Double.valueOf(ctx.getConfiguration().get("movie.rating.average.lb"));
+    this.moviesTopKSize = Integer.valueOf(ctx.getConfiguration().get("movie.topk.size"));
   }
 
   /**
@@ -78,30 +81,23 @@ public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Te
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(LongWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
-
-    long num = 0L;
-    double sum = 0.0;
-
+  public void reduce(NullWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
     for (Text value : values) {
-      if (value.charAt(0) == 'R') { // rating
-        double rating = Double.valueOf(value.toString().substring(1));
-        sum += rating;
-        num++;
-      } else if (value.charAt(0) == 'M') { // movie
-        String movieTitle = value.toString().substring(1);
-        this.movieTitle.set(movieTitle);
-      } else {
-        final String errmsg = String.format("Object %s is neither a rating nor a movie", value.toString());
-        throw new IOException(errmsg);
+      Map<String,String> rankRecord = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
+
+      long movieId = Long.valueOf(rankRecord.get("movieId"));
+      double score = Double.valueOf(rankRecord.get("score"));
+
+      this.rank.put(score, movieId);
+
+      if (this.rank.size() > this.moviesTopKSize) {
+        this.rank.remove(this.rank.firstKey());
       }
     }
 
-    double avgRating = sum / num;
-
-    if (avgRating >= this.movieAverageRatingLowerBound) {
-      this.movieAverageRating.set(avgRating);
-      ctx.write(this.movieTitle, this.movieAverageRating);
+    for (Map.Entry<Double,Long> entry : this.rank.descendingMap().entrySet()) {
+      this.tuple.set(entry.getValue() + "," + entry.getKey());
+      ctx.write(NullWritable.get(), this.tuple);
     }
   }
 

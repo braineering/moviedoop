@@ -25,40 +25,38 @@
  */
 package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query3;
-import com.acmutv.moviedoop.struct.BestMap;
-import com.acmutv.moviedoop.util.RecordParser;
+import com.acmutv.moviedoop.QueryTopK_1;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
- * The reducer for the {@link Query3} job.
+ * The reducer for the {@link QueryTopK_1} job.
+ * It emits (movieId,avgRating) where avgRating is the average rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MovieTopKReducer extends Reducer<NullWritable,Text,NullWritable,Text> {
+public class AverageRatingReducer extends Reducer<LongWritable,DoubleWritable,NullWritable,Text> {
 
   /**
-   * The rank size.
-   */
-  private int rankSize;
-
-  /**
-   * The rank data structure.
-   */
-  private BestMap rank = new BestMap();
-
-  /**
-   * The tuple (movieId,rating) to emit.
+   * The tuple (movieId,avgRating) to emit.
    */
   private Text tuple = new Text();
+
+  /**
+   * Configures the reducer.
+   *
+   * @param ctx the job context.
+   */
+  protected void setup(Context ctx) {
+    //
+  }
 
   /**
    * The reduction routine.
@@ -69,25 +67,21 @@ public class MovieTopKReducer extends Reducer<NullWritable,Text,NullWritable,Tex
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(NullWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
-    this.rankSize = Integer.valueOf(ctx.getConfiguration().get("rankSize"));
-    System.out.println("# [SETUP RED] # rankSize: " + this.rankSize);
-    this.rank.setMaxSize(this.rankSize);
+  public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
+    long num = 0L;
+    double sum = 0.0;
 
-    for (Text value : values) {
-      Map<String,String> rankRecord = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
-      System.out.println("# [RED] # Record: " + rankRecord);
-      Long movieId = Long.valueOf(rankRecord.get("movieId"));
-      Double score = Double.valueOf(rankRecord.get("score"));
-      this.rank.put(movieId, score);
-      System.out.println("# [RED] # Rank: " + this.rank);
+    for (DoubleWritable value : values) {
+      double rating = value.get();
+      sum += rating;
+      num++;
     }
 
-    for (Map.Entry<Long,Double> entry :
-        this.rank.entrySet().stream().sorted((e1,e2)-> e2.getValue().compareTo(e1.getValue())).collect(Collectors.toList())) {
-      this.tuple.set(entry.getKey() + "," + entry.getValue());
-      ctx.write(NullWritable.get(), this.tuple);
-    }
+    double avgRating = sum / num;
+
+    this.tuple.set(key.get() + "," + avgRating);
+
+    ctx.write(NullWritable.get(), this.tuple);
   }
 
 }

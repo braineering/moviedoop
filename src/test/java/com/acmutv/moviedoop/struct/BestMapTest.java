@@ -47,75 +47,30 @@ public class BestMapTest {
     actual.put(1L, 10.0);
     actual.put(1L, 15.0);
     actual.put(1L, 10.0);
-    actual.put(1L, 5.0);
     actual.put(1L, 1.0);
 
     BestMap expected = new BestMap(3);
-    expected.put(1L, 15.0);
+    expected.put(1L, 1.0);
 
     Assert.assertEquals(expected, actual);
   }
 
   /**
    * Tests the simple case of rank construction.
-   * 1,1,1.0,02/01/1970
-   2,1,2.0,02/01/1970
-   3,1,3.0,02/01/1970
-   1,2,1.0,02/01/1970
-   2,2,2.0,02/01/1970
-   3,2,3.0,02/01/1970
-   1,3,1.0,02/01/1970
-   2,3,2.0,02/01/1970
-   3,3,3.0,02/01/1970
-   4,3,4.0,02/01/1970
-   1,4,1.0,02/01/1970
-   2,4,2.0,02/01/1970
-   3,4,3.0,02/01/1970
-   4,4,4.0,02/01/1970
-   5,4,5.0,02/01/1970
-   6,4,5.0,02/01/1970
-   1,5,1.0,02/01/1970
-   2,5,2.0,02/01/1970
-   3,5,3.0,02/01/1970
-   4,5,4.0,02/01/1970
-   5,5,5.0,02/01/1970
-   6,5,5.0,02/01/1970
    */
   @Test
-  public void test_simple() {
+  public void test_sameScore() {
     BestMap actual = new BestMap(3);
     actual.put(1L, 1.0);
-    actual.put(1L, 2.0);
-    actual.put(1L, 3.0);
-    actual.put(2L, 1.0);
-    actual.put(2L, 2.0);
-    actual.put(2L, 3.0);
+    actual.put(2L, 1.5);
     actual.put(3L, 1.0);
-    actual.put(3L, 2.0);
-    actual.put(3L, 3.0);
-    actual.put(3L, 4.0);
-    actual.put(4L, 1.0);
     actual.put(4L, 2.0);
-    actual.put(4L, 3.0);
-    actual.put(4L, 4.0);
-    actual.put(4L, 5.0);
-    actual.put(4L, 5.0);
-    actual.put(5L, 1.0);
     actual.put(5L, 2.0);
-    actual.put(5L, 3.0);
-    actual.put(5L, 4.0);
-    actual.put(5L, 5.0);
-    actual.put(5L, 5.0);
-    actual.put(1L, 1.0);
-    actual.put(2L, 1.0);
-    actual.put(3L, 1.0);
-    actual.put(4L, 1.0);
-    actual.put(5L, 1.0);
 
     BestMap expected = new BestMap(3);
-    expected.put(5L, 5.0);
-    expected.put(4L, 5.0);
-    expected.put(3L, 4.0);
+    expected.put(5L, 2.0);
+    expected.put(2L, 1.5);
+    expected.put(3L, 1.0);
 
     Assert.assertEquals(expected, actual);
   }

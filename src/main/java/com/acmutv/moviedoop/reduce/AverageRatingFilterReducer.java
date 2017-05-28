@@ -64,7 +64,8 @@ public class AverageRatingFilterReducer extends Reducer<Text,DoubleWritable,Text
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.movieAverageRatingLowerBound = ctx.getConfiguration().getDouble("movie.rating.avg.lb", Double.MIN_VALUE);
+    this.movieAverageRatingLowerBound =
+        Double.valueOf(ctx.getConfiguration().get("movie.rating.average.lb"));
   }
 
   /**
@@ -78,13 +79,15 @@ public class AverageRatingFilterReducer extends Reducer<Text,DoubleWritable,Text
    */
   public void reduce(Text key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
     long num = 0L;
-    double avgRating = 0.0;
+    double sum = 0.0;
 
     for (DoubleWritable value : values) {
       double rating = value.get();
-      avgRating = ((avgRating * num) + rating) / (num + 1);
-      num += 1;
+      sum += rating;
+      num++;
     }
+
+    double avgRating = sum / num;
 
     if (avgRating >= this.movieAverageRatingLowerBound) {
       this.movieTitle.set(key.toString());

@@ -29,6 +29,7 @@ import com.acmutv.moviedoop.map.FilterRatingsByTimestampJoinMovieTitleCachedMapp
 import com.acmutv.moviedoop.reduce.AverageRatingFilterReducer;
 import com.acmutv.moviedoop.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -37,60 +38,85 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
 import java.time.LocalDateTime;
 
 /**
- * A MapReduce job that returns movies with rate greater/equal to the specified {@code threshold}
+ * A map/reduce program that returns movies with rate greater/equal to the specified {@code threshold}
  * and valuated starting from the specified {@code startDate}.
- * The job leverages inner joins (replication joins).
- * The job leverages distributed caching (on mapper).
+ * The program leverages inner joins (replication joins).
+ * The program leverages distributed caching (on mapper).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query1_3 {
+public class Query1_3 extends Configured implements Tool {
 
   /**
-   * The job name.
+   * The program name.
    */
-  private static final String JOB_NAME = "Query1_3";
+  private static final String PROGRAM_NAME = "Query1_3";
 
   /**
-   * The job main method.
-   *
-   * @param args the job arguments.
-   * @throws Exception when job cannot be executed.
+   * The default lower bound for movie average rating.
    */
-  public static void main(String[] args) throws Exception {
-    if (args.length < 4) {
-      System.err.println("Usage: Query1_3 [inputRatings] [inputMovies] [output] [avgRatingLB] (ratingTimestampLB)");
-      System.exit(1);
+  private static final double MOVIE_RATING_AVERAGE_LB = 2.5;
+
+  /**
+   * The default lower bound for movie ratings timestamp.
+   */
+  private static final LocalDateTime MOVIE_RATINGS_TIMESTAMP_LB = DateParser.MIN;
+
+  /**
+   * The default number of reducers for the averaging job.
+   */
+  private static final int MOVIE_AVERAGE_REDUCE_CARDINALITY = 1;
+
+  /**
+   * The default verbosity.
+   */
+  private static final boolean VERBOSE = false;
+
+  @Override
+  public int run(String[] args) throws Exception {
+    if (args.length < 3) {
+      System.err.printf("Usage: %s [-D prop=val] <inRatings> <inMovies> <out>\n", PROGRAM_NAME);
+      ToolRunner.printGenericCommandUsage(System.out);
+      return 2;
     }
 
-    // USER PARAMETERS
+    // PATHS
     final Path inputRatings = new Path(args[0]);
     final Path inputMovies = new Path(args[1]);
     final Path output = new Path(args[2]);
-    final Double averageRatingLowerBound = Double.valueOf(args[3]);
-    final LocalDateTime ratingTimestampLowerBound = (args.length > 4) ?
-        DateParser.parseOrDefault(args[4], DateParser.MIN) : DateParser.MIN;
 
-    // USER PARAMETERS RESUME
+    // CONTEXT CONFIGURATION
+    Configuration config = super.getConf();
+    config.setIfUnset("movie.rating.average.lb", String.valueOf(MOVIE_RATING_AVERAGE_LB));
+    config.setIfUnset("movie.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
+
+    // OTHER CONFIGURATION
+    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
+    config.unset("movie.average.reduce.cardinality");
+
+    // CONFIGURATION RESUME
+    System.out.println("############################################################################");
+    System.out.printf("%s\n", PROGRAM_NAME);
+    System.out.println("****************************************************************************");
     System.out.println("Input Ratings: " + inputRatings);
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
-    System.out.println("Average Rating Lower Bound: " + averageRatingLowerBound);
-    System.out.println("Rating Timestamp Lower Bound: " + DateParser.toString(ratingTimestampLowerBound));
-
-    // CONTEXT CONFIGURATION
-    Configuration config = new Configuration();
-    config.setDouble("movie.rating.avg.lb", averageRatingLowerBound);
-    config.setLong("movie.rating.timestamp.lb", DateParser.toSeconds(ratingTimestampLowerBound));
+    System.out.println("Movie Average Rating Lower Bound: " + config.get("movie.rating.average.lb"));
+    System.out.println("Movie Rating Timestamp Lower Bound: " + config.get("movie.rating.timestamp.lb"));
+    System.out.println("----------------------------------------------------------------------------");
+    System.out.println("Reduce Cardinality (average): " + AVERAGE_REDUCE_CARDINALITY);
+    System.out.println("############################################################################");
 
     // JOB CONFIGURATION
-    Job job = Job.getInstance(config, JOB_NAME);
+    Job job = Job.getInstance(config, PROGRAM_NAME);
     job.setJarByClass(Query1_3.class);
     for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
@@ -104,7 +130,7 @@ public class Query1_3 {
 
     // REDUCE CONFIGURATION
     job.setReducerClass(AverageRatingFilterReducer.class);
-    job.setNumReduceTasks(1);
+    job.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // OUTPUT CONFIGURATION
     job.setOutputKeyClass(Text.class);
@@ -112,6 +138,17 @@ public class Query1_3 {
     FileOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
+    return job.waitForCompletion(VERBOSE) ? 0 : 1;
+  }
+
+  /**
+   * The program main method.
+   *
+   * @param args the program arguments.
+   * @throws Exception when the program cannot be executed.
+   */
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(new Configuration(), new Query1_3(), args);
+    System.exit(res);
   }
 }

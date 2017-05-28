@@ -42,7 +42,9 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -138,6 +140,7 @@ public class QueryTopK_2 extends Configured implements Tool {
     jobAverageRatings.setJarByClass(QueryTopK_2.class);
 
     // JOB AVERAGE RATINGS: MAP CONFIGURATION
+    jobAverageRatings.setInputFormatClass(FileInputFormat.class);
     FileInputFormat.addInputPath(jobAverageRatings, input);
     jobAverageRatings.setMapperClass(FilterRatingsByTimeIntervalMapper.class);
     jobAverageRatings.setMapOutputKeyClass(LongWritable.class);
@@ -150,7 +153,8 @@ public class QueryTopK_2 extends Configured implements Tool {
     // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION
     jobAverageRatings.setOutputKeyClass(NullWritable.class);
     jobAverageRatings.setOutputValueClass(Text.class);
-    FileOutputFormat.setOutputPath(jobAverageRatings, staging);
+    jobAverageRatings.setOutputFormatClass(SequenceFileOutputFormat.class);
+    SequenceFileOutputFormat.setOutputPath(jobAverageRatings, staging);
 
     // JOB AVERAGE RATINGS: EXECUTION
     int code = jobAverageRatings.waitForCompletion(VERBOSE) ? 0 : 1;
@@ -161,7 +165,8 @@ public class QueryTopK_2 extends Configured implements Tool {
       jobTopRatings.setJarByClass(QueryTopK_2.class);
 
       // JOB TOP BY RATING: MAP CONFIGURATION
-      FileInputFormat.addInputPath(jobTopRatings, staging);
+      jobTopRatings.setInputFormatClass(SequenceFileInputFormat.class);
+      SequenceFileInputFormat.addInputPath(jobTopRatings, staging);
       jobTopRatings.setMapperClass(MoviesTopKBestMapMapper.class);
       jobTopRatings.setMapOutputKeyClass(NullWritable.class);
       jobTopRatings.setMapOutputValueClass(Text.class);
@@ -173,6 +178,7 @@ public class QueryTopK_2 extends Configured implements Tool {
       // JOB TOP BY RATING: OUTPUT CONFIGURATION
       jobTopRatings.setOutputKeyClass(NullWritable.class);
       jobTopRatings.setOutputValueClass(Text.class);
+      jobTopRatings.setOutputFormatClass(FileOutputFormat.class);
       FileOutputFormat.setOutputPath(jobTopRatings, output);
 
       // JOB TOP BY RATING: JOB EXECUTION

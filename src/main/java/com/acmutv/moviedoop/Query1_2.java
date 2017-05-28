@@ -124,6 +124,7 @@ public class Query1_2 extends Configured implements Tool {
     }
 
     // MAP CONFIGURATION
+    job.setInputFormatClass(FileInputFormat.class);
     FileInputFormat.addInputPath(job, inputRatings);
     job.setMapperClass(FilterRatingsByTimestampMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
@@ -136,6 +137,7 @@ public class Query1_2 extends Configured implements Tool {
     // OUTPUT CONFIGURATION
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(DoubleWritable.class);
+    job.setOutputFormatClass(FileOutputFormat.class);
     FileOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION

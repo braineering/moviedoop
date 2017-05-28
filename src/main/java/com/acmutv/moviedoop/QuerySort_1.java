@@ -160,6 +160,7 @@ public class QuerySort_1 extends Configured implements Tool {
     jobAverageRatings.setJarByClass(QuerySort_1.class);
 
     // JOB AVERAGE RATINGS: MAP CONFIGURATION
+    jobAverageRatings.setInputFormatClass(FileInputFormat.class);
     FileInputFormat.addInputPath(jobAverageRatings, input);
     jobAverageRatings.setMapperClass(FilterRatingsByTimeIntervalMapper.class);
     jobAverageRatings.setMapOutputKeyClass(LongWritable.class);
@@ -172,7 +173,8 @@ public class QuerySort_1 extends Configured implements Tool {
     // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION
     jobAverageRatings.setOutputKeyClass(NullWritable.class);
     jobAverageRatings.setOutputValueClass(Text.class);
-    FileOutputFormat.setOutputPath(jobAverageRatings, staging1);
+    jobAverageRatings.setOutputFormatClass(SequenceFileOutputFormat.class);
+    SequenceFileOutputFormat.setOutputPath(jobAverageRatings, staging1);
 
     // JOB AVERAGE RATINGS: EXECUTION
     int code = jobAverageRatings.waitForCompletion(VERBOSE) ? 0 : 1;
@@ -183,7 +185,8 @@ public class QuerySort_1 extends Configured implements Tool {
       jobRatingAsKey.setJarByClass(QuerySort_1.class);
 
       // JOB RATING AS KEY: MAP CONFIGURATION
-      FileInputFormat.addInputPath(jobRatingAsKey, staging1);
+      jobRatingAsKey.setInputFormatClass(SequenceFileInputFormat.class);
+      SequenceFileInputFormat.addInputPath(jobRatingAsKey, staging1);
       jobRatingAsKey.setMapperClass(AverageRatingAsKeyMapper.class);
 
       // JOB RATING AS KEY: REDUCE CONFIGURATION
@@ -217,6 +220,7 @@ public class QuerySort_1 extends Configured implements Tool {
       // JOB SORT BY AVERAGE RATING: OUTPUT CONFIGURATION
       jobSortByRating.setOutputKeyClass(Text.class);
       jobSortByRating.setOutputValueClass(Text.class);
+      jobSortByRating.setOutputFormatClass(FileOutputFormat.class);
       FileOutputFormat.setOutputPath(jobSortByRating, output);
 
       // JOB SORT BY AVERAGE RATING: PARTITIONER CONFIGURATION

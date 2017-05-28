@@ -199,6 +199,7 @@ public class Query3_1 extends Configured implements Tool {
     jobAverageRatings.setJarByClass(Query3_1.class);
 
     // JOB AVERAGE RATINGS: MAP CONFIGURATION
+    jobAverageRatings.setInputFormatClass(FileInputFormat.class);
     FileInputFormat.addInputPath(jobAverageRatings, input);
     jobAverageRatings.setMapperClass(FilterRatingsByTimeIntervalMapper.class);
     jobAverageRatings.setMapOutputKeyClass(LongWritable.class);
@@ -211,7 +212,8 @@ public class Query3_1 extends Configured implements Tool {
     // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION
     jobAverageRatings.setOutputKeyClass(NullWritable.class);
     jobAverageRatings.setOutputValueClass(Text.class);
-    FileOutputFormat.setOutputPath(jobAverageRatings, stagingAverage);
+    jobAverageRatings.setOutputFormatClass(SequenceFileOutputFormat.class);
+    SequenceFileOutputFormat.setOutputPath(jobAverageRatings, stagingAverage);
 
     // JOB AVERAGE RATINGS: EXECUTION
     int code = jobAverageRatings.waitForCompletion(VERBOSE) ? 0 : 1;
@@ -222,7 +224,8 @@ public class Query3_1 extends Configured implements Tool {
       jobTopRatings.setJarByClass(Query3_1.class);
 
       // JOB TOP BY RATING: MAP CONFIGURATION
-      FileInputFormat.addInputPath(jobTopRatings, stagingAverage);
+      jobTopRatings.setInputFormatClass(SequenceFileInputFormat.class);
+      SequenceFileInputFormat.addInputPath(jobTopRatings, stagingAverage);
       jobTopRatings.setMapperClass(MoviesTopKBestMapMapper.class);
       jobTopRatings.setMapOutputKeyClass(NullWritable.class);
       jobTopRatings.setMapOutputValueClass(Text.class);
@@ -234,7 +237,8 @@ public class Query3_1 extends Configured implements Tool {
       // JOB TOP BY RATING: OUTPUT CONFIGURATION
       jobTopRatings.setOutputKeyClass(NullWritable.class);
       jobTopRatings.setOutputValueClass(Text.class);
-      FileOutputFormat.setOutputPath(jobTopRatings, stagingTopK);
+      jobTopRatings.setOutputFormatClass(SequenceFileOutputFormat.class);
+      SequenceFileOutputFormat.setOutputPath(jobTopRatings, stagingTopK);
 
       // JOB TOP BY RATING: JOB EXECUTION
       code = jobTopRatings.waitForCompletion(VERBOSE) ? 0 : 1;
@@ -246,7 +250,8 @@ public class Query3_1 extends Configured implements Tool {
       jobRatingAsKey.setJarByClass(QuerySort_1.class);
 
       // JOB RATING AS KEY: MAP CONFIGURATION
-      FileInputFormat.addInputPath(jobRatingAsKey, stagingAverage);
+      jobRatingAsKey.setInputFormatClass(SequenceFileInputFormat.class);
+      SequenceFileInputFormat.addInputPath(jobRatingAsKey, stagingAverage);
       jobRatingAsKey.setMapperClass(AverageRatingAsKeyMapper.class);
 
       // JOB RATING AS KEY: REDUCE CONFIGURATION
@@ -280,7 +285,8 @@ public class Query3_1 extends Configured implements Tool {
       // JOB SORT BY AVERAGE RATING: OUTPUT CONFIGURATION
       jobSortByRating.setOutputKeyClass(Text.class);
       jobSortByRating.setOutputValueClass(Text.class);
-      FileOutputFormat.setOutputPath(jobSortByRating, stagingSort2);
+      jobSortByRating.setOutputFormatClass(SequenceFileOutputFormat.class);
+      SequenceFileOutputFormat.setOutputPath(jobSortByRating, stagingSort2);
 
       // JOB SORT BY AVERAGE RATING: PARTITIONER CONFIGURATION
       if (SORT_REDUCE_CARDINALITY > 1) {
@@ -304,7 +310,8 @@ public class Query3_1 extends Configured implements Tool {
       }
 
       // JOB AVERAGE RATINGS: MAP CONFIGURATION
-      FileInputFormat.addInputPath(jobRankComparison, input);
+      jobRankComparison.setInputFormatClass(SequenceFileInputFormat.class);
+      SequenceFileInputFormat.addInputPath(jobRankComparison, input);
       jobRankComparison.setMapperClass(RankComparisonMapper.class);
       //jobRankComparison.setMapOutputKeyClass(LongWritable.class);
       //jobRankComparison.setMapOutputValueClass(DoubleWritable.class);
@@ -316,6 +323,7 @@ public class Query3_1 extends Configured implements Tool {
       // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION
       jobRankComparison.setOutputKeyClass(NullWritable.class);
       jobRankComparison.setOutputValueClass(Text.class);
+      jobRankComparison.setOutputFormatClass(FileOutputFormat.class);
       FileOutputFormat.setOutputPath(jobRankComparison, output);
 
       // JOB AVERAGE RATINGS: EXECUTION

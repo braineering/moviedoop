@@ -123,6 +123,7 @@ public class Query1_3 extends Configured implements Tool {
     }
 
     // MAP CONFIGURATION
+    job.setInputFormatClass(FileInputFormat.class);
     FileInputFormat.addInputPath(job, inputRatings);
     job.setMapperClass(FilterRatingsByTimestampJoinMovieTitleCachedMapper.class);
     job.setMapOutputKeyClass(Text.class);
@@ -135,6 +136,7 @@ public class Query1_3 extends Configured implements Tool {
     // OUTPUT CONFIGURATION
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(DoubleWritable.class);
+    job.setOutputFormatClass(FileOutputFormat.class);
     FileOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION

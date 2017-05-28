@@ -132,6 +132,7 @@ public class Query1_1 extends Configured implements Tool {
     // OUTPUT CONFIGURATION
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(DoubleWritable.class);
+    job.setOutputFormatClass(FileOutputFormat.class);
     FileOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION

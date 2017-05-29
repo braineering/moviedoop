@@ -68,7 +68,7 @@ public class MoviesTopKBestMapMapper extends Mapper<Object,Text,NullWritable,Tex
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.moviesTopKSize = Integer.valueOf(ctx.getConfiguration().get("movie.topk.size"));
+    this.moviesTopKSize = Integer.valueOf(ctx.getConfiguration().get("moviedoop.topk.size"));
     this.rank.setMaxSize(this.moviesTopKSize);
   }
 
@@ -83,6 +83,8 @@ public class MoviesTopKBestMapMapper extends Mapper<Object,Text,NullWritable,Tex
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
     Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
+
+    System.out.printf("### MAP ### TopKBestMapMapper :: value: %s\n", value.toString());
 
     long movieId = Long.valueOf(rating.get("movieId"));
     double score = Double.valueOf(rating.get("score"));

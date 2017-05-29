@@ -67,7 +67,7 @@ public class FilterRatingsByTimestampJMapper extends Mapper<Object, Text, LongWr
    */
   protected void setup(Context ctx) {
     this.movieRatingTimestampLowerBound =
-        DateParser.toSeconds(ctx.getConfiguration().get("movie.rating.timestamp.lb"));
+        DateParser.toSeconds(ctx.getConfiguration().get("moviedoop.average.rating.timestamp.lb"));
   }
 
   /**

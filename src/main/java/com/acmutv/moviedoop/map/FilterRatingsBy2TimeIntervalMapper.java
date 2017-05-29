@@ -25,11 +25,13 @@
  */
 package com.acmutv.moviedoop.map;
 
+import com.acmutv.moviedoop.Query3_1;
 import com.acmutv.moviedoop.QueryTopK_1;
 import com.acmutv.moviedoop.util.DateParser;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
@@ -37,25 +39,36 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * The mapper for the {@link QueryTopK_1} job.
- * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
- * the `movieRatingTimestampLowerBound`.
+ * The mapper for the {@link Query3_1} job.
+ * It emits N(movieId,rating) where N=(1|2) and rating is a score attributed with timestamp within
+ * [`movieRatingTimestampLowerBound1`,`movieRatingTimestampUpperBound1`] or within
+ * [``]
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class FilterRatingsByTimeIntervalMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
+public class FilterRatingsBy2TimeIntervalMapper extends Mapper<Object,Text,LongWritable,Text> {
 
   /**
-   * The lower bound for the movie rating timestamp.
+   * The lower bound for the movie rating timestamp (1).
    */
-  private long movieRatingTimestampLowerBound;
+  private long movieRatingTimestampLowerBound1;
 
   /**
-   * The upper bound for the movie rating timestamp.
+   * The upper bound for the movie rating timestamp (1).
    */
-  private long movieRatingTimestampUpperBound;
+  private long movieRatingTimestampUpperBound1;
+
+  /**
+   * The lower bound for the movie rating timestamp (2).
+   */
+  private long movieRatingTimestampLowerBound2;
+
+  /**
+   * The upper bound for the movie rating timestamp (2).
+   */
+  private long movieRatingTimestampUpperBound2;
 
   /**
    * The movie id to emit.
@@ -63,19 +76,23 @@ public class FilterRatingsByTimeIntervalMapper extends Mapper<Object,Text,LongWr
   private LongWritable movieId = new LongWritable();
 
   /**
-   * The movie rating to emit.
+   * The tuple (N,score) to emit.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private Text tuple = new Text();
 
   /**
    * Configures the mapper.
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.movieRatingTimestampLowerBound =
-        DateParser.toSeconds(ctx.getConfiguration().get("moviedoop.average.rating.timestamp.lb"));
-    this.movieRatingTimestampUpperBound =
-        DateParser.toSeconds(ctx.getConfiguration().get("moviedoop.average.rating.timestamp.ub"));
+    this.movieRatingTimestampLowerBound1 =
+        DateParser.toSeconds(ctx.getConfiguration().get("moviedoop.average.rating.timestamp.lb.1"));
+    this.movieRatingTimestampUpperBound1 =
+        DateParser.toSeconds(ctx.getConfiguration().get("moviedoop.average.rating.timestamp.ub.1"));
+    this.movieRatingTimestampLowerBound2 =
+        DateParser.toSeconds(ctx.getConfiguration().get("moviedoop.average.rating.timestamp.lb.2"));
+    this.movieRatingTimestampUpperBound2 =
+        DateParser.toSeconds(ctx.getConfiguration().get("moviedoop.average.rating.timestamp.ub.2"));
   }
 
   /**
@@ -91,13 +108,29 @@ public class FilterRatingsByTimeIntervalMapper extends Mapper<Object,Text,LongWr
     Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
 
     long timestamp = Long.valueOf(rating.get("timestamp"));
-    if (timestamp >= this.movieRatingTimestampLowerBound
-        && timestamp <= this.movieRatingTimestampUpperBound) {
+    if (timestamp >= this.movieRatingTimestampLowerBound1
+        && timestamp <= this.movieRatingTimestampUpperBound1
+        && timestamp >= this.movieRatingTimestampLowerBound2
+        && timestamp <= this.movieRatingTimestampUpperBound2) {
       long movieId = Long.valueOf(rating.get("movieId"));
       double score = Double.valueOf(rating.get("score"));
       this.movieId.set(movieId);
-      this.movieRating.set(score);
-      ctx.write(this.movieId, this.movieRating);
+      this.tuple.set("1;2:" + score);
+      ctx.write(this.movieId, this.tuple);
+    } else if (timestamp >= this.movieRatingTimestampLowerBound1
+        && timestamp <= this.movieRatingTimestampUpperBound1) {
+      long movieId = Long.valueOf(rating.get("movieId"));
+      double score = Double.valueOf(rating.get("score"));
+      this.movieId.set(movieId);
+      this.tuple.set("1:" + score);
+      ctx.write(this.movieId, this.tuple);
+    } else if (timestamp >= this.movieRatingTimestampLowerBound2
+        && timestamp <= this.movieRatingTimestampUpperBound2) {
+      long movieId = Long.valueOf(rating.get("movieId"));
+      double score = Double.valueOf(rating.get("score"));
+      this.movieId.set(movieId);
+      this.tuple.set("2:" + score);
+      ctx.write(this.movieId, this.tuple);
     }
   }
 }

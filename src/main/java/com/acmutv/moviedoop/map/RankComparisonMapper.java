@@ -67,18 +67,21 @@ public class RankComparisonMapper extends Mapper<Object,Text,NullWritable,Text> 
    */
   protected void setup(Context ctx) {
     try {
+      int pos = 1;
       for (URI uri : ctx.getCacheFiles()) {
         Path path = new Path(uri);
         BufferedReader br = new BufferedReader(
             new InputStreamReader(
                 new FileInputStream(path.getName())));
         String line;
-        int pos = 1;
         while ((line = br.readLine()) != null) {
-          Map<String,String> movie = RecordParser.parse(line, new String[] {"id","position"},",");
+          Map<String,String> movie = RecordParser.parse(line, new String[] {"id","score"},",");
           long movieId = Long.valueOf(movie.get("id"));
-          int movieTopKPosition = Integer.valueOf(movie.get("position"));
+          double score = Double.valueOf(movie.get("score"));
+          int movieTopKPosition = pos;
           this.movieIdToMovieTopKPosition.put(movieId, movieTopKPosition);
+          System.out.printf("### MAP ### added : (%d,%d,%f)\n", movieId, movieTopKPosition, score);
+          pos++;
         }
         br.close();
       }

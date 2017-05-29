@@ -40,8 +40,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -91,7 +93,7 @@ public class QueryTopK_1 extends Configured implements Tool {
   /**
    * The default verbosity.
    */
-  private static final boolean VERBOSE = false;
+  private static final boolean VERBOSE = true;
 
   @Override
   public int run(String[] args) throws Exception {
@@ -108,15 +110,15 @@ public class QueryTopK_1 extends Configured implements Tool {
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
-    config.setIfUnset("movie.topk.size", String.valueOf(MOVIE_RANK_SIZE));
-    config.setIfUnset("movie.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
-    config.setIfUnset("movie.rating.timestamp.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_UB));
+    config.setIfUnset("moviedoop.topk.size", String.valueOf(MOVIE_RANK_SIZE));
+    config.setIfUnset("moviedoop.average.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
+    config.setIfUnset("moviedoop.average.rating.timestamp.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_UB));
 
     // OTHER CONFIGURATION
-    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
-    final int TOPK_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.topk.reduce.cardinality", String.valueOf(MOVIE_TOPK_REDUCE_CARDINALITY)));
-    config.unset("movie.average.reduce.cardinality");
-    config.unset("movie.topk.reduce.cardinality");
+    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
+    final int TOPK_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.topk.reduce.cardinality", String.valueOf(MOVIE_TOPK_REDUCE_CARDINALITY)));
+    config.unset("moviedoop.average.reduce.cardinality");
+    config.unset("moviedoop.topk.reduce.cardinality");
 
     // CONTEXT RESUME
     System.out.println("############################################################################");
@@ -124,9 +126,9 @@ public class QueryTopK_1 extends Configured implements Tool {
     System.out.println("****************************************************************************");
     System.out.println("Input: " + input);
     System.out.println("Output: " + output);
-    System.out.println("Movie Top Rank Size: " + config.get("movie.topk.size"));
-    System.out.println("Movie Rating Timestamp Lower Bound (Top Ranking): " + config.get("movie.rating.timestamp.lb"));
-    System.out.println("Movie Rating Timestamp Upper Bound (Top Ranking): " + config.get("movie.rating.timestamp.ub"));
+    System.out.println("Movie Top Rank Size: " + config.get("moviedoop.topk.size"));
+    System.out.println("Movie Rating Timestamp Lower Bound (Top Ranking): " + config.get("moviedoop.average.rating.timestamp.lb"));
+    System.out.println("Movie Rating Timestamp Upper Bound (Top Ranking): " + config.get("moviedoop.average.rating.timestamp.ub"));
     System.out.println("----------------------------------------------------------------------------");
     System.out.println("Reduce Cardinality (average): " + AVERAGE_REDUCE_CARDINALITY);
     System.out.println("Reduce Cardinality (topk): " + TOPK_REDUCE_CARDINALITY);
@@ -137,7 +139,7 @@ public class QueryTopK_1 extends Configured implements Tool {
     jobAverageRatings.setJarByClass(QueryTopK_1.class);
 
     // JOB AVERAGE RATINGS: MAP CONFIGURATION
-    jobAverageRatings.setInputFormatClass(FileInputFormat.class);
+    jobAverageRatings.setInputFormatClass(TextInputFormat.class);
     FileInputFormat.addInputPath(jobAverageRatings, input);
     jobAverageRatings.setMapperClass(FilterRatingsByTimeIntervalMapper.class);
     jobAverageRatings.setMapOutputKeyClass(LongWritable.class);
@@ -175,7 +177,7 @@ public class QueryTopK_1 extends Configured implements Tool {
       // JOB TOP BY RATING: OUTPUT CONFIGURATION
       jobTopRatings.setOutputKeyClass(NullWritable.class);
       jobTopRatings.setOutputValueClass(Text.class);
-      jobTopRatings.setOutputFormatClass(FileOutputFormat.class);
+      jobTopRatings.setOutputFormatClass(TextOutputFormat.class);
       FileOutputFormat.setOutputPath(jobTopRatings, output);
 
       // JOB TOP BY RATING: JOB EXECUTION

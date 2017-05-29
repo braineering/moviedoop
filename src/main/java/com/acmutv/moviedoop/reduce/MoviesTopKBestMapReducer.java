@@ -70,7 +70,7 @@ public class MoviesTopKBestMapReducer extends Reducer<NullWritable,Text,NullWrit
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.moviesTopKSize = Integer.valueOf(ctx.getConfiguration().get("movie.topk.size"));
+    this.moviesTopKSize = Integer.valueOf(ctx.getConfiguration().get("moviedoop.topk.size"));
     this.rank.setMaxSize(this.moviesTopKSize);
   }
 
@@ -85,6 +85,7 @@ public class MoviesTopKBestMapReducer extends Reducer<NullWritable,Text,NullWrit
    */
   public void reduce(NullWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
     for (Text value : values) {
+      System.out.printf("### RED ### TopKBestMapReducer :: value: %s\n", value.toString());
       Map<String,String> rankRecord = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
 
       long movieId = Long.valueOf(rankRecord.get("movieId"));

@@ -25,19 +25,16 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.AverageRatingAsKeyMapper;
-import com.acmutv.moviedoop.map.FilterRatingsByTimeIntervalMapper;
-import com.acmutv.moviedoop.map.MoviesTopKBestMapMapper;
-import com.acmutv.moviedoop.map.RankComparisonMapper;
-import com.acmutv.moviedoop.reduce.AverageRatingReducer;
-import com.acmutv.moviedoop.reduce.MoviesTopKBestMapReducer;
-import com.acmutv.moviedoop.reduce.ValueReducer;
+import com.acmutv.moviedoop.map.*;
+import com.acmutv.moviedoop.reduce.*;
 import com.acmutv.moviedoop.util.DateParser;
+import com.acmutv.moviedoop.util.RegexPathFilter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -46,8 +43,8 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.*;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 import org.apache.hadoop.util.Tool;
@@ -132,59 +129,62 @@ public class Query3_1 extends Configured implements Tool {
   /**
    * The default verbosity.
    */
-  private static final boolean VERBOSE = false;
+  private static final boolean VERBOSE = true;
 
   @Override
   public int run(String[] args) throws Exception {
     if (args.length < 2) {
-      System.err.printf("Usage: %s [-D prop=val] <in> <out>\n", PROGRAM_NAME);
+      System.err.printf("Usage: %s [-D prop=val] <inRatings> <inMovies> <out>\n", PROGRAM_NAME);
       ToolRunner.printGenericCommandUsage(System.out);
       return 2;
     }
 
     // PATHS
-    final Path input = new Path(args[0]);
-    final Path stagingAverage = new Path(args[1] + "_stagingAverage");
-    final Path stagingSort1 = new Path(args[1] + "_stagingSort1");
-    final Path stagingSort2 = new Path(args[1] + "_stagingSort2");
-    final Path sortPartitions = new Path(args[1] + "_partitions.sort.lst");
-    final Path stagingTopK = new Path(args[1] + "_stagingTopK");
-    final Path output = new Path(args[1]);
+    final Path inputRatings = new Path(args[0]);
+    final Path inputMovies = new Path(args[1]);
+    final Path stagingAverage = new Path(args[2] + "_staging/average");
+    final Path stagingAverage1 = new Path(args[2] + "_staging/average/1");
+    final Path stagingAverage2 = new Path(args[2] + "_staging/average/2");
+    final Path stagingSort1 = new Path(args[2] + "_staging/sort/1");
+    final Path stagingSort2 = new Path(args[2] + "_staging/sort/2");
+    final Path sortPartitions = new Path(args[2] + "_partitions.sort.lst");
+    final Path stagingTopK = new Path(args[2] + "_staging/topk");
+    final Path output = new Path(args[2]);
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
-    config.setIfUnset("movie.topk.size", String.valueOf(MOVIE_RANK_SIZE));
-    config.setIfUnset("movie.rating.timestamp.topk.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_TOPK_LB));
-    config.setIfUnset("movie.rating.timestamp.topk.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_TOPK_UB));
-    config.setIfUnset("movie.rating.timestamp.sort.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_SORT_LB));
-    config.setIfUnset("movie.rating.timestamp.sort.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_SORT_UB));
-
+    config.setIfUnset("moviedoop.topk.size", String.valueOf(MOVIE_RANK_SIZE));
+    config.setIfUnset("moviedoop.average.rating.timestamp.lb.1", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_TOPK_LB));
+    config.setIfUnset("moviedoop.average.rating.timestamp.ub.1", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_TOPK_UB));
+    config.setIfUnset("moviedoop.average.rating.timestamp.lb.2", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_SORT_LB));
+    config.setIfUnset("moviedoop.average.rating.timestamp.ub.2", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_SORT_UB));
 
     // OTHER CONFIGURATION
-    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
-    final int TOPK_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.topk.reduce.cardinality", String.valueOf(MOVIE_TOPK_REDUCE_CARDINALITY)));
-    final int SORT_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.sort.reduce.cardinality", String.valueOf(MOVIE_SORT_REDUCE_CARDINALITY)));
-    final int SORT_PARTITION_SAMPLES = Integer.valueOf(config.get("movie.sort.partition.samples", String.valueOf(MOVIE_SORT_PARTITION_SAMPLES)));
-    final double SORT_PARTITION_FREQUENCY = Double.valueOf(config.get("movie.sort.partition.frequency", String.valueOf(MOVIE_SORT_PARTITION_FREQUENCY)));
-    final int SORT_PARTITION_SPLITS_MAX = Integer.valueOf(config.get("movie.sort.partition.splits.max", String.valueOf(MOVIE_SORT_PARTITION_SPLITS_MAX)));
-    config.unset("movie.average.reduce.cardinality");
-    config.unset("movie.topk.reduce.cardinality");
-    config.unset("movie.sort.reduce.cardinality");
-    config.unset("movie.sort.partition.samples");
-    config.unset("movie.sort.partition.frequency");
-    config.unset("movie.sort.partition.splits.max");
+    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
+    final int TOPK_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.topk.reduce.cardinality", String.valueOf(MOVIE_TOPK_REDUCE_CARDINALITY)));
+    final int SORT_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.sort.reduce.cardinality", String.valueOf(MOVIE_SORT_REDUCE_CARDINALITY)));
+    final int SORT_PARTITION_SAMPLES = Integer.valueOf(config.get("moviedoop.sort.partition.samples", String.valueOf(MOVIE_SORT_PARTITION_SAMPLES)));
+    final double SORT_PARTITION_FREQUENCY = Double.valueOf(config.get("moviedoop.sort.partition.frequency", String.valueOf(MOVIE_SORT_PARTITION_FREQUENCY)));
+    final int SORT_PARTITION_SPLITS_MAX = Integer.valueOf(config.get("moviedoop.sort.partition.splits.max", String.valueOf(MOVIE_SORT_PARTITION_SPLITS_MAX)));
+    config.unset("moviedoop.average.reduce.cardinality");
+    config.unset("moviedoop.topk.reduce.cardinality");
+    config.unset("moviedoop.sort.reduce.cardinality");
+    config.unset("moviedoop.sort.partition.samples");
+    config.unset("moviedoop.sort.partition.frequency");
+    config.unset("moviedoop.sort.partition.splits.max");
 
     // CONTEXT RESUME
     System.out.println("############################################################################");
     System.out.printf("%s\n", PROGRAM_NAME);
     System.out.println("****************************************************************************");
-    System.out.println("Input: " + input);
+    System.out.println("Input Ratings: " + inputRatings);
+    System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
-    System.out.println("Movie Top Rank Size: " + config.get("movie.topk.size"));
-    System.out.println("Movie Rating Timestamp Lower Bound (Top Rank): " + config.get("movie.rating.timestamp.topk.lb"));
-    System.out.println("Movie Rating Timestamp Upper Bound (Top Rank): " + config.get("movie.rating.timestamp.topk.ub"));
-    System.out.println("Movie Rating Timestamp Lower Bound (Total Rank): " + config.get("movie.rating.timestamp.sort.lb"));
-    System.out.println("Movie Rating Timestamp Upper Bound (Total Rank): " + config.get("movie.rating.timestamp.sort.ub"));
+    System.out.println("Movie Top Rank Size: " + config.get("moviedoop.topk.size"));
+    System.out.println("Movie Rating Timestamp Lower Bound (Top Rank): " + config.get("moviedoop.average.rating.timestamp.lb.1"));
+    System.out.println("Movie Rating Timestamp Upper Bound (Top Rank): " + config.get("moviedoop.average.rating.timestamp.ub.1"));
+    System.out.println("Movie Rating Timestamp Lower Bound (Total Rank): " + config.get("moviedoop.average.rating.timestamp.lb.2"));
+    System.out.println("Movie Rating Timestamp Upper Bound (Total Rank): " + config.get("moviedoop.average.rating.timestamp.ub.2"));
     System.out.println("----------------------------------------------------------------------------");
     System.out.println("Reduce Cardinality (Average): " + AVERAGE_REDUCE_CARDINALITY);
     System.out.println("Reduce Cardinality (Top Rank): " + TOPK_REDUCE_CARDINALITY);
@@ -194,29 +194,38 @@ public class Query3_1 extends Configured implements Tool {
     System.out.println("Movie Sorting Partition Max Splits: " + SORT_PARTITION_SPLITS_MAX);
     System.out.println("############################################################################");
 
+    /***********************************************************************************************
+    * AVERAGE RATINGS FOR PERIODS [Tlb1,Tub1] and [Tlb2,Tub2]
+    ***********************************************************************************************/
+
     // JOB AVERAGE RATINGS: CONFIGURATION
     Job jobAverageRatings = Job.getInstance(config, PROGRAM_NAME + "_AVERAGE-RATINGS");
     jobAverageRatings.setJarByClass(Query3_1.class);
 
     // JOB AVERAGE RATINGS: MAP CONFIGURATION
-    jobAverageRatings.setInputFormatClass(FileInputFormat.class);
-    FileInputFormat.addInputPath(jobAverageRatings, input);
-    jobAverageRatings.setMapperClass(FilterRatingsByTimeIntervalMapper.class);
+    jobAverageRatings.setInputFormatClass(TextInputFormat.class);
+    TextInputFormat.addInputPath(jobAverageRatings, inputRatings);
+    jobAverageRatings.setMapperClass(FilterRatingsBy2TimeIntervalMapper.class);
     jobAverageRatings.setMapOutputKeyClass(LongWritable.class);
-    jobAverageRatings.setMapOutputValueClass(DoubleWritable.class);
+    jobAverageRatings.setMapOutputValueClass(Text.class);
 
     // JOB AVERAGE RATINGS: REDUCE CONFIGURATION
-    jobAverageRatings.setReducerClass(AverageRatingReducer.class);
+    jobAverageRatings.setReducerClass(AverageRating2Reducer.class);
     jobAverageRatings.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION
-    jobAverageRatings.setOutputKeyClass(NullWritable.class);
-    jobAverageRatings.setOutputValueClass(Text.class);
-    jobAverageRatings.setOutputFormatClass(SequenceFileOutputFormat.class);
+    MultipleOutputs.addNamedOutput(jobAverageRatings, "1", SequenceFileOutputFormat.class, NullWritable.class, Text.class);
+    MultipleOutputs.addNamedOutput(jobAverageRatings, "2", SequenceFileOutputFormat.class, NullWritable.class, Text.class);
+    jobAverageRatings.setOutputFormatClass(LazyOutputFormat.class);
+    LazyOutputFormat.setOutputFormatClass(jobAverageRatings, SequenceFileOutputFormat.class);
     SequenceFileOutputFormat.setOutputPath(jobAverageRatings, stagingAverage);
 
     // JOB AVERAGE RATINGS: EXECUTION
     int code = jobAverageRatings.waitForCompletion(VERBOSE) ? 0 : 1;
+
+    /***********************************************************************************************
+     * MOVIES TOP-K BY AVERAGE RATINGS IN PERIOD [Tlb1,Tub1]
+     **********************************************************************************************/
 
     if (code == 0) {
       // JOB TOP BY RATING: CONFIGURATION
@@ -225,7 +234,13 @@ public class Query3_1 extends Configured implements Tool {
 
       // JOB TOP BY RATING: MAP CONFIGURATION
       jobTopRatings.setInputFormatClass(SequenceFileInputFormat.class);
-      SequenceFileInputFormat.addInputPath(jobTopRatings, stagingAverage);
+      for (FileStatus status : FileSystem.get(jobTopRatings.getConfiguration()).listStatus(stagingAverage)) {
+        Path path = status.getPath();
+        if (path.getName().startsWith("1-r")) {
+          SequenceFileInputFormat.addInputPath(jobTopRatings, path);
+        }
+      }
+
       jobTopRatings.setMapperClass(MoviesTopKBestMapMapper.class);
       jobTopRatings.setMapOutputKeyClass(NullWritable.class);
       jobTopRatings.setMapOutputValueClass(Text.class);
@@ -237,12 +252,16 @@ public class Query3_1 extends Configured implements Tool {
       // JOB TOP BY RATING: OUTPUT CONFIGURATION
       jobTopRatings.setOutputKeyClass(NullWritable.class);
       jobTopRatings.setOutputValueClass(Text.class);
-      jobTopRatings.setOutputFormatClass(SequenceFileOutputFormat.class);
-      SequenceFileOutputFormat.setOutputPath(jobTopRatings, stagingTopK);
+      jobTopRatings.setOutputFormatClass(TextOutputFormat.class);
+      TextOutputFormat.setOutputPath(jobTopRatings, stagingTopK);
 
       // JOB TOP BY RATING: JOB EXECUTION
       code = jobTopRatings.waitForCompletion(VERBOSE) ? 0 : 1;
     }
+
+    /***********************************************************************************************
+     * MOVIES TOTAL RANK BY AVERAGE RATINGS IN PERIOD [Tlb2,Tub2]
+     **********************************************************************************************/
 
     if (code == 0) {
       // JOB RATING AS KEY: CONFIGURATION
@@ -251,7 +270,13 @@ public class Query3_1 extends Configured implements Tool {
 
       // JOB RATING AS KEY: MAP CONFIGURATION
       jobRatingAsKey.setInputFormatClass(SequenceFileInputFormat.class);
-      SequenceFileInputFormat.addInputPath(jobRatingAsKey, stagingAverage);
+      for (FileStatus status : FileSystem.get(jobRatingAsKey.getConfiguration()).listStatus(stagingAverage)) {
+        Path path = status.getPath();
+        if (path.getName().startsWith("2-r")) {
+          SequenceFileInputFormat.addInputPath(jobRatingAsKey, path);
+        }
+      }
+
       jobRatingAsKey.setMapperClass(AverageRatingAsKeyMapper.class);
 
       // JOB RATING AS KEY: REDUCE CONFIGURATION
@@ -285,8 +310,8 @@ public class Query3_1 extends Configured implements Tool {
       // JOB SORT BY AVERAGE RATING: OUTPUT CONFIGURATION
       jobSortByRating.setOutputKeyClass(Text.class);
       jobSortByRating.setOutputValueClass(Text.class);
-      jobSortByRating.setOutputFormatClass(SequenceFileOutputFormat.class);
-      SequenceFileOutputFormat.setOutputPath(jobSortByRating, stagingSort2);
+      jobSortByRating.setOutputFormatClass(TextOutputFormat.class);
+      TextOutputFormat.setOutputPath(jobSortByRating, stagingSort2);
 
       // JOB SORT BY AVERAGE RATING: PARTITIONER CONFIGURATION
       if (SORT_REDUCE_CARDINALITY > 1) {
@@ -301,6 +326,9 @@ public class Query3_1 extends Configured implements Tool {
       code = jobSortByRating.waitForCompletion(VERBOSE) ? 0 : 1;
     }
 
+    /***********************************************************************************************
+     * RANK COMPARISON
+     **********************************************************************************************/
     if (code == 0) {
       // JOB RANK COMPARISON: CONFIGURATION
       Job jobRankComparison = Job.getInstance(config, PROGRAM_NAME + "_RANK_COMPARISON");
@@ -311,10 +339,10 @@ public class Query3_1 extends Configured implements Tool {
 
       // JOB AVERAGE RATINGS: MAP CONFIGURATION
       jobRankComparison.setInputFormatClass(SequenceFileInputFormat.class);
-      SequenceFileInputFormat.addInputPath(jobRankComparison, input);
+      SequenceFileInputFormat.addInputPath(jobRankComparison, stagingSort2);
       jobRankComparison.setMapperClass(RankComparisonMapper.class);
-      //jobRankComparison.setMapOutputKeyClass(LongWritable.class);
-      //jobRankComparison.setMapOutputValueClass(DoubleWritable.class);
+      //jobRankComparison.setMapOutputKeyClass(NullWritable.class);
+      //jobRankComparison.setMapOutputValueClass(Text.class);
 
       // JOB AVERAGE RATINGS: REDUCE CONFIGURATION
       //jobRankComparison.setReducerClass(RankComparisonReducer.class);
@@ -331,11 +359,11 @@ public class Query3_1 extends Configured implements Tool {
     }
 
     // CLEAN STAGING OUTPUT
-    FileSystem.get(config).delete(stagingAverage, true);
-    FileSystem.get(config).delete(stagingTopK, true);
-    FileSystem.get(config).delete(stagingSort1, true);
-    FileSystem.get(config).delete(stagingSort2, true);
-    FileSystem.get(config).delete(sortPartitions, true);
+    //FileSystem.get(config).delete(stagingAverage, true);
+    //FileSystem.get(config).delete(stagingTopK, true);
+    //FileSystem.get(config).delete(stagingSort1, true);
+    //FileSystem.get(config).delete(stagingSort2, true);
+    //FileSystem.get(config).delete(sortPartitions, true);
 
     return code;
   }

@@ -69,7 +69,7 @@ public class MoviesTopKTreeMapReducer extends Reducer<NullWritable,Text,NullWrit
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.moviesTopKSize = Integer.valueOf(ctx.getConfiguration().get("movie.topk.size"));
+    this.moviesTopKSize = Integer.valueOf(ctx.getConfiguration().get("moviedoop.topk.size"));
   }
 
   /**

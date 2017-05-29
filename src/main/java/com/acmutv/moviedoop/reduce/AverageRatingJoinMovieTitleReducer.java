@@ -66,7 +66,7 @@ public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Te
    */
   protected void setup(Context ctx) {
     this.movieAverageRatingLowerBound =
-        Double.valueOf(ctx.getConfiguration().get("movie.rating.average.lb"));
+        Double.valueOf(ctx.getConfiguration().get("moviedoop.average.rating.lb"));
   }
 
   /**

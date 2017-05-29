@@ -37,7 +37,9 @@ import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -78,7 +80,7 @@ public class Query1_3 extends Configured implements Tool {
   /**
    * The default verbosity.
    */
-  private static final boolean VERBOSE = false;
+  private static final boolean VERBOSE = true;
 
   @Override
   public int run(String[] args) throws Exception {
@@ -95,12 +97,12 @@ public class Query1_3 extends Configured implements Tool {
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
-    config.setIfUnset("movie.rating.average.lb", String.valueOf(MOVIE_RATING_AVERAGE_LB));
-    config.setIfUnset("movie.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
+    config.setIfUnset("moviedoop.average.rating.lb", String.valueOf(MOVIE_RATING_AVERAGE_LB));
+    config.setIfUnset("moviedoop.average.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
 
     // OTHER CONFIGURATION
-    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
-    config.unset("movie.average.reduce.cardinality");
+    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
+    config.unset("moviedoop.average.reduce.cardinality");
 
     // CONFIGURATION RESUME
     System.out.println("############################################################################");
@@ -109,8 +111,8 @@ public class Query1_3 extends Configured implements Tool {
     System.out.println("Input Ratings: " + inputRatings);
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
-    System.out.println("Movie Average Rating Lower Bound: " + config.get("movie.rating.average.lb"));
-    System.out.println("Movie Rating Timestamp Lower Bound: " + config.get("movie.rating.timestamp.lb"));
+    System.out.println("Movie Average Rating Lower Bound: " + config.get("moviedoop.average.rating.lb"));
+    System.out.println("Movie Rating Timestamp Lower Bound: " + config.get("moviedoop.average.rating.timestamp.lb"));
     System.out.println("----------------------------------------------------------------------------");
     System.out.println("Reduce Cardinality (average): " + AVERAGE_REDUCE_CARDINALITY);
     System.out.println("############################################################################");
@@ -118,13 +120,14 @@ public class Query1_3 extends Configured implements Tool {
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME);
     job.setJarByClass(Query1_3.class);
-    for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
+    FileSystem hdfs = FileSystem.get(job.getConfiguration());
+    for (FileStatus status : hdfs.listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
     }
 
     // MAP CONFIGURATION
-    job.setInputFormatClass(FileInputFormat.class);
-    FileInputFormat.addInputPath(job, inputRatings);
+    job.setInputFormatClass(TextInputFormat.class);
+    TextInputFormat.addInputPath(job, inputRatings);
     job.setMapperClass(FilterRatingsByTimestampJoinMovieTitleCachedMapper.class);
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(DoubleWritable.class);
@@ -136,8 +139,8 @@ public class Query1_3 extends Configured implements Tool {
     // OUTPUT CONFIGURATION
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(DoubleWritable.class);
-    job.setOutputFormatClass(FileOutputFormat.class);
-    FileOutputFormat.setOutputPath(job, output);
+    job.setOutputFormatClass(TextOutputFormat.class);
+    TextOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION
     return job.waitForCompletion(VERBOSE) ? 0 : 1;

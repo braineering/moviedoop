@@ -42,8 +42,10 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 import org.apache.hadoop.util.Tool;
@@ -105,7 +107,7 @@ public class QuerySort_1 extends Configured implements Tool {
   /**
    * The default verbosity.
    */
-  private static final boolean VERBOSE = false;
+  private static final boolean VERBOSE = true;
 
   @Override
   public int run(String[] args) throws Exception {
@@ -124,20 +126,20 @@ public class QuerySort_1 extends Configured implements Tool {
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
-    config.setIfUnset("movie.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
-    config.setIfUnset("movie.rating.timestamp.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_UB));
+    config.setIfUnset("moviedoop.average.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
+    config.setIfUnset("moviedoop.average.rating.timestamp.ub", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_UB));
 
     // OTHER CONFIGURATION
-    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
-    final int SORT_REDUCE_CARDINALITY = Integer.valueOf(config.get("movie.sort.reduce.cardinality", String.valueOf(MOVIE_SORT_REDUCE_CARDINALITY)));
-    final int SORT_PARTITION_SAMPLES = Integer.valueOf(config.get("movie.sort.partition.samples", String.valueOf(MOVIE_SORT_PARTITION_SAMPLES)));
-    final double SORT_PARTITION_FREQUENCY = Double.valueOf(config.get("movie.sort.partition.frequency", String.valueOf(MOVIE_SORT_PARTITION_FREQUENCY)));
-    final int SORT_PARTITION_SPLITS_MAX = Integer.valueOf(config.get("movie.sort.partition.splits.max", String.valueOf(MOVIE_SORT_PARTITION_SPLITS_MAX)));
-    config.unset("movie.sort.reduce.cardinality");
-    config.unset("movie.average.reduce.cardinality");
-    config.unset("movie.sort.partition.samples");
-    config.unset("movie.sort.partition.frequency");
-    config.unset("movie.sort.partition.splits.max");
+    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
+    final int SORT_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.sort.reduce.cardinality", String.valueOf(MOVIE_SORT_REDUCE_CARDINALITY)));
+    final int SORT_PARTITION_SAMPLES = Integer.valueOf(config.get("moviedoop.sort.partition.samples", String.valueOf(MOVIE_SORT_PARTITION_SAMPLES)));
+    final double SORT_PARTITION_FREQUENCY = Double.valueOf(config.get("moviedoop.sort.partition.frequency", String.valueOf(MOVIE_SORT_PARTITION_FREQUENCY)));
+    final int SORT_PARTITION_SPLITS_MAX = Integer.valueOf(config.get("moviedoop.sort.partition.splits.max", String.valueOf(MOVIE_SORT_PARTITION_SPLITS_MAX)));
+    config.unset("moviedoop.sort.reduce.cardinality");
+    config.unset("moviedoop.average.reduce.cardinality");
+    config.unset("moviedoop.sort.partition.samples");
+    config.unset("moviedoop.sort.partition.frequency");
+    config.unset("moviedoop.sort.partition.splits.max");
 
     // CONTEXT RESUME
     System.out.println("############################################################################");
@@ -145,8 +147,8 @@ public class QuerySort_1 extends Configured implements Tool {
     System.out.println("****************************************************************************");
     System.out.println("Input: " + input);
     System.out.println("Output: " + output);
-    System.out.println("Movie Rating Timestamp Lower Bound (Total Ranking): " + config.get("movie.rating.timestamp.lb"));
-    System.out.println("Movie Rating Timestamp Upper Bound (Total Ranking): " + config.get("movie.rating.timestamp.ub"));
+    System.out.println("Movie Rating Timestamp Lower Bound (Total Ranking): " + config.get("moviedoop.average.rating.timestamp.lb"));
+    System.out.println("Movie Rating Timestamp Upper Bound (Total Ranking): " + config.get("moviedoop.average.rating.timestamp.ub"));
     System.out.println("----------------------------------------------------------------------------");
     System.out.println("Reduce Cardinality (average): " + AVERAGE_REDUCE_CARDINALITY);
     System.out.println("Reduce Cardinality (sort): " + SORT_REDUCE_CARDINALITY);
@@ -160,7 +162,7 @@ public class QuerySort_1 extends Configured implements Tool {
     jobAverageRatings.setJarByClass(QuerySort_1.class);
 
     // JOB AVERAGE RATINGS: MAP CONFIGURATION
-    jobAverageRatings.setInputFormatClass(FileInputFormat.class);
+    jobAverageRatings.setInputFormatClass(TextInputFormat.class);
     FileInputFormat.addInputPath(jobAverageRatings, input);
     jobAverageRatings.setMapperClass(FilterRatingsByTimeIntervalMapper.class);
     jobAverageRatings.setMapOutputKeyClass(LongWritable.class);
@@ -220,7 +222,7 @@ public class QuerySort_1 extends Configured implements Tool {
       // JOB SORT BY AVERAGE RATING: OUTPUT CONFIGURATION
       jobSortByRating.setOutputKeyClass(Text.class);
       jobSortByRating.setOutputValueClass(Text.class);
-      jobSortByRating.setOutputFormatClass(FileOutputFormat.class);
+      jobSortByRating.setOutputFormatClass(TextOutputFormat.class);
       FileOutputFormat.setOutputPath(jobSortByRating, output);
 
       // JOB SORT BY AVERAGE RATING: PARTITIONER CONFIGURATION

@@ -23,84 +23,108 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.reduce;
 
+import com.acmutv.moviedoop.Query3_1;
 import com.acmutv.moviedoop.QueryTopK_1;
-import com.acmutv.moviedoop.util.RecordParser;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.TreeMap;
 
 /**
- * The mapper for the {@link QueryTopK_1} job.
- * It emits the top-`moviesTopKSize` (movieId,avgRating).
- * It leverages TreeMap.
+ * The reducer for the {@link Query3_1} job.
+ * It emits (movieId,avgRating) where avgRating is the average rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MoviesTopKTreeMapMapper extends Mapper<Object,Text,NullWritable,Text> {
+public class AverageRating2Reducer extends Reducer<LongWritable,Text,NullWritable,Text> {
 
   /**
-   * The movies rank size.
+   * The multiple outputs.
    */
-  private int moviesTopKSize;
+  private MultipleOutputs<NullWritable,Text> mos;
 
   /**
-   * The rank data structure.
-   */
-  private TreeMap<Double,Long> rank = new TreeMap<>();
-
-  /**
-   * The tuple (movieId,rating) to emit.
+   * The tuple (movieId,avgScore) to emit.
    */
   private Text tuple = new Text();
 
   /**
-   * Configures the mapper.
+   * Configures the reducer.
    *
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.moviesTopKSize = Integer.valueOf(ctx.getConfiguration().get("moviedoop.topk.size"));
+    this.mos = new MultipleOutputs<>(ctx);
   }
 
   /**
-   * The mapping routine.
+   * The reduction routine.
    *
    * @param key the input key.
-   * @param value the input value.
+   * @param values the input values.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
+  public void reduce(LongWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+    long num1 = 0L;
+    double sum1 = 0.0;
 
-    long movieId = Long.valueOf(rating.get("movieId"));
-    double score = Double.valueOf(rating.get("score"));
+    long num2 = 0L;
+    double sum2 = 0.0;
 
-    this.rank.put(score, movieId);
+    for (Text value : values) {
+      String parts[] = value.toString().split(":");
+      String header[] = parts[0].split(";",-1);
+      boolean is1 = header.length >= 1 && header[0].equals("1");
+      boolean is2 = header.length >= 2 && header[1].equals("2");
+      double rating = Double.valueOf(parts[1]);
+      if (is1) {
+        sum1 += rating;
+        num1++;
+      }
 
-    if (this.rank.size() > this.moviesTopKSize) {
-      this.rank.remove(this.rank.firstKey());
+      if (is2) {
+        sum2 += rating;
+        num2++;
+      }
+    }
+
+    double avgScore1 = sum1 / num1;
+    double avgScore2 = sum2 / num2;
+
+    long movieId = key.get();
+
+    if (num1 > 0) {
+      this.tuple.set(movieId + "," + avgScore1);
+      this.mos.write("1", NullWritable.get(), this.tuple);
+    }
+
+    if (num2 > 0) {
+      this.tuple.set(movieId + "," + avgScore2);
+      this.mos.write("2", NullWritable.get(), this.tuple);
     }
   }
 
   /**
-   * Flushes the mapper.
+   * Flushes the reducer.
    *
    * @param ctx the job context.
    */
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
-    for (Map.Entry<Double,Long> entry : this.rank.entrySet()) {
-      this.tuple.set(entry.getValue() + "," + entry.getKey());
-      ctx.write(NullWritable.get(), this.tuple);
-    }
+    this.mos.close();
   }
+
 }

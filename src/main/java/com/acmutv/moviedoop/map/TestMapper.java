@@ -23,40 +23,27 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.QueryTopK_1;
-import com.acmutv.moviedoop.struct.BestMap;
+import com.acmutv.moviedoop.QuerySort_1;
 import com.acmutv.moviedoop.util.RecordParser;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 /**
- * The reducer for the {@link QueryTopK_1} job.
- * It emits the top-`moviesTopKSize` (movieId,avgRating).
- * It leverages TreeMap.
+ * The mapper for the {@link QuerySort_1} job.
+ * It emits (rating,movieId) where rating is a the average movie rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MoviesTopKTreeMapReducer extends Reducer<NullWritable,Text,NullWritable,Text> {
-
-  /**
-   * The movies rank size.
-   */
-  private int moviesTopKSize;
-
-  /**
-   * The rank data structure.
-   */
-  private TreeMap<Double,Long> rank = new TreeMap<>();
+public class TestMapper extends Mapper<LongWritable,Text,NullWritable,Text> {
 
   /**
    * The tuple (movieId,rating) to emit.
@@ -64,43 +51,27 @@ public class MoviesTopKTreeMapReducer extends Reducer<NullWritable,Text,NullWrit
   private Text tuple = new Text();
 
   /**
-   * Configures the reducer.
+   * Configures the mapper.
    *
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.moviesTopKSize = Integer.valueOf(ctx.getConfiguration().get("moviedoop.topk.size"));
+    //
   }
 
   /**
-   * The reduction routine.
+   * The mapping routine.
    *
    * @param key the input key.
-   * @param values the input values.
+   * @param value the input value.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(NullWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
-    for (Text value : values) {
-      Map<String,String> rankRecord = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
-
-      long movieId = Long.valueOf(rankRecord.get("movieId"));
-      double score = Double.valueOf(rankRecord.get("score"));
-
-      this.rank.put(score, movieId);
-
-      if (this.rank.size() > this.moviesTopKSize) {
-        this.rank.remove(this.rank.firstKey());
-      }
-    }
-
-    long topKPosition = 1;
-    for (Map.Entry<Double,Long> entry : this.rank.descendingMap().entrySet()) {
-      this.tuple.set(topKPosition + "," + entry.getValue() + "," + entry.getKey());
-      ctx.write(NullWritable.get(), this.tuple);
-      topKPosition++;
-    }
+  public void map(LongWritable key, Text value, Context ctx) throws IOException, InterruptedException {
+    System.out.printf("### MAP ### (%d,%s)\n", key.get(), value.toString());
+    long pos = key.get();
+    this.tuple.set(pos + "," + value.toString());
+    ctx.write(NullWritable.get(), this.tuple);
   }
-
 }

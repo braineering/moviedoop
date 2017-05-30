@@ -77,6 +77,12 @@ public class MoviedoopDriver {
           "A map/reduce program that calculates top-K movies according to their average rating and period. " +
               "The program leverages BestMap to build the ranking.");
 
+      driver.addClass("query_test_1", QueryTest_1.class,
+          "A map/reduce program to make experiments and tests");
+
+      driver.addClass("query_test_2", QueryTest_2.class,
+          "A map/reduce program to make experiments and tests");
+
       exitCode = driver.run(args);
     } catch (Throwable exc) {
       exc.printStackTrace();

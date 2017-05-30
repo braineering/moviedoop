@@ -25,6 +25,7 @@
  */
 package com.acmutv.moviedoop;
 
+import com.acmutv.moviedoop.input.LinenoSequenceFileInputFormat;
 import com.acmutv.moviedoop.map.*;
 import com.acmutv.moviedoop.reduce.*;
 import com.acmutv.moviedoop.util.DateParser;
@@ -336,23 +337,28 @@ public class Query3_1 extends Configured implements Tool {
       for (FileStatus status : FileSystem.get(config).listStatus(stagingTopK)) {
         jobRankComparison.addCacheFile(status.getPath().toUri());
       }
+      for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
+        jobRankComparison.addCacheFile(status.getPath().toUri());
+      }
+      jobRankComparison.getConfiguration().setIfUnset("moviedoop.path.movies", inputMovies.toString());
+      jobRankComparison.getConfiguration().setIfUnset("moviedoop.path.topk", stagingTopK.toString());
 
       // JOB AVERAGE RATINGS: MAP CONFIGURATION
-      jobRankComparison.setInputFormatClass(SequenceFileInputFormat.class);
-      SequenceFileInputFormat.addInputPath(jobRankComparison, stagingSort2);
+      jobRankComparison.setInputFormatClass(LinenoSequenceFileInputFormat.class);
+      LinenoSequenceFileInputFormat.addInputPath(jobRankComparison, stagingSort2);
       jobRankComparison.setMapperClass(RankComparisonMapper.class);
       //jobRankComparison.setMapOutputKeyClass(NullWritable.class);
       //jobRankComparison.setMapOutputValueClass(Text.class);
 
       // JOB AVERAGE RATINGS: REDUCE CONFIGURATION
       //jobRankComparison.setReducerClass(RankComparisonReducer.class);
-      //jobRankComparison.setNumReduceTasks(1);
+      jobRankComparison.setNumReduceTasks(0);
 
       // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION
       jobRankComparison.setOutputKeyClass(NullWritable.class);
       jobRankComparison.setOutputValueClass(Text.class);
-      jobRankComparison.setOutputFormatClass(FileOutputFormat.class);
-      FileOutputFormat.setOutputPath(jobRankComparison, output);
+      jobRankComparison.setOutputFormatClass(TextOutputFormat.class);
+      TextOutputFormat.setOutputPath(jobRankComparison, output);
 
       // JOB AVERAGE RATINGS: EXECUTION
       code = jobRankComparison.waitForCompletion(VERBOSE) ? 0 : 1;

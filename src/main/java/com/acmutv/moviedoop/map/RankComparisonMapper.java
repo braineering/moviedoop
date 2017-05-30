@@ -49,12 +49,17 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RankComparisonMapper extends Mapper<Object,Text,NullWritable,Text> {
+public class RankComparisonMapper extends Mapper<LongWritable,Text,NullWritable,Text> {
 
   /**
    * The map between movieId and movie top-k ranking.
    */
-  private Map<Long,Integer> movieIdToMovieTopKPosition;
+  private Map<Long,Long> movieIdToMovieTopKPosition;
+
+  /**
+   * The map between movieId and movie title.
+   */
+  private Map<Long,String> movieIdToMovieTitle;
 
   /**
    * The tuple (topKPosition,movieId,rankPosition,delta) to emit.
@@ -66,22 +71,32 @@ public class RankComparisonMapper extends Mapper<Object,Text,NullWritable,Text> 
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
+    String pathMovies = ctx.getConfiguration().get("moviedoop.path.movies");
+    String pathTopK = ctx.getConfiguration().get("moviedoop.path.topk");
     try {
-      int pos = 1;
       for (URI uri : ctx.getCacheFiles()) {
         Path path = new Path(uri);
+        System.out.printf("### MAP ### caching path: %s\n", path.toString());
         BufferedReader br = new BufferedReader(
             new InputStreamReader(
                 new FileInputStream(path.getName())));
         String line;
-        while ((line = br.readLine()) != null) {
-          Map<String,String> movie = RecordParser.parse(line, new String[] {"id","score"},",");
-          long movieId = Long.valueOf(movie.get("id"));
-          double score = Double.valueOf(movie.get("score"));
-          int movieTopKPosition = pos;
-          this.movieIdToMovieTopKPosition.put(movieId, movieTopKPosition);
-          System.out.printf("### MAP ### added : (%d,%d,%f)\n", movieId, movieTopKPosition, score);
-          pos++;
+        if (path.getParent().getName().equals(pathMovies)) {
+          while ((line = br.readLine()) != null) {
+            Map<String,String> movie = RecordParser.parse(line, new String[] {"id","title","genres"},",");
+            long movieId = Long.valueOf(movie.get("id"));
+            String movieTitle = movie.get("title");
+            this.movieIdToMovieTitle.put(movieId, movieTitle);
+            System.out.printf("### MAP ### cached (movieTitles) : (%d,%s)\n", movieId, movieTitle);
+          }
+        } else if (path.getParent().getName().equals(pathTopK)) {
+          while ((line = br.readLine()) != null) {
+            Map<String,String> movie = RecordParser.parse(line, new String[] {"position","id"},",");
+            long movieId = Long.valueOf(movie.get("id"));
+            long movieTopKPosition = Long.valueOf(movie.get("position"));
+            this.movieIdToMovieTopKPosition.put(movieId, movieTopKPosition);
+            System.out.printf("### MAP ### cached (topk) : (%d,%d)\n", movieId, movieTopKPosition);
+          }
         }
         br.close();
       }
@@ -103,10 +118,10 @@ public class RankComparisonMapper extends Mapper<Object,Text,NullWritable,Text> 
     Map<String,String> movie = RecordParser.parse(value.toString(), new String[] {"id","position"}, ",");
 
     long movieId = Long.valueOf(movie.get("id"));
-    int rankPosition = Integer.valueOf(movie.get("position"));
+    long rankPosition = Long.valueOf(movie.get("position"));
     if (this.movieIdToMovieTopKPosition.containsKey(movieId)) {
-      int topKPosition = this.movieIdToMovieTopKPosition.get(movieId);
-      int delta = topKPosition - rankPosition;
+      long topKPosition = this.movieIdToMovieTopKPosition.get(movieId);
+      long delta = topKPosition - rankPosition;
       this.tuple.set(movieId + "," + topKPosition + "," + rankPosition + "," + delta);
       ctx.write(NullWritable.get(), this.tuple);
       this.movieIdToMovieTopKPosition.remove(movieId);
@@ -119,9 +134,9 @@ public class RankComparisonMapper extends Mapper<Object,Text,NullWritable,Text> 
    * @param ctx the job context.
    */
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
-    for (Map.Entry<Long,Integer> entry : this.movieIdToMovieTopKPosition.entrySet()) {
+    for (Map.Entry<Long,Long> entry : this.movieIdToMovieTopKPosition.entrySet()) {
       long movieId = entry.getKey();
-      int topKPosition = entry.getValue();
+      long topKPosition = entry.getValue();
       this.tuple.set(movieId + "," + topKPosition + ",null,null");
       ctx.write(NullWritable.get(), this.tuple);
     }

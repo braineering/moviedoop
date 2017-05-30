@@ -27,9 +27,11 @@ package com.acmutv.moviedoop;
 
 import com.acmutv.moviedoop.map.AverageRatingAsKeyMapper;
 import com.acmutv.moviedoop.map.FilterRatingsByTimeIntervalMapper;
+import com.acmutv.moviedoop.map.IdentityMapper2;
 import com.acmutv.moviedoop.reduce.AverageRatingReducer;
 import com.acmutv.moviedoop.reduce.ValueReducer;
 import com.acmutv.moviedoop.util.DateParser;
+import com.acmutv.moviedoop.util.DoubleWritableDecreasingComparator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -195,7 +197,7 @@ public class QuerySort_1 extends Configured implements Tool {
       jobRatingAsKey.setNumReduceTasks(0);
 
       // JOB RATING AS KEY: OUTPUT CONFIGURATION
-      jobRatingAsKey.setOutputKeyClass(Text.class);
+      jobRatingAsKey.setOutputKeyClass(DoubleWritable.class);
       jobRatingAsKey.setOutputValueClass(Text.class);
       jobRatingAsKey.setOutputFormatClass(SequenceFileOutputFormat.class);
       SequenceFileOutputFormat.setOutputPath(jobRatingAsKey, staging2);
@@ -208,29 +210,31 @@ public class QuerySort_1 extends Configured implements Tool {
       // JOB SORT BY AVERAGE RATING: CONFIGURATION
       Job jobSortByRating = Job.getInstance(config, PROGRAM_NAME + "_SORT-BY-AVERAGE-RATING");
       jobSortByRating.setJarByClass(QuerySort_1.class);
-      jobSortByRating.setSortComparatorClass(LongWritable.DecreasingComparator.class);
+      jobSortByRating.setSortComparatorClass(DoubleWritableDecreasingComparator.class);
 
       // JOB SORT BY AVERAGE RATING: MAP CONFIGURATION
       jobSortByRating.setInputFormatClass(SequenceFileInputFormat.class);
       SequenceFileInputFormat.addInputPath(jobSortByRating, staging2);
-      jobSortByRating.setMapperClass(Mapper.class);
+      jobSortByRating.setMapperClass(IdentityMapper2.class);
+      jobSortByRating.setMapOutputKeyClass(DoubleWritable.class);
+      jobSortByRating.setMapOutputValueClass(Text.class);
 
       // JOB SORT BY AVERAGE RATING: REDUCE CONFIGURATION
       jobSortByRating.setReducerClass(ValueReducer.class);
       jobSortByRating.setNumReduceTasks(SORT_REDUCE_CARDINALITY);
 
       // JOB SORT BY AVERAGE RATING: OUTPUT CONFIGURATION
-      jobSortByRating.setOutputKeyClass(Text.class);
+      jobSortByRating.setOutputKeyClass(NullWritable.class);
       jobSortByRating.setOutputValueClass(Text.class);
       jobSortByRating.setOutputFormatClass(TextOutputFormat.class);
-      FileOutputFormat.setOutputPath(jobSortByRating, output);
+      TextOutputFormat.setOutputPath(jobSortByRating, output);
 
       // JOB SORT BY AVERAGE RATING: PARTITIONER CONFIGURATION
       if (SORT_REDUCE_CARDINALITY > 1) {
         jobSortByRating.setPartitionerClass(TotalOrderPartitioner.class);
         TotalOrderPartitioner.setPartitionFile(jobSortByRating.getConfiguration(), parts);
         jobSortByRating.getConfiguration().set("mapreduce.output.textoutputformat.separator", "");
-        InputSampler.RandomSampler<Text,Text> sampler = new InputSampler.RandomSampler<>(SORT_PARTITION_FREQUENCY, SORT_PARTITION_SAMPLES, SORT_PARTITION_SPLITS_MAX);
+        InputSampler.RandomSampler<DoubleWritable,Text> sampler = new InputSampler.RandomSampler<>(SORT_PARTITION_FREQUENCY, SORT_PARTITION_SAMPLES, SORT_PARTITION_SPLITS_MAX);
         InputSampler.writePartitionFile(jobSortByRating, sampler);
       }
 

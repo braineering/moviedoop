@@ -29,6 +29,7 @@ import com.acmutv.moviedoop.input.LinenoSequenceFileInputFormat;
 import com.acmutv.moviedoop.map.*;
 import com.acmutv.moviedoop.reduce.*;
 import com.acmutv.moviedoop.util.DateParser;
+import com.acmutv.moviedoop.util.DoubleWritableDecreasingComparator;
 import com.acmutv.moviedoop.util.RegexPathFilter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -144,8 +145,6 @@ public class Query3_1 extends Configured implements Tool {
     final Path inputRatings = new Path(args[0]);
     final Path inputMovies = new Path(args[1]);
     final Path stagingAverage = new Path(args[2] + "_staging/average");
-    final Path stagingAverage1 = new Path(args[2] + "_staging/average/1");
-    final Path stagingAverage2 = new Path(args[2] + "_staging/average/2");
     final Path stagingSort1 = new Path(args[2] + "_staging/sort/1");
     final Path stagingSort2 = new Path(args[2] + "_staging/sort/2");
     final Path sortPartitions = new Path(args[2] + "_partitions.sort.lst");
@@ -277,14 +276,13 @@ public class Query3_1 extends Configured implements Tool {
           SequenceFileInputFormat.addInputPath(jobRatingAsKey, path);
         }
       }
-
       jobRatingAsKey.setMapperClass(AverageRatingAsKeyMapper.class);
 
       // JOB RATING AS KEY: REDUCE CONFIGURATION
       jobRatingAsKey.setNumReduceTasks(0);
 
       // JOB RATING AS KEY: OUTPUT CONFIGURATION
-      jobRatingAsKey.setOutputKeyClass(Text.class);
+      jobRatingAsKey.setOutputKeyClass(DoubleWritable.class);
       jobRatingAsKey.setOutputValueClass(Text.class);
       jobRatingAsKey.setOutputFormatClass(SequenceFileOutputFormat.class);
       SequenceFileOutputFormat.setOutputPath(jobRatingAsKey, stagingSort1);
@@ -297,29 +295,31 @@ public class Query3_1 extends Configured implements Tool {
       // JOB SORT BY AVERAGE RATING: CONFIGURATION
       Job jobSortByRating = Job.getInstance(config, PROGRAM_NAME + "_SORT-BY-AVERAGE-RATING");
       jobSortByRating.setJarByClass(QuerySort_1.class);
-      jobSortByRating.setSortComparatorClass(LongWritable.DecreasingComparator.class);
+      jobSortByRating.setSortComparatorClass(DoubleWritableDecreasingComparator.class);
 
       // JOB SORT BY AVERAGE RATING: MAP CONFIGURATION
       jobSortByRating.setInputFormatClass(SequenceFileInputFormat.class);
       SequenceFileInputFormat.addInputPath(jobSortByRating, stagingSort1);
-      jobSortByRating.setMapperClass(Mapper.class);
+      jobSortByRating.setMapperClass(IdentityMapper2.class);
+      jobSortByRating.setMapOutputKeyClass(DoubleWritable.class);
+      jobSortByRating.setMapOutputValueClass(Text.class);
 
       // JOB SORT BY AVERAGE RATING: REDUCE CONFIGURATION
       jobSortByRating.setReducerClass(ValueReducer.class);
       jobSortByRating.setNumReduceTasks(SORT_REDUCE_CARDINALITY);
 
       // JOB SORT BY AVERAGE RATING: OUTPUT CONFIGURATION
-      jobSortByRating.setOutputKeyClass(Text.class);
+      jobSortByRating.setOutputKeyClass(NullWritable.class);
       jobSortByRating.setOutputValueClass(Text.class);
-      jobSortByRating.setOutputFormatClass(TextOutputFormat.class);
-      TextOutputFormat.setOutputPath(jobSortByRating, stagingSort2);
+      jobSortByRating.setOutputFormatClass(SequenceFileOutputFormat.class);
+      SequenceFileOutputFormat.setOutputPath(jobSortByRating, stagingSort2);
 
       // JOB SORT BY AVERAGE RATING: PARTITIONER CONFIGURATION
       if (SORT_REDUCE_CARDINALITY > 1) {
         jobSortByRating.setPartitionerClass(TotalOrderPartitioner.class);
         TotalOrderPartitioner.setPartitionFile(jobSortByRating.getConfiguration(), sortPartitions);
         jobSortByRating.getConfiguration().set("mapreduce.output.textoutputformat.separator", "");
-        InputSampler.RandomSampler<Text,Text> sampler = new InputSampler.RandomSampler<>(SORT_PARTITION_FREQUENCY, SORT_PARTITION_SAMPLES, SORT_PARTITION_SPLITS_MAX);
+        InputSampler.RandomSampler<DoubleWritable,Text> sampler = new InputSampler.RandomSampler<>(SORT_PARTITION_FREQUENCY, SORT_PARTITION_SAMPLES, SORT_PARTITION_SPLITS_MAX);
         InputSampler.writePartitionFile(jobSortByRating, sampler);
       }
 

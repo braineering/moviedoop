@@ -27,6 +27,8 @@ package com.acmutv.moviedoop.map;
 
 import com.acmutv.moviedoop.QueryTopK_1;
 import com.acmutv.moviedoop.util.RecordParser;
+import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -81,6 +83,8 @@ public class MoviesTopKTreeMapMapper extends Mapper<Object,Text,NullWritable,Tex
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
     Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
+
+    System.out.printf("### MAP ### TopKBestMapMapper :: value: %s\n", value.toString());
 
     long movieId = Long.valueOf(rating.get("movieId"));
     double score = Double.valueOf(rating.get("score"));

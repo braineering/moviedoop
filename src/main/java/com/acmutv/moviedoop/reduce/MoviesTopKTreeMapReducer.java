@@ -84,6 +84,7 @@ public class MoviesTopKTreeMapReducer extends Reducer<NullWritable,Text,NullWrit
   public void reduce(NullWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
     for (Text value : values) {
       Map<String,String> rankRecord = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
+      System.out.printf("### RED ### TopKBestMapReducer :: value: %s\n", value.toString());
 
       long movieId = Long.valueOf(rankRecord.get("movieId"));
       double score = Double.valueOf(rankRecord.get("score"));
@@ -95,11 +96,9 @@ public class MoviesTopKTreeMapReducer extends Reducer<NullWritable,Text,NullWrit
       }
     }
 
-    long topKPosition = 1;
     for (Map.Entry<Double,Long> entry : this.rank.descendingMap().entrySet()) {
-      this.tuple.set(topKPosition + "," + entry.getValue() + "," + entry.getKey());
+      this.tuple.set(entry.getValue() + "," + entry.getKey());
       ctx.write(NullWritable.get(), this.tuple);
-      topKPosition++;
     }
   }
 

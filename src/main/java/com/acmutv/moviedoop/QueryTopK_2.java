@@ -143,7 +143,7 @@ public class QueryTopK_2 extends Configured implements Tool {
 
     // JOB AVERAGE RATINGS: MAP CONFIGURATION
     jobAverageRatings.setInputFormatClass(TextInputFormat.class);
-    FileInputFormat.addInputPath(jobAverageRatings, input);
+    TextInputFormat.addInputPath(jobAverageRatings, input);
     jobAverageRatings.setMapperClass(FilterRatingsByTimeIntervalMapper.class);
     jobAverageRatings.setMapOutputKeyClass(LongWritable.class);
     jobAverageRatings.setMapOutputValueClass(DoubleWritable.class);
@@ -181,7 +181,7 @@ public class QueryTopK_2 extends Configured implements Tool {
       jobTopRatings.setOutputKeyClass(NullWritable.class);
       jobTopRatings.setOutputValueClass(Text.class);
       jobTopRatings.setOutputFormatClass(TextOutputFormat.class);
-      FileOutputFormat.setOutputPath(jobTopRatings, output);
+      TextOutputFormat.setOutputPath(jobTopRatings, output);
 
       // JOB TOP BY RATING: JOB EXECUTION
       code = jobTopRatings.waitForCompletion(VERBOSE) ? 0 : 1;

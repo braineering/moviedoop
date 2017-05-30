@@ -23,43 +23,27 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.util;
 
-import com.acmutv.moviedoop.Query1_3;
-import com.acmutv.moviedoop.QuerySort_1;
-import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
-
-import java.io.IOException;
-import java.util.Map;
+import org.apache.hadoop.io.WritableComparator;
 
 /**
- * The reducer for the {@link QuerySort_1} job.
- * It emits all received values as keyes.
+ * A decreasing comparator for {@link DoubleWritable}.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class ValueReducer extends Reducer<DoubleWritable,Text,NullWritable,Text> {
+public class DoubleWritableDecreasingComparator extends WritableComparator {
 
-  /**
-   * The reduction routine.
-   *
-   * @param key the input key.
-   * @param values the input values.
-   * @param ctx the context.
-   * @throws IOException when the context cannot be written.
-   * @throws InterruptedException when the context cannot be written.
-   */
-  public void reduce(DoubleWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
-    for (Text value : values) {
-      ctx.write(NullWritable.get(), value);
-    }
+  public DoubleWritableDecreasingComparator() {
+    super(DoubleWritable.class);
   }
 
+  public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
+    double thisValue = readDouble(b1, s1);
+    double thatValue = readDouble(b2, s2);
+    return thatValue < thisValue?-1:(thisValue == thatValue?0:1);
+  }
 }

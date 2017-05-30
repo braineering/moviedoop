@@ -25,38 +25,21 @@
  */
 package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.QuerySort_1;
-import com.acmutv.moviedoop.QueryTopK_1;
-import com.acmutv.moviedoop.util.DateParser;
-import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
- * The mapper for the {@link QuerySort_1} job.
- * It emits (rating,movieId) where rating is a the average movie rating.
+ * It emits the input.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRatingAsKeyMapper extends Mapper<Object,Text,DoubleWritable,Text> {
-
-  /**
-   * The movie rating to emit.
-   */
-  private DoubleWritable movieRating = new DoubleWritable();
-
-  /**
-   * The tuple (movieId,rating) to emit.
-   */
-  private Text tuple = new Text();
-
+public class IdentityMapper2 extends Mapper<DoubleWritable,Text,DoubleWritable,Text> {
   /**
    * Configures the mapper.
    *
@@ -75,12 +58,7 @@ public class AverageRatingAsKeyMapper extends Mapper<Object,Text,DoubleWritable,
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
-
-    double score = Double.valueOf(rating.get("score"));
-    this.movieRating.set(score);
-    this.tuple.set(value);
-    ctx.write(this.movieRating, this.tuple);
+  public void map(DoubleWritable key, Text value, Context ctx) throws IOException, InterruptedException {
+    ctx.write(key, value);
   }
 }

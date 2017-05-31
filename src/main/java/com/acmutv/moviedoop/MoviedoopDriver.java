@@ -25,7 +25,15 @@
  */
 package com.acmutv.moviedoop;
 
+import com.acmutv.moviedoop.query1.Query1_1;
+import com.acmutv.moviedoop.query1.Query1_2;
+import com.acmutv.moviedoop.query1.Query1_3;
+import com.acmutv.moviedoop.query1.Query1_4;
+import com.acmutv.moviedoop.query3.Query3_1;
+import com.acmutv.moviedoop.query3.Query3_2;
+import com.acmutv.moviedoop.test.*;
 import org.apache.hadoop.util.ProgramDriver;
+import org.apache.log4j.Logger;
 
 /**
  * The main driver.
@@ -35,6 +43,11 @@ import org.apache.hadoop.util.ProgramDriver;
  * @since 1.0
  */
 public class MoviedoopDriver {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(MoviedoopDriver.class);
 
   /**
    * The driver main method.
@@ -57,7 +70,19 @@ public class MoviedoopDriver {
           "A map/reduce program that selects movies according to their rating and period. " +
               "The program leverages inner joins implemented with replication pattern (map).");
 
+      driver.addClass("query1_4", Query1_4.class,
+          "A map/reduce program that selects movies according to their rating and period. " +
+              "The program leverages inner joins implemented with replication pattern (map).");
+
       driver.addClass("query3_1", Query3_1.class,
+          "A map/reduce program that returns the comparison between " +
+              "(i) the top-`rankSize` movies, considering average ratings in period from `ratingTimestampTopKLB` \n" +
+              " and `ratingTimestampTopKUB`; and\n" +
+              " (ii) the total rank of moviues, considering average ratings in period from `ratingTimestampRankLB`\n" +
+              " and `ratingTimestampRankUB`.\n" +
+              " It leverages BestMap.");
+
+      driver.addClass("query3_2", Query3_2.class,
           "A map/reduce program that returns the comparison between " +
               "(i) the top-`rankSize` movies, considering average ratings in period from `ratingTimestampTopKLB` \n" +
               " and `ratingTimestampTopKUB`; and\n" +
@@ -86,6 +111,7 @@ public class MoviedoopDriver {
       exitCode = driver.run(args);
     } catch (Throwable exc) {
       exc.printStackTrace();
+      LOG.error(exc.getMessage());
     }
 
     System.exit(exitCode);

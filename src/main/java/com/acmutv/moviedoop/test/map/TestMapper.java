@@ -23,22 +23,53 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
+package com.acmutv.moviedoop.test.map;
 
-import com.acmutv.moviedoop.common.struct.TestAllStruct;
-import com.acmutv.moviedoop.common.util.TestAllUtil;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import com.acmutv.moviedoop.test.QuerySort_1;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+
+import java.io.IOException;
 
 /**
- * JUnit test suite for all tests.
+ * The mapper for the {@link QuerySort_1} job.
+ * It emits (rating,movieId) where rating is a the average movie rating.
+ *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    TestAllStruct.class,
-    TestAllUtil.class
-})
-public class TestAll {
+public class TestMapper extends Mapper<LongWritable,Text,NullWritable,Text> {
+
+  /**
+   * The tuple (movieId,rating) to emit.
+   */
+  private Text tuple = new Text();
+
+  /**
+   * Configures the mapper.
+   *
+   * @param ctx the job context.
+   */
+  protected void setup(Context ctx) {
+    //
+  }
+
+  /**
+   * The mapping routine.
+   *
+   * @param key the input key.
+   * @param value the input value.
+   * @param ctx the context.
+   * @throws IOException when the context cannot be written.
+   * @throws InterruptedException when the context cannot be written.
+   */
+  public void map(LongWritable key, Text value, Context ctx) throws IOException, InterruptedException {
+    System.out.printf("### MAP ### (%d,%s)\n", key.get(), value.toString());
+    long pos = key.get();
+    this.tuple.set(pos + "," + value.toString());
+    ctx.write(NullWritable.get(), this.tuple);
+  }
 }

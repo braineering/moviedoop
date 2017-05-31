@@ -23,22 +23,37 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
+package com.acmutv.moviedoop.common.input;
 
-import com.acmutv.moviedoop.common.struct.TestAllStruct;
-import com.acmutv.moviedoop.common.util.TestAllUtil;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+
+import java.io.IOException;
 
 /**
- * JUnit test suite for all tests.
+ * An input reader for text files that emits the record number as key and the record content as
+ * value.
+ *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
+ * @see LinenoRecordReader
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    TestAllStruct.class,
-    TestAllUtil.class
-})
-public class TestAll {
+public class LinenoInputFormat extends FileInputFormat<LongWritable, Text> {
+
+  @Override
+  public RecordReader<LongWritable, Text> createRecordReader(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
+    return new LinenoRecordReader();
+  }
+
+  @Override
+  protected boolean isSplitable(JobContext context, Path file) {
+    return false;
+  }
 }

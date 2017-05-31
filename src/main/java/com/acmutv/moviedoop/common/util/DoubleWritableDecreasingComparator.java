@@ -23,22 +23,27 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
+package com.acmutv.moviedoop.common.util;
 
-import com.acmutv.moviedoop.common.struct.TestAllStruct;
-import com.acmutv.moviedoop.common.util.TestAllUtil;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.WritableComparator;
 
 /**
- * JUnit test suite for all tests.
+ * A decreasing comparator for {@link DoubleWritable}.
+ *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    TestAllStruct.class,
-    TestAllUtil.class
-})
-public class TestAll {
+public class DoubleWritableDecreasingComparator extends WritableComparator {
+
+  public DoubleWritableDecreasingComparator() {
+    super(DoubleWritable.class);
+  }
+
+  public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
+    double thisValue = readDouble(b1, s1);
+    double thatValue = readDouble(b2, s2);
+    return thatValue < thisValue?-1:(thisValue == thatValue?0:1);
+  }
 }

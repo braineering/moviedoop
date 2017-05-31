@@ -23,22 +23,51 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
+package com.acmutv.moviedoop.common.util;
 
-import com.acmutv.moviedoop.common.struct.TestAllStruct;
-import com.acmutv.moviedoop.common.util.TestAllUtil;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.apache.log4j.Logger;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * JUnit test suite for all tests.
+ * Utility to parse records.
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    TestAllStruct.class,
-    TestAllUtil.class
-})
-public class TestAll {
+public class RecordParser {
+
+  private static final Logger LOG = Logger.getLogger(RecordParser.class);
+
+  /**
+   * The simple comma delimiter
+   */
+  public static final String DELIMITER = ",";
+
+  /**
+   * The escaped comma delimiter (commas within quotes are ignored).
+   */
+  public static final String ESCAPED_DELIMITER = ",(?=(?:[^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$)";
+
+  /**
+   * Parses {@code line} as a list of attributes separated by {@code delimiter}.
+   *
+   * @param line the string to parse.
+   * @param attributes the list of attributes.
+   * @param delimiter the string delimiter.
+   * @return the map of attributes.
+   */
+  public static Map<String,String> parse(String line, String[] attributes, String delimiter) {
+    Map<String,String> map = new HashMap<>();
+    String[] values = line.split(delimiter, -1);
+    try {
+      for (int i = 0; i < values.length; i++) {
+        map.put(attributes[i], values[i].replaceAll("^\"|\"$", ""));
+      }
+    } catch (ArrayIndexOutOfBoundsException exc) {
+      LOG.error("Cannot parse record: " + line);
+    }
+    return map;
+  }
 }

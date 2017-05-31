@@ -23,22 +23,21 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
+package com.acmutv.moviedoop.common.util;
 
-import com.acmutv.moviedoop.common.struct.TestAllStruct;
-import com.acmutv.moviedoop.common.util.TestAllUtil;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 /**
- * JUnit test suite for all tests.
+ * JUnit suite for all tests within the package.
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    TestAllStruct.class,
-    TestAllUtil.class
+    DateParserTest.class,
+    RecordParserTest.class
 })
-public class TestAll {
+public class TestAllUtil {
 }

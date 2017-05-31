@@ -23,22 +23,39 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
+package com.acmutv.moviedoop.query3.reduce;
 
-import com.acmutv.moviedoop.common.struct.TestAllStruct;
-import com.acmutv.moviedoop.common.util.TestAllUtil;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import com.acmutv.moviedoop.test.QuerySort_1;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+
+import java.io.IOException;
 
 /**
- * JUnit test suite for all tests.
+ * The reducer for the {@link QuerySort_1} job.
+ * It emits all received values as keyes.
+ *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    TestAllStruct.class,
-    TestAllUtil.class
-})
-public class TestAll {
+public class ValueReducer extends Reducer<DoubleWritable,Text,NullWritable,Text> {
+
+  /**
+   * The reduction routine.
+   *
+   * @param key the input key.
+   * @param values the input values.
+   * @param ctx the context.
+   * @throws IOException when the context cannot be written.
+   * @throws InterruptedException when the context cannot be written.
+   */
+  public void reduce(DoubleWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+    for (Text value : values) {
+      ctx.write(NullWritable.get(), value);
+    }
+  }
+
 }

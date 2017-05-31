@@ -124,7 +124,7 @@ public class RankComparisonMapper extends Mapper<LongWritable,Text,NullWritable,
       String rankDetails[] = this.movieIdToMovieTopKPositionAndScore.get(movieId).split(";");
       String movieTitle = this.movieIdToMovieTitle.get(movieId);
       long topKPosition = Long.valueOf(rankDetails[0]);
-      long delta = topKPosition - rankPosition;
+      long delta = rankPosition - topKPosition;
       this.tuple.set(movieTitle + "\t" + delta);
       ctx.write(NullWritable.get(), this.tuple);
       this.movieIdToMovieTopKPositionAndScore.remove(movieId);

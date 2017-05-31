@@ -23,35 +23,27 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.common.util;
 
-import com.acmutv.moviedoop.query2.Query2_1;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
-
-import java.io.IOException;
+import org.apache.hadoop.io.WritableComparator;
 
 /**
- * The mapper for the {@link Query2_1} job.
- * It emits (movieId,'M'movieTitle).
+ * A decreasing comparator for {@link DoubleWritable}.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, DoubleWritable> {
+public class DoubleWritableDecreasingComparator extends WritableComparator {
 
-  /**
-   * The mapping routine.
-   *
-   * @param key the input key.
-   * @param value the input value.
-   * @param ctx the context.
-   * @throws IOException when the context cannot be written.
-   * @throws InterruptedException when the context cannot be written.
-   */
-  public void map(Text key, DoubleWritable value, Context ctx) throws IOException, InterruptedException {
-    ctx.write(key,value);
+  public DoubleWritableDecreasingComparator() {
+    super(DoubleWritable.class);
+  }
+
+  public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
+    double thisValue = readDouble(b1, s1);
+    double thatValue = readDouble(b2, s2);
+    return thatValue < thisValue?-1:(thisValue == thatValue?0:1);
   }
 }

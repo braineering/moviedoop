@@ -23,24 +23,31 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.test.map;
 
-import com.acmutv.moviedoop.query2.Query2_1;
-import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 
 /**
- * The mapper for the {@link Query2_1} job.
- * It emits (movieId,'M'movieTitle).
+ * It emits the input.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, DoubleWritable> {
+public class IdentityMapper extends Mapper<Object,Text,NullWritable,Text> {
+
+  /**
+   * Configures the mapper.
+   *
+   * @param ctx the job context.
+   */
+  protected void setup(Context ctx) {
+    //
+  }
 
   /**
    * The mapping routine.
@@ -51,7 +58,7 @@ public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, Dou
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Text key, DoubleWritable value, Context ctx) throws IOException, InterruptedException {
-    ctx.write(key,value);
+  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
+    ctx.write(NullWritable.get(), value);
   }
 }

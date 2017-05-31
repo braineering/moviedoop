@@ -23,14 +23,16 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.query2.map;
 
 import com.acmutv.moviedoop.query2.Query2_1;
-import org.apache.hadoop.io.DoubleWritable;
+import com.acmutv.moviedoop.common.util.RecordParser;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * The mapper for the {@link Query2_1} job.
@@ -40,7 +42,18 @@ import java.io.IOException;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, DoubleWritable> {
+public class GenresMapper extends Mapper<Object, Text, LongWritable, Text> {
+
+  /**
+   *
+   * The movie id to emit.
+   */
+  private LongWritable movieId = new LongWritable();
+
+  /**
+   * The movie title to emit.
+   */
+  private Text genreTitle = new Text();
 
   /**
    * The mapping routine.
@@ -51,7 +64,10 @@ public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, Dou
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Text key, DoubleWritable value, Context ctx) throws IOException, InterruptedException {
-    ctx.write(key,value);
+  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
+    Map<String,String> movie = RecordParser.parse(value.toString(), new String[] {"id","title","genres"},",");
+    this.movieId.set(Long.valueOf(movie.get("id")));
+    this.genreTitle.set("G" + movie.get("genres"));
+    ctx.write(this.movieId, genreTitle);
   }
 }

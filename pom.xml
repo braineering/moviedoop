@@ -105,7 +105,6 @@
 
     <!-- Core  -->
     <apache.hadoop.version>2.8.0</apache.hadoop.version>
-    <!--<apache.hadoop.version>2.7.3</apache.hadoop.version>-->
 
     <!-- GUI/CLI -->
     <apache.cli.version>1.3.1</apache.cli.version>
@@ -121,7 +120,7 @@
     <!-- Utilities -->
 
     <!-- Log -->
-    <log4j.version>2.7</log4j.version>
+    <!--<log4j.version>2.7</log4j.version>-->
 
     <!-- Test -->
     <junit.version>4.12</junit.version>
@@ -149,10 +148,6 @@
     <!-- Surefire -->
     <surefire.version>2.19.1</surefire.version>
     <surefire.skipTests>false</surefire.skipTests>
-
-    <!-- Proguard -->
-    <proguard.version>2.0.13</proguard.version>
-    <proguard.tool.version>5.3.1</proguard.tool.version>
 
     <!-- Javadoc -->
     <javadoc.version>2.10.4</javadoc.version>
@@ -227,7 +222,7 @@
 
     <!-- Utilities -->
 
-    <!-- Log -->
+    <!-- Log
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
@@ -240,6 +235,7 @@
       <version>${log4j.version}</version>
       <scope>compile</scope>
     </dependency>
+    -->
 
     <!-- Test -->
     <dependency>
@@ -268,61 +264,6 @@
       </activation>
       <properties>
         <project.main>com.acmutv.moviedoop.MoviedoopDriver</project.main>
-      </properties>
-    </profile>
-
-    <!-- PROFILE: query1_1 -->
-    <profile>
-      <id>query1_1</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <project.main>com.acmutv.moviedoop.Query1_1</project.main>
-      </properties>
-    </profile>
-
-    <!-- PROFILE: query1_2 -->
-    <profile>
-      <id>query1_2</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <project.main>com.acmutv.moviedoop.Query1_2</project.main>
-      </properties>
-    </profile>
-
-    <!-- PROFILE: query1_3 -->
-    <profile>
-      <id>query1_3</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <project.main>com.acmutv.moviedoop.Query1_3</project.main>
-      </properties>
-    </profile>
-
-    <!-- PROFILE: query2_1 -->
-    <profile>
-      <id>query2_1</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <project.main>com.acmutv.moviedoop.Query2_1</project.main>
-      </properties>
-    </profile>
-
-    <!-- PROFILE: query2_2 -->
-    <profile>
-      <id>query2_2</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <project.main>com.acmutv.moviedoop.Query2_2</project.main>
       </properties>
     </profile>
 

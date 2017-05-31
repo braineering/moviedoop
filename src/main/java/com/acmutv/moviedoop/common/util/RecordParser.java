@@ -23,35 +23,43 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.common.util;
 
-import com.acmutv.moviedoop.query2.Query2_1;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
-
-import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * The mapper for the {@link Query2_1} job.
- * It emits (movieId,'M'movieTitle).
- *
+ * Utility to parse records.
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, DoubleWritable> {
+public class RecordParser {
 
   /**
-   * The mapping routine.
-   *
-   * @param key the input key.
-   * @param value the input value.
-   * @param ctx the context.
-   * @throws IOException when the context cannot be written.
-   * @throws InterruptedException when the context cannot be written.
+   * The simple comma delimiter
    */
-  public void map(Text key, DoubleWritable value, Context ctx) throws IOException, InterruptedException {
-    ctx.write(key,value);
+  public static final String DELIMITER = ",";
+
+  /**
+   * The escaped comma delimiter (commas within quotes are ignored).
+   */
+  public static final String ESCAPED_DELIMITER = ",(?=(?:[^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$)";
+
+  /**
+   * Parses {@code line} as a list of attributes separated by {@code delimiter}.
+   *
+   * @param line the string to parse.
+   * @param attributes the list of attributes.
+   * @param delimiter the string delimiter.
+   * @return the map of attributes.
+   */
+  public static Map<String,String> parse(String line, String[] attributes, String delimiter) {
+    Map<String,String> map = new HashMap<>();
+    String[] values = line.split(delimiter, -1);
+    for (int i = 0; i < values.length; i++) {
+      map.put(attributes[i], values[i].replaceAll("^\"|\"$", ""));
+    }
+    return map;
   }
 }

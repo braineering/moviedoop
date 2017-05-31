@@ -23,35 +23,21 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.common.util;
 
-import com.acmutv.moviedoop.query2.Query2_1;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
-
-import java.io.IOException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
 /**
- * The mapper for the {@link Query2_1} job.
- * It emits (movieId,'M'movieTitle).
- *
+ * JUnit suite for all tests within the package.
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, DoubleWritable> {
-
-  /**
-   * The mapping routine.
-   *
-   * @param key the input key.
-   * @param value the input value.
-   * @param ctx the context.
-   * @throws IOException when the context cannot be written.
-   * @throws InterruptedException when the context cannot be written.
-   */
-  public void map(Text key, DoubleWritable value, Context ctx) throws IOException, InterruptedException {
-    ctx.write(key,value);
-  }
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+    DateParserTest.class,
+    RecordParserTest.class
+})
+public class TestAllUtil {
 }

@@ -23,35 +23,40 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.query3.reduce;
 
-import com.acmutv.moviedoop.query2.Query2_1;
+import com.acmutv.moviedoop.query3.Query3_1;
+import com.acmutv.moviedoop.query3.Query3_2;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 
 /**
- * The mapper for the {@link Query2_1} job.
- * It emits (movieId,'M'movieTitle).
+ * The reducer for jobs in: {@link Query3_1}, {@link Query3_2}.
+ * It emits all received values as keyes.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, DoubleWritable> {
+public class ValueReducer extends Reducer<DoubleWritable,Text,NullWritable,Text> {
 
   /**
-   * The mapping routine.
+   * The reduction routine.
    *
    * @param key the input key.
-   * @param value the input value.
+   * @param values the input values.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Text key, DoubleWritable value, Context ctx) throws IOException, InterruptedException {
-    ctx.write(key,value);
+  public void reduce(DoubleWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+    for (Text value : values) {
+      ctx.write(NullWritable.get(), value);
+    }
   }
+
 }

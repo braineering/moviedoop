@@ -23,29 +23,57 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.query1.reduce;
 
-import com.acmutv.moviedoop.common.model.GenreWritable;
-import com.acmutv.moviedoop.query2.Query2_2;
+import com.acmutv.moviedoop.query1.Query1_3;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
 /**
- * The reducer for the {@link Query2_2} job.
+ * The reducer for the {@link Query1_3} job.
+ * It emits (movieTitle,avgRating) where avgRating is the average rating greater than or equal to
+ * `movieAverageRatingLowerBound`.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class GenresReducer extends Reducer<Text, DoubleWritable, Text, Text> {
+public class AverageRatingFilterReducer extends Reducer<Text,DoubleWritable,Text,DoubleWritable> {
 
   /**
-   * The stdDev of genre's rating
+   * The logger.
    */
-  private GenreWritable genre = new GenreWritable();
+  private static final Logger LOG = Logger.getLogger(AverageRatingFilterReducer.class);
+
+  /**
+   * The lower bound for the movie average rating.
+   */
+  private double movieAverageRatingLowerBound;
+
+  /**
+   * The movie title to emit.
+   */
+  private Text movieTitle = new Text();
+
+  /**
+   * The movie average rating to emit.
+   */
+  private DoubleWritable movieAverageRating = new DoubleWritable();
+
+  /**
+   * Configures the reducer.
+   *
+   * @param ctx the job context.
+   */
+  protected void setup(Context ctx) {
+    this.movieAverageRatingLowerBound =
+        Double.valueOf(ctx.getConfiguration().get("moviedoop.average.rating.lb"));
+    LOG.debug("[SETUP] moviedoop.average.rating.lb: " + this.movieAverageRatingLowerBound);
+  }
 
   /**
    * The reduction routine.
@@ -57,37 +85,22 @@ public class GenresReducer extends Reducer<Text, DoubleWritable, Text, Text> {
    * @throws InterruptedException when the context cannot be written.
    */
   public void reduce(Text key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
-
-    Text genreTitle = key;
-    double score = 0.0;
-    long occ = 0L;
-    double avg = 0.0;
-    double stdDev = 0.0;
-    double newAvg = 0.0;
-    double newStdDev = 0.0;
-    this.genre.occurrences = 0L;
+    long num = 0L;
+    double sum = 0.0;
 
     for (DoubleWritable value : values) {
-      if (this.genre.occurrences == 0L) {
-        this.genre.average = value.get();
-        this.genre.stdDev = 0.0;
-        this.genre.occurrences  = 1L;
-      }
-      else {
-        score = value.get();
-        occ = this.genre.occurrences;
-        avg = this.genre.average;
-        stdDev = this.genre.stdDev;
-
-        newAvg = ((avg * occ) + score) / (occ + 1);
-        occ += 1L;
-        newStdDev = ((occ-2) * Math.pow(stdDev,2.0) + (score - newAvg)*(score - avg))/(occ-1);
-
-        this.genre.occurrences = occ;
-        this.genre.average = newAvg;
-        this.genre.stdDev = newStdDev;
-      }
+      double rating = value.get();
+      sum += rating;
+      num++;
     }
-    ctx.write(genreTitle, new Text(genre.printRatings()));
+
+    double avgRating = sum / num;
+
+    if (avgRating >= this.movieAverageRatingLowerBound) {
+      this.movieTitle.set(key.toString());
+      this.movieAverageRating.set(avgRating);
+      ctx.write(this.movieTitle, this.movieAverageRating);
+    }
   }
+
 }

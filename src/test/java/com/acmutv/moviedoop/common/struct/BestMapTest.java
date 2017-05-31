@@ -23,35 +23,55 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.common.struct;
 
-import com.acmutv.moviedoop.query2.Query2_1;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
-
-import java.io.IOException;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
- * The mapper for the {@link Query2_1} job.
- * It emits (movieId,'M'movieTitle).
+ * Unit test for {@link BestMap}.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, DoubleWritable> {
+public class BestMapTest {
 
   /**
-   * The mapping routine.
-   *
-   * @param key the input key.
-   * @param value the input value.
-   * @param ctx the context.
-   * @throws IOException when the context cannot be written.
-   * @throws InterruptedException when the context cannot be written.
+   * Tests the simple case of rank construction.
    */
-  public void map(Text key, DoubleWritable value, Context ctx) throws IOException, InterruptedException {
-    ctx.write(key,value);
+  @Test
+  public void test_duplicate() {
+    BestMap actual = new BestMap(3);
+    actual.put(1L, 5.0);
+    actual.put(1L, 10.0);
+    actual.put(1L, 15.0);
+    actual.put(1L, 10.0);
+    actual.put(1L, 1.0);
+
+    BestMap expected = new BestMap(3);
+    expected.put(1L, 1.0);
+
+    Assert.assertEquals(expected, actual);
+  }
+
+  /**
+   * Tests the simple case of rank construction.
+   */
+  @Test
+  public void test_sameScore() {
+    BestMap actual = new BestMap(3);
+    actual.put(1L, 1.0);
+    actual.put(2L, 1.5);
+    actual.put(3L, 1.0);
+    actual.put(4L, 2.0);
+    actual.put(5L, 2.0);
+
+    BestMap expected = new BestMap(3);
+    expected.put(5L, 2.0);
+    expected.put(2L, 1.5);
+    expected.put(3L, 1.0);
+
+    Assert.assertEquals(expected, actual);
   }
 }

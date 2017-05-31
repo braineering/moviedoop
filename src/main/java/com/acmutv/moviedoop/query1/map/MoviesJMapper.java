@@ -23,24 +23,42 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.query1.map;
 
-import com.acmutv.moviedoop.query2.Query2_1;
-import org.apache.hadoop.io.DoubleWritable;
+import com.acmutv.moviedoop.query1.Query1_1;
+import com.acmutv.moviedoop.common.util.RecordParser;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
- * The mapper for the {@link Query2_1} job.
+ * The mapper for jobs in: {@link Query1_1}.
  * It emits (movieId,'M'movieTitle).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, DoubleWritable> {
+public class MoviesJMapper extends Mapper<Object, Text, LongWritable, Text> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(MoviesJMapper.class);
+
+  /**
+   * The movie id to emit.
+   */
+  private LongWritable movieId = new LongWritable();
+
+  /**
+   * The movie title to emit.
+   */
+  private Text movieTitle = new Text();
 
   /**
    * The mapping routine.
@@ -51,7 +69,10 @@ public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, Dou
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Text key, DoubleWritable value, Context ctx) throws IOException, InterruptedException {
-    ctx.write(key,value);
+  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
+    Map<String,String> movie = RecordParser.parse(value.toString(), new String[] {"id","title","genres"},RecordParser.ESCAPED_DELIMITER);
+    this.movieId.set(Long.valueOf(movie.get("id")));
+    this.movieTitle.set("M" + movie.get("title"));
+    ctx.write(this.movieId, this.movieTitle);
   }
 }

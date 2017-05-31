@@ -24,8 +24,8 @@
   THE SOFTWARE.
  */
 
-import com.acmutv.moviedoop.struct.TestAllStruct;
-import com.acmutv.moviedoop.util.TestAllUtil;
+import com.acmutv.moviedoop.common.struct.TestAllStruct;
+import com.acmutv.moviedoop.common.util.TestAllUtil;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 

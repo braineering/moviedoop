@@ -23,15 +23,16 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.query1.reduce;
 
-import com.acmutv.moviedoop.common.util.RecordParser;
 import com.acmutv.moviedoop.query1.Query1_1;
+import com.acmutv.moviedoop.common.util.RecordParser;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -48,23 +49,32 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RatingJoinGenresCachedReducer extends Reducer<LongWritable,DoubleWritable,Text,DoubleWritable> {
+public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritable,DoubleWritable,Text,DoubleWritable> {
 
   /**
-   * The cached map (movieId,movieTitle)
+   * The logger.
    */
-  private Map<Long,Text> movieIdToGenres = new HashMap<>();
+  private static final Logger LOG = Logger.getLogger(AverageRatingJoinMovieTitleCachedReducer.class);
 
   /**
-   * The genre rating to emit.
+   * The cached map (movieId,movieTitle).
    */
-  private DoubleWritable genreRating = new DoubleWritable();
+  private Map<Long,String> movieIdToMovieTitle = new HashMap<>();
 
   /**
-   * The genre name to emit.
+   * The lower bound for the movie average rating.
    */
-  private Text genreTitle = new Text();
+  private double movieAverageRatingLowerBound;
 
+  /**
+   * The movie title to emit.
+   */
+  private Text movieTitle = new Text();
+
+  /**
+   * The movie average rating to emit.
+   */
+  private DoubleWritable movieAverageRating = new DoubleWritable();
 
   /**
    * Configures the reducer.
@@ -72,6 +82,9 @@ public class RatingJoinGenresCachedReducer extends Reducer<LongWritable,DoubleWr
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
+    this.movieAverageRatingLowerBound =
+        Double.valueOf(ctx.getConfiguration().get("moviedoop.average.rating.lb"));
+
     try {
       for (URI uri : ctx.getCacheFiles()) {
         Path path = new Path(uri);
@@ -80,13 +93,15 @@ public class RatingJoinGenresCachedReducer extends Reducer<LongWritable,DoubleWr
                 new FileInputStream(path.getName())));
         String line;
         while ((line = br.readLine()) != null) {
-          Map<String,String> movie = RecordParser.parse(line, new String[] {"id","title","genres"},",");
+          Map<String,String> movie = RecordParser.parse(line, new String[] {"id","title","genres"},RecordParser.ESCAPED_DELIMITER);
           long movieId = Long.valueOf(movie.get("id"));
-          String genres = String.valueOf(movie.get("genres"));
-          this.movieIdToGenres.put(movieId,new Text(genres));
+          String movieTitle = movie.get("title");
+          this.movieIdToMovieTitle.put(movieId, movieTitle);
         }
+        br.close();
       }
     } catch (IOException exc) {
+      LOG.error(exc.getMessage());
       exc.printStackTrace();
     }
   }
@@ -101,20 +116,22 @@ public class RatingJoinGenresCachedReducer extends Reducer<LongWritable,DoubleWr
    * @throws InterruptedException when the context cannot be written.
    */
   public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
-
-    long movieId = key.get();
-    double score = 0.0;
+    long num = 0L;
+    double sum = 0.0;
 
     for (DoubleWritable value : values) {
-      score = value.get();
-      if (this.movieIdToGenres.containsKey(movieId)) {
-        String[] genres = this.movieIdToGenres.get(movieId).toString().split("\\|");
-        for (int i = 0; i < genres.length; i++) {
-          this.genreRating.set(score);
-          this.genreTitle.set(genres[i]);
-          ctx.write(genreTitle,genreRating);
-        }
-      }
+      double rating = value.get();
+      sum += rating;
+      num++;
+    }
+
+    double avgRating = sum / num;
+
+    if (avgRating >= this.movieAverageRatingLowerBound) {
+      this.movieTitle.set(this.movieIdToMovieTitle.getOrDefault(key.get(), "N/A-"+key.get()));
+      this.movieAverageRating.set(avgRating);
+      ctx.write(this.movieTitle, this.movieAverageRating);
     }
   }
+
 }

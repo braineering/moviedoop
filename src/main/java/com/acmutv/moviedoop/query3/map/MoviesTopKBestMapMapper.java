@@ -23,24 +23,49 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.query3.map;
 
-import com.acmutv.moviedoop.query2.Query2_1;
-import org.apache.hadoop.io.DoubleWritable;
+import com.acmutv.moviedoop.query3.Query3_1;
+import com.acmutv.moviedoop.query3.Query3_2;
+import com.acmutv.moviedoop.common.struct.BestMap;
+import com.acmutv.moviedoop.common.util.RecordParser;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
- * The mapper for the {@link Query2_1} job.
- * It emits (movieId,'M'movieTitle).
+ * The mapper for jobs in: {@link Query3_1}, {@link Query3_2}.
+ * It emits the top-`moviesTopKSize` (movieId,avgRating).
+ * It leverages BestMap.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, DoubleWritable> {
+public class MoviesTopKBestMapMapper extends Mapper<Object,Text,NullWritable,Text> {
+
+  /**
+   * The rank data structure.
+   */
+  private BestMap rank = new BestMap();
+
+  /**
+   * The tuple (movieId,rating) to emit.
+   */
+  private Text tuple = new Text();
+
+  /**
+   * Configures the mapper.
+   *
+   * @param ctx the job context.
+   */
+  protected void setup(Context ctx) {
+    int moviesTopKSize = Integer.valueOf(ctx.getConfiguration().get("moviedoop.topk.size"));
+    this.rank.setMaxSize(moviesTopKSize);
+  }
 
   /**
    * The mapping routine.
@@ -51,7 +76,24 @@ public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, Dou
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Text key, DoubleWritable value, Context ctx) throws IOException, InterruptedException {
-    ctx.write(key,value);
+  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
+    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
+
+    long movieId = Long.valueOf(rating.get("movieId"));
+    double score = Double.valueOf(rating.get("score"));
+
+    this.rank.put(movieId, score);
+  }
+
+  /**
+   * Flushes the mapper.
+   *
+   * @param ctx the job context.
+   */
+  protected void cleanup(Context ctx) throws IOException, InterruptedException {
+    for (Map.Entry<Long,Double> entry : this.rank.entrySet()) {
+      this.tuple.set(entry.getKey() + "," + entry.getValue());
+      ctx.write(NullWritable.get(), this.tuple);
+    }
   }
 }

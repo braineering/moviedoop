@@ -202,8 +202,8 @@ public class Query3_2 extends Configured implements Tool {
     System.out.println("Movie Sorting Partition Max Splits: " + SORT_PARTITION_SPLITS_MAX);
     System.out.println("############################################################################");
 
-    /***********************************************************************************************
-    * AVERAGE RATINGS FOR PERIODS [Tlb1,Tub1] and [Tlb2,Tub2]
+    /* *********************************************************************************************
+    * AVERAGE MOVIE RATINGS FOR PERIODS [Tlb1,Tub1] and [Tlb2,Tub2]
     ***********************************************************************************************/
 
     // JOB AVERAGE RATINGS: CONFIGURATION
@@ -231,8 +231,8 @@ public class Query3_2 extends Configured implements Tool {
     // JOB AVERAGE RATINGS: EXECUTION
     int code = jobAverageRatings.waitForCompletion(VERBOSE) ? 0 : 1;
 
-    /***********************************************************************************************
-     * MOVIES TOP-K BY AVERAGE RATINGS IN PERIOD [Tlb1,Tub1]
+    /* *********************************************************************************************
+     * TOP-K RANK OF MOVIES BY AVERAGE MOVIE RATINGS IN PERIOD [Tlb1,Tub1]
      **********************************************************************************************/
 
     if (code == 0) {
@@ -267,8 +267,8 @@ public class Query3_2 extends Configured implements Tool {
       code = jobTopRatings.waitForCompletion(VERBOSE) ? 0 : 1;
     }
 
-    /***********************************************************************************************
-     * MOVIES TOTAL RANK BY AVERAGE RATINGS IN PERIOD [Tlb2,Tub2]
+    /* *********************************************************************************************
+     * TOTAL RANK OF MOVIES BY AVERAGE MOVIE RATINGS IN PERIOD [Tlb2,Tub2]
      **********************************************************************************************/
 
     if (code == 0) {
@@ -335,7 +335,7 @@ public class Query3_2 extends Configured implements Tool {
       code = jobSortByRating.waitForCompletion(VERBOSE) ? 0 : 1;
     }
 
-    /***********************************************************************************************
+    /* *********************************************************************************************
      * RANK COMPARISON
      **********************************************************************************************/
     if (code == 0) {
@@ -355,11 +355,8 @@ public class Query3_2 extends Configured implements Tool {
       jobRankComparison.setInputFormatClass(LinenoSequenceFileInputFormat.class);
       LinenoSequenceFileInputFormat.addInputPath(jobRankComparison, stagingSort2);
       jobRankComparison.setMapperClass(RankComparisonMapper.class);
-      //jobRankComparison.setMapOutputKeyClass(NullWritable.class);
-      //jobRankComparison.setMapOutputValueClass(Text.class);
 
       // JOB AVERAGE RATINGS: REDUCE CONFIGURATION
-      //jobRankComparison.setReducerClass(RankComparisonReducer.class);
       jobRankComparison.setNumReduceTasks(0);
 
       // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION

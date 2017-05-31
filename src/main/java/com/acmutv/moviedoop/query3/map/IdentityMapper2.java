@@ -26,7 +26,6 @@
 package com.acmutv.moviedoop.query3.map;
 
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 

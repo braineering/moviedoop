@@ -122,6 +122,10 @@ public class Query1_2 extends Configured implements Tool {
     System.out.println("Reduce Cardinality (average): " + AVERAGE_REDUCE_CARDINALITY);
     System.out.println("############################################################################");
 
+    /* *********************************************************************************************
+     * MOVIES WITH AVERAGE MOVIE RATINGS GREATER OR EQUALS TO R FOR PERIOD [T1,inf)
+     **********************************************************************************************/
+
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME);
     job.setJarByClass(Query1_2.class);

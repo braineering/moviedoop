@@ -25,6 +25,7 @@
  */
 package com.acmutv.moviedoop.model;
 
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
 import java.io.DataInput;
@@ -59,6 +60,11 @@ public class GenreWritable implements WritableComparable<GenreWritable> {
   public Double stdDev;
 
   /**
+   * The counter of occurence
+   */
+  public Long occurrences;
+
+  /**
    * Reads the fields.
    *
    * @param in the input.
@@ -69,6 +75,7 @@ public class GenreWritable implements WritableComparable<GenreWritable> {
     this.title = in.readUTF();
     this.average = in.readDouble();
     this.stdDev = in.readDouble();
+    this.occurrences = in.readLong();
   }
 
   /**
@@ -82,6 +89,7 @@ public class GenreWritable implements WritableComparable<GenreWritable> {
     out.writeUTF(this.title);
     out.writeDouble(this.average);
     out.writeDouble(this.stdDev);
+    out.writeLong(this.occurrences);
   }
 
   /**
@@ -90,7 +98,15 @@ public class GenreWritable implements WritableComparable<GenreWritable> {
    */
   @Override
   public String toString() {
-    return String.format("%d,%f,%f", this.title, this.average, this.stdDev);
+    return String.format("%s,%f,%f,%d",this.title, this.average, this.stdDev,this.occurrences);
+  }
+
+  /**
+   * Returns the ratings' genre
+   * @return the string representation.
+   */
+  public String printRatings() {
+    return String.format("%f,%f,%d", this.average, this.stdDev, this.occurrences);
   }
 
   /**

@@ -25,9 +25,12 @@
  */
 package com.acmutv.moviedoop;
 
+import com.acmutv.moviedoop.map.GenresIdentityMapper;
 import com.acmutv.moviedoop.map.RatingsMapper;
-import com.acmutv.moviedoop.reduce.Query2RatingJoinGenreCachedReducer;
+import com.acmutv.moviedoop.reduce.GenresReducer;
+import com.acmutv.moviedoop.reduce.RatingJoinGenresCachedReducer;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -36,7 +39,11 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
 /**
  * A MapReduce job that returns movies with rate greater/equal to the specified {@code threshold}
@@ -47,12 +54,12 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query2_2 {
+public class Query2_2 extends Configured implements Tool {
 
   /**
-   * The part1 job name.
+   * The program name.
    */
-  private static final String JOB_NAME = "Query2_2";
+  private static final String PROGRAM_NAME = "Query2_2";
 
   /**
    * The job main method.
@@ -60,66 +67,85 @@ public class Query2_2 {
    * @param args the job arguments.
    * @throws Exception when job cannot be executed.
    */
-  public static void main(String[] args) throws Exception {
+  @Override
+  public int run(String[] args) throws Exception {
     if (args.length < 3) {
-      System.err.println("Usage: Query2_2 [inputRatings] [inputMovies] [output]");
-      System.exit(1);
+      System.err.printf("Usage: %s <inRatings> <inMovies> <out>\n", PROGRAM_NAME);
+      ToolRunner.printGenericCommandUsage(System.out);
+      return 2;
     }
 
     // USER PARAMETERS
     final Path inputRatings = new Path(args[0]);
     final Path inputMovies = new Path(args[1]);
     final Path output = new Path(args[2]);
+    final Path staging = new Path(args[2]+"_staging");
 
+    // CONTEXT CONFIGURATION
+    Configuration config = super.getConf();
 
+    // USER PARAMETERS RESUME
+    System.out.println("############################################################################");
+    System.out.printf("%s\n", PROGRAM_NAME);
+    System.out.println("****************************************************************************");
     System.out.println("Input Ratings: " + inputRatings);
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
-
-    // CONTEXT CONFIGURATION
-    Configuration config = new Configuration();
+    System.out.println("############################################################################");
 
     // JOB CONFIGURATION
-    Job job = Job.getInstance(config, JOB_NAME);
+    Job job = Job.getInstance(config, PROGRAM_NAME+"_STEP1");
     job.setJarByClass(Query2_2.class);
 
-   /* // MAPPERS CONFIGURATION
-    MultipleInputs.addInputPath(job, inputRatings, TextInputFormat.class, RatingsMapper.class);
-    MultipleInputs.addInputPath(job, inputMovies, TextInputFormat.class, GenresMapper.class);
-    job.setMapOutputKeyClass(LongWritable.class);
-    job.setMapOutputValueClass(Text.class);
-
-    // REDUCERS CONFIGURATION
-    job.setReducerClass(RatingsGenresJoinReducer.class);
-    job.setNumReduceTasks(1);
-
-    // OUTPUT CONFIGURATION
-    FileOutputFormat.setOutputPath(job, output);
-
-    // JOB EXECUTION
-    System.exit(job.waitForCompletion(true) ? 0 : 1);*/
-
-    for (FileStatus status : FileSystem.get(config).listStatus(inputRatings)) {
+    for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
     }
+    FileInputFormat.addInputPath(job, inputRatings);
 
-    // MAP CONFIGURATION
-    FileInputFormat.addInputPath(job, inputMovies);
     job.setMapperClass(RatingsMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(DoubleWritable.class);
 
-    // REDUCE CONFIGURATION
-    job.setReducerClass(Query2RatingJoinGenreCachedReducer.class);
+    job.setReducerClass(RatingJoinGenresCachedReducer.class);
     job.setNumReduceTasks(1);
 
-    // OUTPUT CONFIGURATION
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(DoubleWritable.class);
-    FileOutputFormat.setOutputPath(job, output);
+    job.setOutputFormatClass(SequenceFileOutputFormat.class);
+    FileOutputFormat.setOutputPath(job, staging);
+
+    job.waitForCompletion(true);
+
+    // JOB 2
+
+    Job job2 = Job.getInstance(config, PROGRAM_NAME+"_STEP2");
+    job2.setJarByClass(Query2_2.class);
+
+    FileInputFormat.addInputPath(job2, staging);
+    job2.setInputFormatClass(SequenceFileInputFormat.class);
+
+    job2.setMapperClass(GenresIdentityMapper.class);
+    job2.setMapOutputKeyClass(Text.class);
+    job2.setMapOutputValueClass(DoubleWritable.class);
+
+    job2.setReducerClass(GenresReducer.class);
+    job2.setNumReduceTasks(0);
+    job2.setOutputKeyClass(Text.class);
+    job2.setOutputValueClass(Text.class);
+    FileOutputFormat.setOutputPath(job2, output);
 
     // JOB EXECUTION
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
+    return job2.waitForCompletion(true) ? 0 : 1;
+  }
 
+  /**
+   * The program main method.
+   *
+   * @param args the program arguments.
+   * @throws Exception when the program cannot be executed.
+   */
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(new Configuration(), new Query2_2(), args);
+    System.exit(res);
   }
 }

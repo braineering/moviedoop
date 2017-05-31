@@ -23,42 +23,41 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.util;
+package com.acmutv.moviedoop.map;
 
+import com.acmutv.moviedoop.Query2_1;
+import com.acmutv.moviedoop.model.GenreWritable;
+import com.acmutv.moviedoop.util.RecordParser;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.GenericWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Utility to parse records.
+ * The mapper for the {@link Query2_1} job.
+ * It emits (movieId,'M'movieTitle).
+ *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RecordParser {
+public class GenresIdentityMapper extends Mapper<Text, DoubleWritable, Text, DoubleWritable> {
 
   /**
-   * The input record delimiter for the `rating` data set.
-   */
-  public static final String DELIMITER = ",";
-
-  /**
-   * Parses {@code line} as a list of attributes separated by {@code delimiter}.
+   * The mapping routine.
    *
-   * @param line the string to parse.
-   * @param attributes the list of attributes.
-   * @param delimiter the string delimiter.
-   * @return the map of attributes.
+   * @param key the input key.
+   * @param value the input value.
+   * @param ctx the context.
+   * @throws IOException when the context cannot be written.
+   * @throws InterruptedException when the context cannot be written.
    */
-  public static Map<String,String> parse(String line, String[] attributes, String delimiter) {
-    Map<String, String> map = new HashMap<>();
-    try {
-      String[] values = line.split(delimiter, -1);
-      for (int i = 0; i < values.length; i++) {
-        map.put(attributes[i], values[i].replaceAll("^\"|\"$", ""));
-      }
-    }catch(IndexOutOfBoundsException exc) {
-      exc.printStackTrace();
-    }
-    return map;
+  public void map(Text key, DoubleWritable value, Context ctx) throws IOException, InterruptedException {
+    ctx.write(key,value);
   }
 }

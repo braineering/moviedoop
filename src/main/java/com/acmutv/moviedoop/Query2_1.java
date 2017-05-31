@@ -27,11 +27,10 @@ package com.acmutv.moviedoop;
 
 import com.acmutv.moviedoop.map.GenresMapper;
 import com.acmutv.moviedoop.map.RatingsMapper;
-import com.acmutv.moviedoop.reduce.RatingsGenresJoinReducer;
+import com.acmutv.moviedoop.reduce.RatingsJoinGenresReducer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -84,25 +83,21 @@ public class Query2_1 extends Configured implements Tool {
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME);
-    job.setJarByClass(Query1_1.class);
+    job.setJarByClass(Query2_1.class);
 
     // MAP CONFIGURATION
     MultipleInputs.addInputPath(job, inputRatings, TextInputFormat.class, RatingsMapper.class);
     MultipleInputs.addInputPath(job, inputMovies, TextInputFormat.class, GenresMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
-    //job.setMapOutputValueClass(Text.class);
-
-    job.setMapOutputValueClass(DoubleWritable.class);
+    job.setMapOutputValueClass(Text.class);
 
     // REDUCE CONFIGURATION
-    //job.setReducerClass(RatingsGenresJoinReducer.class);
-    //job.setNumReduceTasks(1);
+    job.setReducerClass(RatingsJoinGenresReducer.class);
+    job.setNumReduceTasks(1);
 
     // OUTPUT CONFIGURATION
-    //job.setOutputKeyClass(Text.class);
-    job.setOutputKeyClass(LongWritable.class);
-    job.setOutputValueClass(DoubleWritable.class);
-
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(Text.class);
     FileOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION

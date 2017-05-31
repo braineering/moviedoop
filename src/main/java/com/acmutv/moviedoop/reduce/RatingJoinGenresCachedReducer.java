@@ -26,6 +26,7 @@
 package com.acmutv.moviedoop.reduce;
 
 import com.acmutv.moviedoop.Query1_1;
+import com.acmutv.moviedoop.model.GenreWritable;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
@@ -50,17 +51,32 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query2RatingJoinGenreCachedReducer extends Reducer<LongWritable,DoubleWritable,Text,DoubleWritable> {
+public class RatingJoinGenresCachedReducer extends Reducer<LongWritable,DoubleWritable,Text,DoubleWritable> {
 
   /**
    * The cached map (movieId,movieTitle)
    */
-  private Map<Long,String> movieIdToGenre = new HashMap<>();
+  private Map<Long,Text> movieIdToGenres = new HashMap<>();
+
+  /**
+   * The genre rating to emit.
+   */
+  private DoubleWritable genreRating = new DoubleWritable();
+
+  /**
+   *
+   */
+  private Map<Text,GenreWritable> genres = new HashMap<>();
 
   /**
    * The genre name to emit.
    */
-  private Text genre = new Text();
+  private Text genreTitle = new Text();
+
+  /**
+   *
+   */
+  private Text temp = new Text();
 
   /**
    * The genre average rating to emit.
@@ -88,12 +104,8 @@ public class Query2RatingJoinGenreCachedReducer extends Reducer<LongWritable,Dou
         while ((line = br.readLine()) != null) {
           Map<String,String> movie = RecordParser.parse(line, new String[] {"id","title","genres"},",");
           long movieId = Long.valueOf(movie.get("id"));
-
-          List<String> genres = Arrays.asList(movie.get("genres").split("|"));
-          for (String genre: genres) {
-            System.out.println("Genre = "+ genre);
-            this.movieIdToGenre.put(movieId, genre);
-          }
+          String genres = String.valueOf(movie.get("genres"));
+          this.movieIdToGenres.put(movieId,new Text(genres));
         }
       }
     } catch (IOException exc) {
@@ -111,21 +123,20 @@ public class Query2RatingJoinGenreCachedReducer extends Reducer<LongWritable,Dou
    * @throws InterruptedException when the context cannot be written.
    */
   public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
-    long num = 0L;
-    double avgRating = 0.0;
+
+    long movieId = key.get();
+    double score = 0.0;
 
     for (DoubleWritable value : values) {
-        double rating = value.get();
-        avgRating = ((avgRating * num) + rating) / (num + 1);
-        num += 1;
+      score = value.get();
+      if (this.movieIdToGenres.containsKey(movieId)) {
+        String[] genres = this.movieIdToGenres.get(movieId).toString().split("\\|");
+        for (int i = 0; i < genres.length; i++) {
+          this.genreRating.set(score);
+          this.genreTitle.set(genres[i]);
+          ctx.write(genreTitle,genreRating);
+        }
+      }
     }
-
-    //calcolo deviazione standard da inserire
-    this.genre.set(this.movieIdToGenre.get(key.get()));
-    this.genreAverageRating.set(avgRating);
-
-    ctx.write(this.genre, this.genreAverageRating);
-
   }
-
 }

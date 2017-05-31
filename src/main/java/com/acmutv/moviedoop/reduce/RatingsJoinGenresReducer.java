@@ -26,6 +26,7 @@
 package com.acmutv.moviedoop.reduce;
 
 import com.acmutv.moviedoop.Query2_2;
+import com.acmutv.moviedoop.model.GenreWritable;
 import com.acmutv.moviedoop.model.MovieWritable;
 import com.acmutv.moviedoop.model.RatingsWritable;
 import org.apache.hadoop.io.DoubleWritable;
@@ -44,7 +45,7 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RatingsGenresJoinReducer extends Reducer<LongWritable, Text, Text, DoubleWritable> {
+public class RatingsJoinGenresReducer extends Reducer<LongWritable, Text, Text, Text> {
 
   /**
    * The map (movieId, movieRating) for the inner join.
@@ -52,19 +53,19 @@ public class RatingsGenresJoinReducer extends Reducer<LongWritable, Text, Text, 
   private Map<Long, Double> ratings = new HashMap<>();
 
   /**
-   * The map (movieId,movieTitle) for the inner join.
+   * The map (movieId,genreTitle) for the inner join.
    */
-  private Map<Long, String> genres = new HashMap<>();
+  private Map<Long, Text> movieToGenres = new HashMap<>();
 
   /**
-   * The movie title to emit.
+   *
    */
-  private Text genre = new Text();
+  private Map<Text,GenreWritable> genres = new HashMap<>();
 
   /**
-   * The movie rating to emit.
+   *
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private Text temp = new Text();
 
   /**
    * The reduction routine.
@@ -76,6 +77,8 @@ public class RatingsGenresJoinReducer extends Reducer<LongWritable, Text, Text, 
    * @throws InterruptedException when the context cannot be written.
    */
   public void reduce(LongWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+
+
 
     this.ratings.clear();
     this.genres.clear();
@@ -89,8 +92,8 @@ public class RatingsGenresJoinReducer extends Reducer<LongWritable, Text, Text, 
         }
       } else if (value.toString().startsWith("G")) {
         long movieId = key.get();
-        String genre = value.toString().substring(1);
-        this.genres.put(movieId, genre);
+        String genres = value.toString().substring(1);
+        this.movieToGenres.put(movieId,new Text(genres.toString()));
       } else {
         final String errmsg = String.format("Object is neither %s nor %s",
             RatingsWritable.class.getName(), MovieWritable.class.getName());
@@ -102,15 +105,45 @@ public class RatingsGenresJoinReducer extends Reducer<LongWritable, Text, Text, 
 
       long movieId = entryRating.getKey();
       double score = entryRating.getValue();
-      String movieGenre = this.genres.get(movieId);
 
-      //
+      if(this.movieToGenres.containsKey(movieId)) {
+        String[] genres = this.movieToGenres.get(movieId).toString().split("\\|");
+        for (int i = 0; i < genres.length; i++) {
+          String genre = genres[i];
+          if (!this.genres.containsKey(new Text(genre))) {
+            GenreWritable newGenre = new GenreWritable();
+            newGenre.title = genre;
+            newGenre.average = score;
+            newGenre.stdDev = 0.0;
+            newGenre.occurrences = 1L;
+            this.genres.put(new Text(genre.toString()), newGenre);
+            //ctx.write(new Text(genre.toString()), new Text(newGenre.toString()));
+          } else {
+            long occ = this.genres.get(genre).occurrences;
+            double avg = this.genres.get(genre).average;
+            double stdDev = this.genres.get(genre).stdDev;
 
-      this.genre.set(movieGenre);
-      this.movieRating.set(score);
-      System.out.printf("# RED # Write (%s,%f)\n", movieGenre, score);
-      ctx.write(this.genre, this.movieRating);
+            double newAvg = ((avg * occ) + score) / (occ + 1);
+            occ += 1L;
+            double newStdDev = ((occ-2) * Math.pow(stdDev,2.0) + (score - newAvg)*(score - avg))/(occ-1);
+
+            GenreWritable update = new GenreWritable();
+            update.title = genre;
+            update.occurrences = occ;
+            update.average = newAvg;
+            update.stdDev = newStdDev;
+            this.temp.set(genre);
+            this.genres.replace(temp, update);
+            //ctx.write(temp, new Text(this.genres.get(genre).toString()));
+          }
+        }
+      }
     }
+
+    for (Map.Entry<Text, GenreWritable> entryGenres : this.genres.entrySet()) {
+      ctx.write(entryGenres.getKey(), new Text(entryGenres.getValue().toString()));
+    }
+
   }
 
 }

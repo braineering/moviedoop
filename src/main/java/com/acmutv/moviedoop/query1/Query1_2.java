@@ -43,6 +43,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 
+import java.net.URI;
 import java.time.LocalDateTime;
 
 /**
@@ -129,8 +130,7 @@ public class Query1_2 extends Configured implements Tool {
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME);
     job.setJarByClass(Query1_2.class);
-    FileSystem hdfs = FileSystem.get(job.getConfiguration());
-    for (FileStatus status : hdfs.listStatus(inputMovies)) {
+    for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
     }
 

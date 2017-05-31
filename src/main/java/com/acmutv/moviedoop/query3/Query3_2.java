@@ -152,11 +152,11 @@ public class Query3_2 extends Configured implements Tool {
     // PATHS
     final Path inputRatings = new Path(args[0]);
     final Path inputMovies = new Path(args[1]);
-    final Path stagingAverage = new Path(args[2] + "_staging/average");
-    final Path stagingSort1 = new Path(args[2] + "_staging/sort/1");
-    final Path stagingSort2 = new Path(args[2] + "_staging/sort/2");
-    final Path sortPartitions = new Path(args[2] + "_partitions.sort.lst");
-    final Path stagingTopK = new Path(args[2] + "_staging/topk");
+    final Path stagingAverage = new Path(args[2] + ".staging/average");
+    final Path stagingSort1 = new Path(args[2] + ".staging/sort/1");
+    final Path stagingSort2 = new Path(args[2] + ".staging/sort/2");
+    final Path sortPartitions = new Path(args[2] + ".partitions.sort.lst");
+    final Path stagingTopK = new Path(args[2] + ".staging/topk");
     final Path output = new Path(args[2]);
 
     // CONTEXT CONFIGURATION
@@ -242,7 +242,7 @@ public class Query3_2 extends Configured implements Tool {
 
       // JOB TOP BY RATING: MAP CONFIGURATION
       jobTopRatings.setInputFormatClass(SequenceFileInputFormat.class);
-      for (FileStatus status : FileSystem.get(jobTopRatings.getConfiguration()).listStatus(stagingAverage)) {
+      for (FileStatus status : FileSystem.get(config).listStatus(stagingAverage)) {
         Path path = status.getPath();
         if (path.getName().startsWith("1-r")) {
           SequenceFileInputFormat.addInputPath(jobTopRatings, path);
@@ -278,7 +278,7 @@ public class Query3_2 extends Configured implements Tool {
 
       // JOB RATING AS KEY: MAP CONFIGURATION
       jobRatingAsKey.setInputFormatClass(SequenceFileInputFormat.class);
-      for (FileStatus status : FileSystem.get(jobRatingAsKey.getConfiguration()).listStatus(stagingAverage)) {
+      for (FileStatus status : FileSystem.get(config).listStatus(stagingAverage)) {
         Path path = status.getPath();
         if (path.getName().startsWith("2-r")) {
           SequenceFileInputFormat.addInputPath(jobRatingAsKey, path);

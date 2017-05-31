@@ -128,8 +128,7 @@ public class Query1_3 extends Configured implements Tool {
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME);
     job.setJarByClass(Query1_3.class);
-    FileSystem hdfs = FileSystem.get(job.getConfiguration());
-    for (FileStatus status : hdfs.listStatus(inputMovies)) {
+    for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
     }
 

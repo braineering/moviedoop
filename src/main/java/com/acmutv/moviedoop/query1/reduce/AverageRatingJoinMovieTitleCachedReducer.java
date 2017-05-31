@@ -27,11 +27,13 @@ package com.acmutv.moviedoop.query1.reduce;
 
 import com.acmutv.moviedoop.query1.Query1_1;
 import com.acmutv.moviedoop.common.util.RecordParser;
+import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampAndAggregateMapper;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -49,6 +51,11 @@ import java.util.Map;
  * @since 1.0
  */
 public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritable,DoubleWritable,Text,DoubleWritable> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(AverageRatingJoinMovieTitleCachedReducer.class);
 
   /**
    * The cached map (movieId,movieTitle).
@@ -95,6 +102,7 @@ public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritab
         br.close();
       }
     } catch (IOException exc) {
+      LOG.error(exc.getMessage());
       exc.printStackTrace();
     }
   }
@@ -121,7 +129,7 @@ public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritab
     double avgRating = sum / num;
 
     if (avgRating >= this.movieAverageRatingLowerBound) {
-      this.movieTitle.set(this.movieIdToMovieTitle.get(key.get()));
+      this.movieTitle.set(this.movieIdToMovieTitle.getOrDefault(key.get(), "N/A-"+key.get()));
       this.movieAverageRating.set(avgRating);
       ctx.write(this.movieTitle, this.movieAverageRating);
     }

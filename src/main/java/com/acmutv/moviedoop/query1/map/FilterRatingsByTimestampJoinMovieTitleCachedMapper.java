@@ -123,7 +123,7 @@ public class FilterRatingsByTimestampJoinMovieTitleCachedMapper extends Mapper<O
     if (timestamp >= this.movieRatingTimestampLowerBound) {
       long movieId = Long.valueOf(rating.get("movieId"));
       double score = Double.valueOf(rating.get("score"));
-      this.movieTitle.set(this.movieIdToMovieTitle.get(movieId));
+      this.movieTitle.set(this.movieIdToMovieTitle.getOrDefault(movieId, "N/A-"+movieId));
       this.movieRating.set(score);
       ctx.write(this.movieTitle, this.movieRating);
     }

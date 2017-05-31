@@ -120,7 +120,7 @@
     <!-- Utilities -->
 
     <!-- Log -->
-    <log4j.version>2.7</log4j.version>
+    <!--<log4j.version>2.7</log4j.version>-->
 
     <!-- Test -->
     <junit.version>4.12</junit.version>
@@ -148,10 +148,6 @@
     <!-- Surefire -->
     <surefire.version>2.19.1</surefire.version>
     <surefire.skipTests>false</surefire.skipTests>
-
-    <!-- Proguard -->
-    <proguard.version>2.0.13</proguard.version>
-    <proguard.tool.version>5.3.1</proguard.tool.version>
 
     <!-- Javadoc -->
     <javadoc.version>2.10.4</javadoc.version>

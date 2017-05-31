@@ -76,7 +76,7 @@ public class GenresReducer extends Reducer<Text, DoubleWritable, Text, Text> {
       if (this.genre.occurrences == 0L) {
         this.genre.average = value.get();
         this.genre.stdDev = 0.0;
-        this.genre.occurrences = 1L;
+        this.genre.occurrences  = 1L;
       }
       else {
         score = value.get();

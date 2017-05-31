@@ -66,7 +66,7 @@ public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Te
    */
   protected void setup(Context ctx) {
     this.movieAverageRatingLowerBound =
-        Double.valueOf(ctx.getConfiguration().get("movie.rating.average.lb"));
+        Double.valueOf(ctx.getConfiguration().get("moviedoop.average.rating.lb"));
   }
 
   /**
@@ -81,13 +81,13 @@ public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Te
   public void reduce(LongWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
 
     long num = 0L;
-    double avgRating = 0.0;
+    double sum = 0.0;
 
     for (Text value : values) {
       if (value.charAt(0) == 'R') { // rating
         double rating = Double.valueOf(value.toString().substring(1));
-        avgRating = ((avgRating * num) + rating) / (num + 1);
-        num += 1;
+        sum += rating;
+        num++;
       } else if (value.charAt(0) == 'M') { // movie
         String movieTitle = value.toString().substring(1);
         this.movieTitle.set(movieTitle);
@@ -96,6 +96,8 @@ public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Te
         throw new IOException(errmsg);
       }
     }
+
+    double avgRating = sum / num;
 
     if (avgRating >= this.movieAverageRatingLowerBound) {
       this.movieAverageRating.set(avgRating);

@@ -25,27 +25,38 @@
  */
 package com.acmutv.moviedoop.reduce;
 
+import com.acmutv.moviedoop.Query3_1;
 import com.acmutv.moviedoop.QueryTopK_1;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
- * The reducer for the {@link QueryTopK_1} job.
+ * The reducer for the {@link Query3_1} job.
  * It emits (movieId,avgRating) where avgRating is the average rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRatingReducer extends Reducer<LongWritable,DoubleWritable,NullWritable,Text> {
+public class AverageRating2Reducer extends Reducer<LongWritable,Text,NullWritable,Text> {
 
   /**
-   * The tuple (movieId,avgRating) to emit.
+   * The multiple outputs.
+   */
+  private MultipleOutputs<NullWritable,Text> mos;
+
+  /**
+   * The tuple (movieId,avgScore) to emit.
    */
   private Text tuple = new Text();
 
@@ -55,7 +66,7 @@ public class AverageRatingReducer extends Reducer<LongWritable,DoubleWritable,Nu
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    //
+    this.mos = new MultipleOutputs<>(ctx);
   }
 
   /**
@@ -67,21 +78,53 @@ public class AverageRatingReducer extends Reducer<LongWritable,DoubleWritable,Nu
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
-    long num = 0L;
-    double sum = 0.0;
+  public void reduce(LongWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+    long num1 = 0L;
+    double sum1 = 0.0;
 
-    for (DoubleWritable value : values) {
-      double rating = value.get();
-      sum += rating;
-      num++;
+    long num2 = 0L;
+    double sum2 = 0.0;
+
+    for (Text value : values) {
+      String parts[] = value.toString().split(":");
+      String header[] = parts[0].split(";",-1);
+      boolean is1 = header.length >= 1 && header[0].equals("1");
+      boolean is2 = header.length >= 2 && header[1].equals("2");
+      double rating = Double.valueOf(parts[1]);
+      if (is1) {
+        sum1 += rating;
+        num1++;
+      }
+
+      if (is2) {
+        sum2 += rating;
+        num2++;
+      }
     }
 
-    double avgRating = sum / num;
+    double avgScore1 = sum1 / num1;
+    double avgScore2 = sum2 / num2;
 
-    this.tuple.set(key.get() + "," + avgRating);
+    long movieId = key.get();
 
-    ctx.write(NullWritable.get(), this.tuple);
+    if (num1 > 0) {
+      this.tuple.set(movieId + "," + avgScore1);
+      this.mos.write("1", NullWritable.get(), this.tuple);
+    }
+
+    if (num2 > 0) {
+      this.tuple.set(movieId + "," + avgScore2);
+      this.mos.write("2", NullWritable.get(), this.tuple);
+    }
+  }
+
+  /**
+   * Flushes the reducer.
+   *
+   * @param ctx the job context.
+   */
+  protected void cleanup(Context ctx) throws IOException, InterruptedException {
+    this.mos.close();
   }
 
 }

@@ -38,7 +38,9 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -71,6 +73,16 @@ public class Query1_2 extends Configured implements Tool {
    */
   private static final LocalDateTime MOVIE_RATINGS_TIMESTAMP_LB = DateParser.MIN;
 
+  /**
+   * The default number of reducers for the averaging job.
+   */
+  private static final int MOVIE_AVERAGE_REDUCE_CARDINALITY = 1;
+
+  /**
+   * The default verbosity.
+   */
+  private static final boolean VERBOSE = true;
+
   @Override
   public int run(String[] args) throws Exception {
     if (args.length < 3) {
@@ -79,51 +91,60 @@ public class Query1_2 extends Configured implements Tool {
       return 2;
     }
 
-    // USER PARAMETERS
+    // PATHS
     final Path inputRatings = new Path(args[0]);
     final Path inputMovies = new Path(args[1]);
     final Path output = new Path(args[2]);
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
-    config.setIfUnset("movie.rating.average.lb", String.valueOf(MOVIE_RATING_AVERAGE_LB));
-    config.setIfUnset("movie.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
+    config.setIfUnset("moviedoop.average.rating.lb", String.valueOf(MOVIE_RATING_AVERAGE_LB));
+    config.setIfUnset("moviedoop.average.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
 
-    // USER PARAMETERS RESUME
+    // OTHER CONFIGURATION
+    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
+    config.unset("moviedoop.average.reduce.cardinality");
+
+    // CONFIGURATION RESUME
     System.out.println("############################################################################");
     System.out.printf("%s\n", PROGRAM_NAME);
     System.out.println("****************************************************************************");
     System.out.println("Input Ratings: " + inputRatings);
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
-    System.out.println("Movie Average Rating Lower Bound: " + config.get("movie.rating.average.lb"));
-    System.out.println("Movie Rating Timestamp Lower Bound: " + config.get("movie.rating.timestamp.lb"));
+    System.out.println("Movie Average Rating Lower Bound: " + config.get("moviedoop.average.rating.lb"));
+    System.out.println("Movie Rating Timestamp Lower Bound: " + config.get("moviedoop.average.rating.timestamp.lb"));
+    System.out.println("----------------------------------------------------------------------------");
+    System.out.println("Reduce Cardinality (average): " + AVERAGE_REDUCE_CARDINALITY);
     System.out.println("############################################################################");
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME);
     job.setJarByClass(Query1_2.class);
-    for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
+    FileSystem hdfs = FileSystem.get(job.getConfiguration());
+    for (FileStatus status : hdfs.listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
     }
 
     // MAP CONFIGURATION
-    FileInputFormat.addInputPath(job, inputRatings);
+    job.setInputFormatClass(TextInputFormat.class);
+    TextInputFormat.addInputPath(job, inputRatings);
     job.setMapperClass(FilterRatingsByTimestampMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(DoubleWritable.class);
 
     // REDUCE CONFIGURATION
     job.setReducerClass(AverageRatingJoinMovieTitleCachedReducer.class);
-    job.setNumReduceTasks(1);
+    job.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // OUTPUT CONFIGURATION
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(DoubleWritable.class);
-    FileOutputFormat.setOutputPath(job, output);
+    job.setOutputFormatClass(TextOutputFormat.class);
+    TextOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION
-    return job.waitForCompletion(true) ? 0 : 1;
+    return job.waitForCompletion(VERBOSE) ? 0 : 1;
   }
 
   /**

@@ -23,55 +23,29 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.struct;
+package com.acmutv.moviedoop.util;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 
 /**
- * Unit test for {@link BestMap}.
+ * This class realizes ...
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class BestMapTest {
+public class RegexPathFilter extends Configured implements PathFilter {
 
-  /**
-   * Tests the simple case of rank construction.
-   */
-  @Test
-  public void test_duplicate() {
-    BestMap actual = new BestMap(3);
-    actual.put(1L, 5.0);
-    actual.put(1L, 10.0);
-    actual.put(1L, 15.0);
-    actual.put(1L, 10.0);
-    actual.put(1L, 1.0);
+  private String regex;
 
-    BestMap expected = new BestMap(3);
-    expected.put(1L, 1.0);
-
-    Assert.assertEquals(expected, actual);
+  public RegexPathFilter(String regex) {
+    this.regex = regex;
   }
 
-  /**
-   * Tests the simple case of rank construction.
-   */
-  @Test
-  public void test_sameScore() {
-    BestMap actual = new BestMap(3);
-    actual.put(1L, 1.0);
-    actual.put(2L, 1.5);
-    actual.put(3L, 1.0);
-    actual.put(4L, 2.0);
-    actual.put(5L, 2.0);
-
-    BestMap expected = new BestMap(3);
-    expected.put(5L, 2.0);
-    expected.put(2L, 1.5);
-    expected.put(3L, 1.0);
-
-    Assert.assertEquals(expected, actual);
+  @Override
+  public boolean accept(Path path) {
+    return path.getName().matches(this.regex);
   }
 }

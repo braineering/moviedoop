@@ -53,7 +53,7 @@ import java.util.Map;
 public class FilterRatingsByTimestampJoinMovieTitleCachedMapper extends Mapper<Object,Text,Text,DoubleWritable> {
 
   /**
-   * The cached map (movieId,movieTitle)
+   * The cached map (movieId,movieTitle).
    */
   private Map<Long,String> movieIdToMovieTitle = new HashMap<>();
 
@@ -78,7 +78,7 @@ public class FilterRatingsByTimestampJoinMovieTitleCachedMapper extends Mapper<O
    */
   protected void setup(Context ctx) {
     this.movieRatingTimestampLowerBound =
-        DateParser.toSeconds(ctx.getConfiguration().get("movie.rating.timestamp.lb"));
+        DateParser.toSeconds(ctx.getConfiguration().get("moviedoop.average.rating.timestamp.lb"));
 
     try {
       for (URI uri : ctx.getCacheFiles()) {

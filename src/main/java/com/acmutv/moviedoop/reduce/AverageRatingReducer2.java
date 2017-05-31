@@ -23,71 +23,82 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.Query1_1;
-import com.acmutv.moviedoop.util.DateParser;
-import com.acmutv.moviedoop.util.RecordParser;
-import org.apache.hadoop.io.*;
-import org.apache.hadoop.mapreduce.Mapper;
+import com.acmutv.moviedoop.QueryTopK_1;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
- * The mapper for the {@link Query1_1} job.
- * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
- * the `movieRatingTimestampLowerBound`.
+ * The reducer for the {@link QueryTopK_1} job.
+ * It emits (movieId,avgRating) where avgRating is the average rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class FilterRatingsByTimestampMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
+public class AverageRatingReducer2 extends Reducer<LongWritable,DoubleWritable,NullWritable,Text> {
 
   /**
-   * The lower bound for the movie rating timestamp.
+   * The multiple outputs.
    */
-  private long movieRatingTimestampLowerBound;
+  private MultipleOutputs<NullWritable,Text> mos;
 
   /**
-   * The movie id to emit.
+   * The tuple (movieId,avgRating) to emit.
    */
-  private LongWritable movieId = new LongWritable();
+  private Text tuple = new Text();
 
   /**
-   * The movie rating to emit.
-   */
-  private DoubleWritable movieRating = new DoubleWritable();
-
-  /**
-   * Configures the mapper.
+   * Configures the reducer.
+   *
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.movieRatingTimestampLowerBound =
-        DateParser.toSeconds(ctx.getConfiguration().get("moviedoop.average.rating.timestamp.lb"));
+    this.mos = new MultipleOutputs<>(ctx);
   }
 
   /**
-   * The mapping routine.
+   * The reduction routine.
    *
    * @param key the input key.
-   * @param value the input value.
+   * @param values the input values.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
+  public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
+    long num = 0L;
+    double sum = 0.0;
 
-    long timestamp = Long.valueOf(rating.get("timestamp"));
-    if (timestamp >= this.movieRatingTimestampLowerBound) {
-      long movieId = Long.valueOf(rating.get("movieId"));
-      double score = Double.valueOf(rating.get("score"));
-      this.movieId.set(movieId);
-      this.movieRating.set(score);
-      ctx.write(this.movieId, this.movieRating);
+    for (DoubleWritable value : values) {
+      double rating = value.get();
+      sum += rating;
+      num++;
     }
+
+    double avgRating = sum / num;
+
+    this.tuple.set(key.get() + "," + avgRating);
+
+    //ctx.write(NullWritable.get(), this.tuple);
+    this.mos.write("1", NullWritable.get(), this.tuple);
+    this.mos.write("2", NullWritable.get(), this.tuple);
   }
+
+  /**
+   * Flushes the reducer.
+   *
+   * @param ctx the job context.
+   */
+  protected void cleanup(Context ctx) throws IOException, InterruptedException {
+    this.mos.close();
+  }
+
 }

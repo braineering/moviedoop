@@ -23,65 +23,37 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.input;
 
-import com.acmutv.moviedoop.QueryTopK_1;
-import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 
 import java.io.IOException;
 
 /**
- * The reducer for the {@link QueryTopK_1} job.
- * It emits (movieId,avgRating) where avgRating is the average rating.
+ * An input reader for text files that emits the record number as key and the record content as
+ * value.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
+ * @see LinenoRecordReader
  */
-public class AverageRatingReducer extends Reducer<LongWritable,DoubleWritable,NullWritable,Text> {
+public class LinenoInputFormat extends FileInputFormat<LongWritable, Text> {
 
-  /**
-   * The tuple (movieId,avgRating) to emit.
-   */
-  private Text tuple = new Text();
-
-  /**
-   * Configures the reducer.
-   *
-   * @param ctx the job context.
-   */
-  protected void setup(Context ctx) {
-    //
+  @Override
+  public RecordReader<LongWritable, Text> createRecordReader(InputSplit inputSplit, TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
+    return new LinenoRecordReader();
   }
 
-  /**
-   * The reduction routine.
-   *
-   * @param key the input key.
-   * @param values the input values.
-   * @param ctx the context.
-   * @throws IOException when the context cannot be written.
-   * @throws InterruptedException when the context cannot be written.
-   */
-  public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
-    long num = 0L;
-    double sum = 0.0;
-
-    for (DoubleWritable value : values) {
-      double rating = value.get();
-      sum += rating;
-      num++;
-    }
-
-    double avgRating = sum / num;
-
-    this.tuple.set(key.get() + "," + avgRating);
-
-    ctx.write(NullWritable.get(), this.tuple);
+  @Override
+  protected boolean isSplitable(JobContext context, Path file) {
+    return false;
   }
-
 }

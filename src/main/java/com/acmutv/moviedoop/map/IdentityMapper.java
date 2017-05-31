@@ -23,37 +23,25 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.map;
 
-import com.acmutv.moviedoop.QueryTopK;
-import com.acmutv.moviedoop.struct.BestMap;
+import com.acmutv.moviedoop.QuerySort_1;
 import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
- * The reducer for the {@link QueryTopK} job.
+ * It emits the input.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MoviesTopKReducer extends Reducer<NullWritable,Text,NullWritable,Text> {
-
-  /**
-   * The movies rank size.
-   */
-  private int moviesRankSize;
-
-  /**
-   * The rank data structure.
-   */
-  private BestMap rank = new BestMap();
+public class IdentityMapper extends Mapper<Object,Text,NullWritable,Text> {
 
   /**
    * The tuple (movieId,rating) to emit.
@@ -61,39 +49,24 @@ public class MoviesTopKReducer extends Reducer<NullWritable,Text,NullWritable,Te
   private Text tuple = new Text();
 
   /**
-   * Configures the reducer.
+   * Configures the mapper.
    *
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    this.moviesRankSize = Integer.valueOf(ctx.getConfiguration().get("movie.rank.size"));
-    this.rank.setMaxSize(this.moviesRankSize);
+    //
   }
 
   /**
-   * The reduction routine.
+   * The mapping routine.
    *
    * @param key the input key.
-   * @param values the input values.
+   * @param value the input value.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(NullWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
-    for (Text value : values) {
-      Map<String,String> rankRecord = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
-      System.out.println("# [RED] # Record: " + rankRecord);
-      Long movieId = Long.valueOf(rankRecord.get("movieId"));
-      Double score = Double.valueOf(rankRecord.get("score"));
-      this.rank.put(movieId, score);
-      System.out.println("# [RED] # Rank: " + this.rank);
-    }
-
-    for (Map.Entry<Long,Double> entry :
-        this.rank.entrySet().stream().sorted((e1,e2)-> e2.getValue().compareTo(e1.getValue())).collect(Collectors.toList())) {
-      this.tuple.set(entry.getKey() + "," + entry.getValue());
-      ctx.write(NullWritable.get(), this.tuple);
-    }
+  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
+    ctx.write(NullWritable.get(), value);
   }
-
 }

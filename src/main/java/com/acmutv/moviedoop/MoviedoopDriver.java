@@ -57,13 +57,31 @@ public class MoviedoopDriver {
           "A map/reduce program that selects movies according to their rating and period. " +
               "The program leverages inner joins implemented with replication pattern (map).");
 
-      driver.addClass("query_sort", QuerySort.class,
-          "A map/reduce program that sorts movies according to their average rating and period. " +
-              "The program leverages inner joins implemented with replication pattern (reduce).");
+      driver.addClass("query3_1", Query3_1.class,
+          "A map/reduce program that returns the comparison between " +
+              "(i) the top-`rankSize` movies, considering average ratings in period from `ratingTimestampTopKLB` \n" +
+              " and `ratingTimestampTopKUB`; and\n" +
+              " (ii) the total rank of moviues, considering average ratings in period from `ratingTimestampRankLB`\n" +
+              " and `ratingTimestampRankUB`.\n" +
+              " It leverages BestMap.");
 
-      driver.addClass("query_topk", QueryTopK.class,
+      driver.addClass("query_sort_1", QuerySort_1.class,
+          "A map/reduce program that sorts movies according to their average rating and period. " +
+              "The program leverages the total sorting pattern.");
+
+      driver.addClass("query_topk_1", QueryTopK_1.class,
           "A map/reduce program that calculates top-K movies according to their average rating and period. " +
-              "The program leverages inner joins implemented with replication pattern (reduce).");
+              "The program leverages TreeMap to build the ranking..");
+
+      driver.addClass("query_topk_2", QueryTopK_2.class,
+          "A map/reduce program that calculates top-K movies according to their average rating and period. " +
+              "The program leverages BestMap to build the ranking.");
+
+      driver.addClass("query_test_1", QueryTest_1.class,
+          "A map/reduce program to make experiments and tests");
+
+      driver.addClass("query_test_2", QueryTest_2.class,
+          "A map/reduce program to make experiments and tests");
 
       exitCode = driver.run(args);
     } catch (Throwable exc) {

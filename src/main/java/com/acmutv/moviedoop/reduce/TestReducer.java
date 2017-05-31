@@ -42,7 +42,7 @@ import java.io.IOException;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRatingReducer extends Reducer<LongWritable,DoubleWritable,NullWritable,Text> {
+public class TestReducer extends Reducer<LongWritable,DoubleWritable,NullWritable,Text> {
 
   /**
    * The tuple (movieId,avgRating) to emit.

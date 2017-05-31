@@ -25,94 +25,85 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.map.MoviesTopKWithinPeriodMapper;
-import com.acmutv.moviedoop.reduce.MoviesTopKReducer;
-import com.acmutv.moviedoop.util.DateParser;
+import com.acmutv.moviedoop.input.LinenoInputFormat;
+import com.acmutv.moviedoop.map.TestMapper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import java.time.LocalDateTime;
-
 /**
- * A map/reduce program that returns the total classification of movies for the period from
- * `ratingTimestampLB` and `ratingTimestampUB`.
+ * A map/reduce program that returns movies with rate greater/equal to the specified {@code threshold}
+ * and valuated starting from the specified {@code startDate}.
+ * The program leverages inner joins (repartition joins).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class QuerySort extends Configured implements Tool {
+public class QueryTest_1 extends Configured implements Tool {
 
   /**
    * The program name.
    */
-  private static final String PROGRAM_NAME = "QuerySort";
+  private static final String PROGRAM_NAME = "QueryTest_1";
+
+  /**
+   * The default verbosity.
+   */
+  private static final boolean VERBOSE = true;
 
   @Override
   public int run(String[] args) throws Exception {
-    if (args.length < 3) {
-      System.out.println("Usage: QuerySort [input] [output] [rankSize] (ratingTimestampLB) (ratingTimestampUB)");
+    if (args.length < 2) {
+      System.err.printf("Usage: %s [-D prop=val] <inRatings> <out>\n", PROGRAM_NAME);
       ToolRunner.printGenericCommandUsage(System.out);
       return 2;
     }
 
-    // USER PARAMETERS
-    final Path input = new Path(args[0]);
+    // PATHS
+    final Path inputRatings = new Path(args[0]);
     final Path output = new Path(args[1]);
-    final Integer rankSize = Integer.valueOf(args[2]);
-    LocalDateTime ratingTimestampLB = (args.length > 3) ?
-        DateParser.parseOrDefault(args[3], DateParser.MIN) : DateParser.MIN;
-    LocalDateTime ratingTimestampUB = (args.length > 4) ?
-        DateParser.parseOrDefault(args[4], DateParser.MAX) : DateParser.MAX;
-
-    // USER PARAMETERS RESUME
-    System.out.println("############################################################################");
-    System.out.printf("%s\n", PROGRAM_NAME);
-    System.out.println("****************************************************************************");
-    System.out.println("Input: " + input);
-    System.out.println("Output: " + output);
-    System.out.println("Movie Rank Size: " + rankSize);
-    System.out.println("Movie Rating Timestamp Lower Bound: " + DateParser.toString(ratingTimestampLB));
-    System.out.println("Movie Rating Timestamp Upper Bound: " + DateParser.toString(ratingTimestampUB));
-    System.out.println("############################################################################");
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
-    config.setInt("movie.rank.size", rankSize);
-    config.setLong("movie.rating.timestamp.lb", DateParser.toSeconds(ratingTimestampLB));
-    config.setLong("movie.rating.timestamp.ub", DateParser.toSeconds(ratingTimestampUB));
+
+    // CONFIGURATION RESUME
+    System.out.println("############################################################################");
+    System.out.printf("%s\n", PROGRAM_NAME);
+    System.out.println("****************************************************************************");
+    System.out.println("Input Ratings: " + inputRatings);
+    System.out.println("Output: " + output);
+    System.out.println("############################################################################");
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME);
-    job.setJarByClass(QuerySort.class);
+    job.setJarByClass(QueryTest_1.class);
 
     // MAP CONFIGURATION
-    FileInputFormat.addInputPath(job, input);
-    job.setMapperClass(MoviesTopKWithinPeriodMapper.class);
-    job.setMapOutputKeyClass(LongWritable.class);
-    job.setMapOutputValueClass(DoubleWritable.class);
+    job.setInputFormatClass(LinenoInputFormat.class);
+    LinenoInputFormat.addInputPath(job, inputRatings);
+    job.setMapperClass(TestMapper.class);
+    //job.setMapOutputKeyClass(NullWritable.class);
+    //job.setMapOutputValueClass(Text.class);
 
     // REDUCE CONFIGURATION
-    job.setReducerClass(MoviesTopKReducer.class);
-    job.setNumReduceTasks(1);
+    //job.setReducerClass(TestReducer.class);
+    job.setNumReduceTasks(0);
 
     // OUTPUT CONFIGURATION
     job.setOutputKeyClass(NullWritable.class);
     job.setOutputValueClass(Text.class);
-    FileOutputFormat.setOutputPath(job, output);
+    job.setOutputFormatClass(TextOutputFormat.class);
+    TextOutputFormat.setOutputPath(job, output);
 
     // JOB EXECUTION
-    return job.waitForCompletion(true) ? 0 : 1;
+    return job.waitForCompletion(VERBOSE) ? 0 : 1;
   }
 
   /**
@@ -122,7 +113,7 @@ public class QuerySort extends Configured implements Tool {
    * @throws Exception when the program cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new QuerySort(), args);
+    int res = ToolRunner.run(new Configuration(), new QueryTest_1(), args);
     System.exit(res);
   }
 }

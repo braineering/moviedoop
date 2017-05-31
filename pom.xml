@@ -326,39 +326,6 @@
       </properties>
     </profile>
 
-    <!-- PROFILE: query3_1 -->
-    <profile>
-      <id>query3_1</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <project.main>com.acmutv.moviedoop.Query3_1</project.main>
-      </properties>
-    </profile>
-
-    <!-- PROFILE: query_sort -->
-    <profile>
-      <id>query_sort</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <project.main>com.acmutv.moviedoop.QuerySort</project.main>
-      </properties>
-    </profile>
-
-    <!-- PROFILE: query_topk -->
-    <profile>
-      <id>query_topk</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <project.main>com.acmutv.moviedoop.QueryTopK</project.main>
-      </properties>
-    </profile>
-
     <!-- PROFILE: skip-tests -->
     <profile>
       <id>skip-tests</id>

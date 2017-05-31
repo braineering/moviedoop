@@ -51,7 +51,7 @@ import java.util.Map;
 public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritable,DoubleWritable,Text,DoubleWritable> {
 
   /**
-   * The cached map (movieId,movieTitle)
+   * The cached map (movieId,movieTitle).
    */
   private Map<Long,String> movieIdToMovieTitle = new HashMap<>();
 
@@ -77,7 +77,7 @@ public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritab
    */
   protected void setup(Context ctx) {
     this.movieAverageRatingLowerBound =
-        Double.valueOf(ctx.getConfiguration().get("movie.rating.average.lb"));
+        Double.valueOf(ctx.getConfiguration().get("moviedoop.average.rating.lb"));
 
     try {
       for (URI uri : ctx.getCacheFiles()) {
@@ -110,13 +110,15 @@ public class AverageRatingJoinMovieTitleCachedReducer extends Reducer<LongWritab
    */
   public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
     long num = 0L;
-    double avgRating = 0.0;
+    double sum = 0.0;
 
     for (DoubleWritable value : values) {
-        double rating = value.get();
-        avgRating = ((avgRating * num) + rating) / (num + 1);
-        num += 1;
+      double rating = value.get();
+      sum += rating;
+      num++;
     }
+
+    double avgRating = sum / num;
 
     if (avgRating >= this.movieAverageRatingLowerBound) {
       this.movieTitle.set(this.movieIdToMovieTitle.get(key.get()));

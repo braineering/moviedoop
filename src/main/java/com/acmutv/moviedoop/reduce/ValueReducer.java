@@ -25,7 +25,9 @@
  */
 package com.acmutv.moviedoop.reduce;
 
-import com.acmutv.moviedoop.QueryTopK_1;
+import com.acmutv.moviedoop.Query1_3;
+import com.acmutv.moviedoop.QuerySort_1;
+import com.acmutv.moviedoop.util.RecordParser;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -33,30 +35,17 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
- * The reducer for the {@link QueryTopK_1} job.
- * It emits (movieId,avgRating) where avgRating is the average rating.
+ * The reducer for the {@link QuerySort_1} job.
+ * It emits all received values as keyes.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRatingReducer extends Reducer<LongWritable,DoubleWritable,NullWritable,Text> {
-
-  /**
-   * The tuple (movieId,avgRating) to emit.
-   */
-  private Text tuple = new Text();
-
-  /**
-   * Configures the reducer.
-   *
-   * @param ctx the job context.
-   */
-  protected void setup(Context ctx) {
-    //
-  }
+public class ValueReducer extends Reducer<DoubleWritable,Text,NullWritable,Text> {
 
   /**
    * The reduction routine.
@@ -67,21 +56,10 @@ public class AverageRatingReducer extends Reducer<LongWritable,DoubleWritable,Nu
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(LongWritable key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
-    long num = 0L;
-    double sum = 0.0;
-
-    for (DoubleWritable value : values) {
-      double rating = value.get();
-      sum += rating;
-      num++;
+  public void reduce(DoubleWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+    for (Text value : values) {
+      ctx.write(NullWritable.get(), value);
     }
-
-    double avgRating = sum / num;
-
-    this.tuple.set(key.get() + "," + avgRating);
-
-    ctx.write(NullWritable.get(), this.tuple);
   }
 
 }

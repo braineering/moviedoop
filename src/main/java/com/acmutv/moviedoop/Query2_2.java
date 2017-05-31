@@ -114,10 +114,10 @@ public class Query2_2 extends Configured implements Tool {
     job.setOutputFormatClass(SequenceFileOutputFormat.class);
     FileOutputFormat.setOutputPath(job, staging);
 
+
     job.waitForCompletion(true);
 
     // JOB 2
-
     Job job2 = Job.getInstance(config, PROGRAM_NAME+"_STEP2");
     job2.setJarByClass(Query2_2.class);
 
@@ -129,7 +129,7 @@ public class Query2_2 extends Configured implements Tool {
     job2.setMapOutputValueClass(DoubleWritable.class);
 
     job2.setReducerClass(GenresReducer.class);
-    job2.setNumReduceTasks(0);
+    job2.setNumReduceTasks(1);
     job2.setOutputKeyClass(Text.class);
     job2.setOutputValueClass(Text.class);
     FileOutputFormat.setOutputPath(job2, output);

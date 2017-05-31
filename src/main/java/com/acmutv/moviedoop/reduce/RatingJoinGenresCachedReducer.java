@@ -64,29 +64,10 @@ public class RatingJoinGenresCachedReducer extends Reducer<LongWritable,DoubleWr
   private DoubleWritable genreRating = new DoubleWritable();
 
   /**
-   *
-   */
-  private Map<Text,GenreWritable> genres = new HashMap<>();
-
-  /**
    * The genre name to emit.
    */
   private Text genreTitle = new Text();
 
-  /**
-   *
-   */
-  private Text temp = new Text();
-
-  /**
-   * The genre average rating to emit.
-   */
-  private DoubleWritable genreAverageRating = new DoubleWritable();
-
-  /**
-   * The movie average rating to emit.
-   */
-  private DoubleWritable genreDevStandardRating = new DoubleWritable();
 
   /**
    * Configures the reducer.

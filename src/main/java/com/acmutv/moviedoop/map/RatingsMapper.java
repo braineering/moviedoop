@@ -72,6 +72,7 @@ public class RatingsMapper extends Mapper<Object,Text,LongWritable,DoubleWritabl
     double score = Double.valueOf(rating.get("score"));
     this.movieId.set(movieId);
     this.movieRating.set(score);
+    System.out.println("############################################## " + Long.toString(movieId) + " con score " + Double.toString(score));
     ctx.write(this.movieId, movieRating);
   }
 }

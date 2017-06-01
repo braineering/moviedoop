@@ -25,10 +25,7 @@
  */
 package com.acmutv.moviedoop;
 
-import com.acmutv.moviedoop.query1.Query1_1;
-import com.acmutv.moviedoop.query1.Query1_2;
-import com.acmutv.moviedoop.query1.Query1_3;
-import com.acmutv.moviedoop.query1.Query1_4;
+import com.acmutv.moviedoop.query1.*;
 import com.acmutv.moviedoop.query2.Query2_1;
 import com.acmutv.moviedoop.query2.Query2_2;
 import com.acmutv.moviedoop.query3.Query3_1;
@@ -72,6 +69,11 @@ public class MoviedoopDriver {
               "The program leverages inner joins (replication joins as distributed caching on map).");
 
       driver.addClass("query1_4", Query1_4.class,
+          "A map/reduce program that selects movies according to their rating and period. " +
+              "The program leverages inner joins (replication joins as distributed caching on map) and" +
+              "optimizations on average computation.");
+
+      driver.addClass("query1_5", Query1_5.class,
           "A map/reduce program that selects movies according to their rating and period. " +
               "The program leverages inner joins (replication joins as distributed caching on map) and" +
               "optimizations on average computation.");

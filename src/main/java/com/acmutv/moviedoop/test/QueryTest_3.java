@@ -23,64 +23,41 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.query1;
+package com.acmutv.moviedoop.test;
 
-import com.acmutv.moviedoop.common.util.DateParser;
-import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampAndAggregateMapperORC;
-import com.acmutv.moviedoop.query1.reduce.AverageAggregateRatingJoinMovieTitleCachedReducer;
+import com.acmutv.moviedoop.common.input.LinenoInputFormat;
+import com.acmutv.moviedoop.common.input.LinenoSequenceFileInputFormat;
+import com.acmutv.moviedoop.test.map.IdentityMapper;
+import com.acmutv.moviedoop.test.map.TestMapper;
+import com.acmutv.moviedoop.test.map.TestMapperORC;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.log4j.Logger;
 import org.apache.orc.mapreduce.OrcInputFormat;
-
-import java.time.LocalDateTime;
 
 /**
  * A map/reduce program that returns movies with rate greater/equal to the specified {@code threshold}
  * and valuated starting from the specified {@code startDate}.
- * The program leverages inner joins (replication joins as distributed caching on map) and
- * optimizations on average computation.
+ * The program leverages inner joins (repartition joins).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query1_5 extends Configured implements Tool {
-
-  /**
-   * The logger.
-   */
-  private static final Logger LOG = Logger.getLogger(Query1_5.class);
+public class QueryTest_3 extends Configured implements Tool {
 
   /**
    * The program name.
    */
-  private static final String PROGRAM_NAME = "Query1_5";
-
-  /**
-   * The default lower bound for movie average rating.
-   */
-  private static final double MOVIE_RATING_AVERAGE_LB = 2.5;
-
-  /**
-   * The default lower bound for movie ratings timestamp.
-   */
-  private static final LocalDateTime MOVIE_RATINGS_TIMESTAMP_LB = DateParser.MIN;
-
-  /**
-   * The default number of reducers for the averaging job.
-   */
-  private static final int MOVIE_AVERAGE_REDUCE_CARDINALITY = 1;
+  private static final String PROGRAM_NAME = "QueryTest_3";
 
   /**
    * The default verbosity.
@@ -89,64 +66,42 @@ public class Query1_5 extends Configured implements Tool {
 
   @Override
   public int run(String[] args) throws Exception {
-    if (args.length < 3) {
-      System.err.printf("Usage: %s [-D prop=val] <inRatings> <inMovies> <out>\n", PROGRAM_NAME);
+    if (args.length < 2) {
+      System.err.printf("Usage: %s [-D prop=val] <inRatings> <out>\n", PROGRAM_NAME);
       ToolRunner.printGenericCommandUsage(System.out);
       return 2;
     }
 
     // PATHS
     final Path inputRatings = new Path(args[0]);
-    final Path inputMovies = new Path(args[1]);
-    final Path output = new Path(args[2]);
+    final Path output = new Path(args[1]);
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
-    config.setIfUnset("moviedoop.average.rating.lb", String.valueOf(MOVIE_RATING_AVERAGE_LB));
-    config.setIfUnset("moviedoop.average.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
-
-    // OTHER CONFIGURATION
-    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
-    config.unset("moviedoop.average.reduce.cardinality");
 
     // CONFIGURATION RESUME
     System.out.println("############################################################################");
     System.out.printf("%s\n", PROGRAM_NAME);
     System.out.println("****************************************************************************");
     System.out.println("Input Ratings: " + inputRatings);
-    System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
-    System.out.println("Movie Average Rating Lower Bound: " + config.get("moviedoop.average.rating.lb"));
-    System.out.println("Movie Rating Timestamp Lower Bound: " + config.get("moviedoop.average.rating.timestamp.lb"));
-    System.out.println("----------------------------------------------------------------------------");
-    System.out.println("Reduce Cardinality (average): " + AVERAGE_REDUCE_CARDINALITY);
     System.out.println("############################################################################");
-
-    /* *********************************************************************************************
-     * MOVIES WITH AVERAGE MOVIE RATINGS GREATER OR EQUALS TO R FOR PERIOD [T1,inf)
-     **********************************************************************************************/
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME);
-    job.setJarByClass(Query1_5.class);
-    for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
-      job.addCacheFile(status.getPath().toUri());
-    }
+    job.setJarByClass(QueryTest_3.class);
 
     // MAP CONFIGURATION
     job.setInputFormatClass(OrcInputFormat.class);
     OrcInputFormat.addInputPath(job, inputRatings);
-    job.setMapperClass(FilterRatingsByTimestampAndAggregateMapperORC.class);
-    job.setMapOutputKeyClass(LongWritable.class);
-    job.setMapOutputValueClass(Text.class);
+    job.setMapperClass(TestMapperORC.class);
 
     // REDUCE CONFIGURATION
-    job.setReducerClass(AverageAggregateRatingJoinMovieTitleCachedReducer.class);
-    job.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
+    job.setNumReduceTasks(0);
 
     // OUTPUT CONFIGURATION
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(DoubleWritable.class);
+    job.setOutputKeyClass(NullWritable.class);
+    job.setOutputValueClass(Text.class);
     job.setOutputFormatClass(TextOutputFormat.class);
     TextOutputFormat.setOutputPath(job, output);
 
@@ -161,7 +116,7 @@ public class Query1_5 extends Configured implements Tool {
    * @throws Exception when the program cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new Query1_5(), args);
+    int res = ToolRunner.run(new Configuration(), new QueryTest_3(), args);
     System.exit(res);
   }
 }

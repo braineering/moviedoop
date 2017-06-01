@@ -30,6 +30,7 @@ import com.acmutv.moviedoop.query2.Query2_1;
 import com.acmutv.moviedoop.query2.Query2_2;
 import com.acmutv.moviedoop.query3.Query3_1;
 import com.acmutv.moviedoop.query3.Query3_2;
+import com.acmutv.moviedoop.test.QueryTest_3;
 import org.apache.hadoop.util.ProgramDriver;
 import org.apache.log4j.Logger;
 
@@ -100,6 +101,9 @@ public class MoviedoopDriver {
               "and `ratingTimestampRankUB`.\n" +
               "The program leverages BestMap for top-k ranking, inner joins (replication joins as distributed caching on map) and" +
               "optimizations on average computation.");
+
+      driver.addClass("query_test_3", QueryTest_3.class,
+          "Test");
 
       exitCode = driver.run(args);
     } catch (Throwable exc) {

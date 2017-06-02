@@ -25,9 +25,8 @@
  */
 package com.acmutv.moviedoop.test.map;
 
-import com.acmutv.moviedoop.test.QuerySort_1;
+import com.acmutv.moviedoop.test.QuerySerializationOrc2Text2Text;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.orc.mapred.OrcStruct;
@@ -35,17 +34,21 @@ import org.apache.orc.mapred.OrcStruct;
 import java.io.IOException;
 
 /**
- * The mapper for the {@link QuerySort_1} job.
- * It emits (rating,movieId) where rating is a the average movie rating.
+ * The identity mapper for the {@link QuerySerializationOrc2Text2Text} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class TestMapperORC extends Mapper<Object,OrcStruct,NullWritable,Text> {
+public class IdentityMapperOrc2Text extends Mapper<Object,OrcStruct,LongWritable,Text> {
 
   /**
-   * The tuple (movieId,rating) to emit.
+   * The movieId to emit.
+   */
+  private LongWritable movieId = new LongWritable();
+
+  /**
+   * The tuple (rating,time) to emit.
    */
   private Text tuple = new Text();
 
@@ -59,11 +62,11 @@ public class TestMapperORC extends Mapper<Object,OrcStruct,NullWritable,Text> {
    * @throws InterruptedException when the context cannot be written.
    */
   public void map(Object key, OrcStruct value, Context ctx) throws IOException, InterruptedException {
-    System.out.printf("### MAP ### %s\n", value.toString());
     long movieId = Long.valueOf(value.getFieldValue(1).toString());
-    double score = Double.valueOf(value.getFieldValue(2).toString());
-    long timestamp = Long.valueOf(value.getFieldValue(3).toString());
-    this.tuple.set(movieId + "," + score + "," + "," + timestamp);
-    ctx.write(NullWritable.get(), this.tuple);
+    double rating = Double.valueOf(value.getFieldValue(2).toString());
+    long time = Long.valueOf(value.getFieldValue(3).toString());
+    this.movieId.set(movieId);
+    this.tuple.set(rating + "," + time);
+    ctx.write(this.movieId, this.tuple);
   }
 }

@@ -30,7 +30,7 @@ import com.acmutv.moviedoop.query2.Query2_1;
 import com.acmutv.moviedoop.query2.Query2_2;
 import com.acmutv.moviedoop.query3.Query3_1;
 import com.acmutv.moviedoop.query3.Query3_2;
-import com.acmutv.moviedoop.test.QueryTest_3;
+import com.acmutv.moviedoop.test.*;
 import org.apache.hadoop.util.ProgramDriver;
 import org.apache.log4j.Logger;
 
@@ -102,8 +102,20 @@ public class MoviedoopDriver {
               "The program leverages BestMap for top-k ranking, inner joins (replication joins as distributed caching on map) and" +
               "optimizations on average computation.");
 
-      driver.addClass("query_test_3", QueryTest_3.class,
-          "Test");
+      driver.addClass("query_serialization_text2text2text", QuerySerializationText2Text2Text.class,
+          "A map/reduce program that tests TEXT to TEXT to TEXT serialization.");
+
+      driver.addClass("query_serialization_orc2text2text", QuerySerializationOrc2Text2Text.class,
+          "A map/reduce program that tests ORC to TEXT to TEXT serialization.");
+
+      driver.addClass("query_serialization_orc2text2orc", QuerySerializationOrc2Text2Orc.class,
+          "A map/reduce program that tests ORC to TEXT to ORC serialization.");
+
+      driver.addClass("query_serialization_orc2orc2text", QuerySerializationOrc2Orc2Text.class,
+          "A map/reduce program that tests ORC to ORC to TEXT serialization.");
+
+      driver.addClass("query_serialization_orc2orc2orc", QuerySerializationOrc2Orc2Orc.class,
+          "A map/reduce program that tests ORC to ORC to ORC serialization.");
 
       exitCode = driver.run(args);
     } catch (Throwable exc) {

@@ -25,37 +25,34 @@
  */
 package com.acmutv.moviedoop.test.map;
 
-import com.acmutv.moviedoop.test.QuerySort_1;
+import com.acmutv.moviedoop.common.util.RecordParser;
+import com.acmutv.moviedoop.test.QuerySerializationText2Text2Text;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
- * The mapper for the {@link QuerySort_1} job.
+ * The identity mapper for the {@link QuerySerializationText2Text2Text} job.
  * It emits (rating,movieId) where rating is a the average movie rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class TestMapper extends Mapper<LongWritable,Text,NullWritable,Text> {
+public class IdentityMapperText2Text extends Mapper<Object,Text,LongWritable,Text> {
 
   /**
-   * The tuple (movieId,rating) to emit.
+   * The movieId to emit.
+   */
+  private LongWritable movieId = new LongWritable();
+
+  /**
+   * The tuple (rating,time) to emit.
    */
   private Text tuple = new Text();
-
-  /**
-   * Configures the mapper.
-   *
-   * @param ctx the job context.
-   */
-  protected void setup(Context ctx) {
-    //
-  }
 
   /**
    * The mapping routine.
@@ -66,10 +63,13 @@ public class TestMapper extends Mapper<LongWritable,Text,NullWritable,Text> {
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(LongWritable key, Text value, Context ctx) throws IOException, InterruptedException {
-    System.out.printf("### MAP ### (%d,%s)\n", key.get(), value.toString());
-    long pos = key.get();
-    this.tuple.set(pos + "," + value.toString());
-    ctx.write(NullWritable.get(), this.tuple);
+  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
+    Map<String,String> parsed = RecordParser.parse(value.toString(), new String[]{"userId","movieId","rating","time"}, RecordParser.ESCAPED_DELIMITER);
+    long movieId = Long.valueOf(parsed.get("movieId"));
+    double rating = Double.valueOf(parsed.get("rating"));
+    long time = Long.valueOf(parsed.get("time"));
+    this.movieId.set(movieId);
+    this.tuple.set(rating + "," + time);
+    ctx.write(this.movieId, this.tuple);
   }
 }

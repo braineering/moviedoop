@@ -27,7 +27,7 @@ package com.acmutv.moviedoop.test;
 
 import com.acmutv.moviedoop.common.input.LinenoSequenceFileInputFormat;
 import com.acmutv.moviedoop.test.map.IdentityMapper;
-import com.acmutv.moviedoop.test.map.TestMapper;
+import com.acmutv.moviedoop.test.map.IdentityMapperText2Text;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -114,7 +114,7 @@ public class QueryTest_2 extends Configured implements Tool {
       // MAP CONFIGURATION
       job2.setInputFormatClass(LinenoSequenceFileInputFormat.class);
       LinenoSequenceFileInputFormat.addInputPath(job2, staging);
-      job2.setMapperClass(TestMapper.class);
+      job2.setMapperClass(IdentityMapperText2Text.class);
       //job.setMapOutputKeyClass(NullWritable.class);
       //job.setMapOutputValueClass(Text.class);
 

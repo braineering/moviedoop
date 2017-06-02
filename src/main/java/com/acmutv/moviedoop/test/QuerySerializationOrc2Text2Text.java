@@ -25,39 +25,35 @@
  */
 package com.acmutv.moviedoop.test;
 
-import com.acmutv.moviedoop.common.input.LinenoInputFormat;
-import com.acmutv.moviedoop.common.input.LinenoSequenceFileInputFormat;
-import com.acmutv.moviedoop.test.map.IdentityMapper;
-import com.acmutv.moviedoop.test.map.TestMapper;
-import com.acmutv.moviedoop.test.map.TestMapperORC;
+import com.acmutv.moviedoop.test.map.IdentityMapperOrc2Text;
+import com.acmutv.moviedoop.test.reduce.RatingJoinMovieTitleCachedOrcReducerText2Text;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.orc.mapreduce.OrcInputFormat;
 
 /**
- * A map/reduce program that returns movies with rate greater/equal to the specified {@code threshold}
- * and valuated starting from the specified {@code startDate}.
- * The program leverages inner joins (repartition joins).
+ * A map/reduce program that tests ORC to TEXT to TEXT serialization.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class QueryTest_3 extends Configured implements Tool {
+public class QuerySerializationOrc2Text2Text extends Configured implements Tool {
 
   /**
    * The program name.
    */
-  private static final String PROGRAM_NAME = "QueryTest_3";
+  private static final String PROGRAM_NAME = "QuerySerializationOrc2Text2Text";
 
   /**
    * The default verbosity.
@@ -66,15 +62,16 @@ public class QueryTest_3 extends Configured implements Tool {
 
   @Override
   public int run(String[] args) throws Exception {
-    if (args.length < 2) {
-      System.err.printf("Usage: %s [-D prop=val] <inRatings> <out>\n", PROGRAM_NAME);
+    if (args.length < 3) {
+      System.err.printf("Usage: %s [-D prop=val] <inRatings> <inMovies> <out>\n", PROGRAM_NAME);
       ToolRunner.printGenericCommandUsage(System.out);
       return 2;
     }
 
     // PATHS
     final Path inputRatings = new Path(args[0]);
-    final Path output = new Path(args[1]);
+    final Path inputMovies = new Path(args[1]);
+    final Path output = new Path(args[2]);
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
@@ -84,20 +81,27 @@ public class QueryTest_3 extends Configured implements Tool {
     System.out.printf("%s\n", PROGRAM_NAME);
     System.out.println("****************************************************************************");
     System.out.println("Input Ratings: " + inputRatings);
+    System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
     System.out.println("############################################################################");
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME);
-    job.setJarByClass(QueryTest_3.class);
+    job.setJarByClass(QuerySerializationText2Text2Text.class);
+    for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
+      job.addCacheFile(status.getPath().toUri());
+    }
 
     // MAP CONFIGURATION
     job.setInputFormatClass(OrcInputFormat.class);
     OrcInputFormat.addInputPath(job, inputRatings);
-    job.setMapperClass(TestMapperORC.class);
+    job.setMapperClass(IdentityMapperOrc2Text.class);
+    job.setMapOutputKeyClass(LongWritable.class);
+    job.setMapOutputValueClass(Text.class);
 
     // REDUCE CONFIGURATION
-    job.setNumReduceTasks(0);
+    job.setReducerClass(RatingJoinMovieTitleCachedOrcReducerText2Text.class);
+    job.setNumReduceTasks(2);
 
     // OUTPUT CONFIGURATION
     job.setOutputKeyClass(NullWritable.class);
@@ -116,7 +120,7 @@ public class QueryTest_3 extends Configured implements Tool {
    * @throws Exception when the program cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new QueryTest_3(), args);
+    int res = ToolRunner.run(new Configuration(), new QuerySerializationOrc2Text2Text(), args);
     System.exit(res);
   }
 }

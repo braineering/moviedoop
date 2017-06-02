@@ -25,7 +25,6 @@
  */
 package com.acmutv.moviedoop.query2.reduce;
 
-import com.acmutv.moviedoop.query2.Query2;
 import com.acmutv.moviedoop.common.model.MovieWritable;
 import com.acmutv.moviedoop.common.model.RatingsWritable;
 import org.apache.hadoop.io.DoubleWritable;
@@ -44,7 +43,7 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RatingsGenresJoinReducer extends Reducer<LongWritable, Text, Text, DoubleWritable> {
+public class RatingJoinGenreReducer extends Reducer<LongWritable, Text, Text, DoubleWritable> {
 
   /**
    * The map (movieId, movieRating) for the inner join.

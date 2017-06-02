@@ -25,7 +25,7 @@
  */
 package com.acmutv.moviedoop.query2.map;
 
-import com.acmutv.moviedoop.query2.Query2_1;
+import com.acmutv.moviedoop.query2.Query2_2;
 import com.acmutv.moviedoop.common.util.RecordParser;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * The mapper for the {@link Query2_1} job.
+ * The mapper for the {@link Query2_2} job.
  * It emits (movieId,'M'movieTitle).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}

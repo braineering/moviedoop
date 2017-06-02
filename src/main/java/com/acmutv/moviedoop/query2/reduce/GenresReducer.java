@@ -23,29 +23,27 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.query2.reduce;
 
 import com.acmutv.moviedoop.common.model.GenreWritable;
-import com.acmutv.moviedoop.query2.Query2_2;
+import com.acmutv.moviedoop.query2.Query2_1;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 
 /**
- * The reducer for the {@link Query2_2} job.
+ * The reducer for the {@link Query2_1} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class GenresReducer extends Reducer<Text, DoubleWritable, Text, Text> {
-
-  /**
-   * The stdDev of genre's rating
-   */
-  private GenreWritable genre = new GenreWritable();
+public class
+GenresReducer extends Reducer<Text, DoubleWritable, Text, Text> {
 
   /**
    * The reduction routine.
@@ -59,35 +57,27 @@ public class GenresReducer extends Reducer<Text, DoubleWritable, Text, Text> {
   public void reduce(Text key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
 
     Text genreTitle = key;
-    double score = 0.0;
     long occ = 0L;
     double avg = 0.0;
     double stdDev = 0.0;
-    double newAvg = 0.0;
-    double newStdDev = 0.0;
-    this.genre.occurrences = 0L;
+
+    double sum = 0.0;
+    double temp = 0.0;
+
+    double sumStd = 0.0;
 
     for (DoubleWritable value : values) {
-      if (this.genre.occurrences == 0L) {
-        this.genre.average = value.get();
-        this.genre.stdDev = 0.0;
-        this.genre.occurrences  = 1L;
-      }
-      else {
-        score = value.get();
-        occ = this.genre.occurrences;
-        avg = this.genre.average;
-        stdDev = this.genre.stdDev;
-
-        newAvg = ((avg * occ) + score) / (occ + 1);
-        occ += 1L;
-        newStdDev = ((occ-2) * Math.pow(stdDev,2.0) + (score - newAvg)*(score - avg))/(occ-1);
-
-        this.genre.occurrences = occ;
-        this.genre.average = newAvg;
-        this.genre.stdDev = newStdDev;
-      }
+      occ += 1L;
+      temp = value.get();
+      sum += temp;
+      sumStd += temp * temp;
     }
-    ctx.write(genreTitle, new Text(genre.printRatings()));
+    avg = sum / occ;
+
+    stdDev = (sumStd - (occ * avg * avg)) / (occ - 1);
+
+    stdDev = Math.sqrt(stdDev);
+
+    ctx.write(genreTitle, new Text("AVG:" + Double.toString(avg) + " - STDDEV:"+Double.toString(stdDev)));
   }
 }

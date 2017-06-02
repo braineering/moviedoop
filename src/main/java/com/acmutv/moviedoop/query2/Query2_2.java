@@ -25,10 +25,10 @@
  */
 package com.acmutv.moviedoop.query2;
 
-import com.acmutv.moviedoop.map.GenresIdentityMapper;
-import com.acmutv.moviedoop.query2.map.RatingsMapper;
-import com.acmutv.moviedoop.reduce.GenresReducer;
-import com.acmutv.moviedoop.reduce.RatingJoinGenresCachedReducer;
+import com.acmutv.moviedoop.query2.map.AggregateGenresIdentityMapper;
+import com.acmutv.moviedoop.query2.map.RatingsAggregateCachedMapper;
+import com.acmutv.moviedoop.query2.reduce.AggregateGenresReducer;
+import com.acmutv.moviedoop.query2.reduce.AggregateRatingJoinGenreCachedReducer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
@@ -42,6 +42,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -59,16 +60,10 @@ public class Query2_2 extends Configured implements Tool {
    */
   private static final String PROGRAM_NAME = "Query2_2";
 
-  /**
-   * The job main method.
-   *
-   * @param args the job arguments.
-   * @throws Exception when job cannot be executed.
-   */
   @Override
   public int run(String[] args) throws Exception {
     if (args.length < 3) {
-      System.err.printf("Usage: %s <inRatings> <inMovies> <out>\n", PROGRAM_NAME);
+      System.err.printf("Usage: %s [-D prop=val] <inRatings> <inMovies> <out>\n", PROGRAM_NAME);
       ToolRunner.printGenericCommandUsage(System.out);
       return 2;
     }
@@ -91,46 +86,51 @@ public class Query2_2 extends Configured implements Tool {
     System.out.println("Output: " + output);
     System.out.println("############################################################################");
 
-    // JOB CONFIGURATION
+    // JOB1 CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME+"_STEP1");
-    job.setJarByClass(Query2_2.class);
+    job.setJarByClass(Query2_1.class);
 
     for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
     }
     FileInputFormat.addInputPath(job, inputRatings);
 
-    job.setMapperClass(RatingsMapper.class);
+    job.setMapperClass(RatingsAggregateCachedMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
-    job.setMapOutputValueClass(DoubleWritable.class);
+    job.setMapOutputValueClass(Text.class);
 
-    job.setReducerClass(RatingJoinGenresCachedReducer.class);
+    job.setReducerClass(AggregateRatingJoinGenreCachedReducer.class);
     job.setNumReduceTasks(1);
 
     job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(DoubleWritable.class);
+    job.setOutputValueClass(Text.class);
     job.setOutputFormatClass(SequenceFileOutputFormat.class);
     FileOutputFormat.setOutputPath(job, staging);
 
-
     job.waitForCompletion(true);
 
-    // JOB 2
+    /* *********************************************************************************************
+     * GENRES MAPPER AND GENRE'S STATISTICS COMPUTING
+     **********************************************************************************************/
+
+    // JOB 2 CONFIGURATION
     Job job2 = Job.getInstance(config, PROGRAM_NAME+"_STEP2");
-    job2.setJarByClass(Query2_2.class);
+    job2.setJarByClass(Query2_1.class);
 
     FileInputFormat.addInputPath(job2, staging);
     job2.setInputFormatClass(SequenceFileInputFormat.class);
 
-    job2.setMapperClass(GenresIdentityMapper.class);
+    job2.setMapperClass(AggregateGenresIdentityMapper.class);
     job2.setMapOutputKeyClass(Text.class);
-    job2.setMapOutputValueClass(DoubleWritable.class);
+    job2.setMapOutputValueClass(Text.class);
 
-    job2.setReducerClass(GenresReducer.class);
+    job2.setReducerClass(AggregateGenresReducer.class);
     job2.setNumReduceTasks(1);
     job2.setOutputKeyClass(Text.class);
     job2.setOutputValueClass(Text.class);
-    FileOutputFormat.setOutputPath(job2, output);
+    job2.setOutputFormatClass(TextOutputFormat.class);
+
+    TextOutputFormat.setOutputPath(job2, output);
 
     // JOB EXECUTION
     return job2.waitForCompletion(true) ? 0 : 1;

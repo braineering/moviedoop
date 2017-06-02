@@ -23,7 +23,7 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.reduce;
+package com.acmutv.moviedoop.query2.reduce;
 
 import com.acmutv.moviedoop.common.util.RecordParser;
 import com.acmutv.moviedoop.query1.Query1_1;
@@ -48,7 +48,7 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RatingJoinGenresCachedReducer extends Reducer<LongWritable,DoubleWritable,Text,DoubleWritable> {
+public class RatingJoinGenreCachedReducer extends Reducer<LongWritable,DoubleWritable,Text,DoubleWritable> {
 
   /**
    * The cached map (movieId,movieTitle)
@@ -80,10 +80,11 @@ public class RatingJoinGenresCachedReducer extends Reducer<LongWritable,DoubleWr
                 new FileInputStream(path.getName())));
         String line;
         while ((line = br.readLine()) != null) {
-          Map<String,String> movie = RecordParser.parse(line, new String[] {"id","title","genres"},",");
+          Map<String,String> movie = RecordParser.parse(line, new String[] {"id","title","genres"},RecordParser.ESCAPED_DELIMITER);
           long movieId = Long.valueOf(movie.get("id"));
           String genres = String.valueOf(movie.get("genres"));
-          this.movieIdToGenres.put(movieId,new Text(genres));
+          if(!genres.equals("(no genres listed)"))
+            this.movieIdToGenres.put(movieId,new Text(genres));
         }
       }
     } catch (IOException exc) {

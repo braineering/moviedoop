@@ -40,6 +40,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
@@ -104,7 +105,7 @@ public class Query2_1 extends Configured implements Tool {
     for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
     }
-    FileInputFormat.addInputPath(job, inputRatings);
+    TextInputFormat.addInputPath(job, inputRatings);
 
     job.setMapperClass(RatingsMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);

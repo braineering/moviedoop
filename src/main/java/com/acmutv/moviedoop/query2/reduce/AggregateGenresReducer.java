@@ -25,14 +25,11 @@
  */
 package com.acmutv.moviedoop.query2.reduce;
 
-import com.acmutv.moviedoop.common.util.RecordParser;
 import com.acmutv.moviedoop.query2.Query2_2;
-import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * The reducer for the {@link Query2_2} job.
@@ -58,25 +55,21 @@ public class AggregateGenresReducer extends Reducer<Text, Text, Text, Text> {
     long occ = 0L;
     double avg = 0.0;
     double stdDev = 0.0;
-
     double sum = 0.0;
-    double temp = 0.0;
-
     double sumStd = 0.0;
 
     for (Text value : values) {
       int length = value.toString().length();
-      String[] tokens = value.toString().replaceAll("\\s+","").substring(1,length-1).split(",");
+      String[] tokens = value.toString().substring(1,length-1).split(",");
       for(String t : tokens) {
         String[] couple = t.split("=");
-        Double score = Double.parseDouble(couple[0]);
-        Long repetitions = Long.parseLong(couple[1]);
-
+        double score = Double.parseDouble(couple[0]);
+        long repetitions = Long.parseLong(couple[1]);
         occ += repetitions;
-        sum += score * repetitions;
-        sumStd += (score * repetitions) * (score * repetitions);
+        double temp = score * repetitions;
+        sum += temp;
+        sumStd += ((score) * (score)) * repetitions;
       }
-
     }
 
     avg = sum / occ;

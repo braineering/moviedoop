@@ -26,35 +26,21 @@
 package com.acmutv.moviedoop.query2.map;
 
 import com.acmutv.moviedoop.query2.Query2_2;
-import com.acmutv.moviedoop.common.util.RecordParser;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * The mapper for the {@link Query2_2} job.
- * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
- * the `movieRatingTimestampLowerBound`.
+ * It emits (movieId,'M'movieTitle).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RatingsMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
-
-  /**
-   * The movie id to emit.
-   */
-  private LongWritable movieId = new LongWritable();
-
-  /**
-   * The genre rating to emit.
-   */
-  private DoubleWritable movieRating = new DoubleWritable();
+public class AggregateGenresIdentityMapper extends Mapper<Text, Text, Text, Text> {
 
   /**
    * The mapping routine.
@@ -65,14 +51,7 @@ public class RatingsMapper extends Mapper<Object,Text,LongWritable,DoubleWritabl
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
-
-    long movieId = Long.valueOf(rating.get("movieId"));
-    double score = Double.valueOf(rating.get("score"));
-    this.movieId.set(movieId);
-    this.movieRating.set(score);
-    System.out.println("############################################## " + Long.toString(movieId) + " con score " + Double.toString(score));
-    ctx.write(this.movieId, movieRating);
+  public void map(Text key, Text value, Context ctx) throws IOException, InterruptedException {
+    ctx.write(key,value);
   }
 }

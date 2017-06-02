@@ -25,18 +25,19 @@
  */
 package com.acmutv.moviedoop.query2.map;
 
-import com.acmutv.moviedoop.query2.Query2_2;
 import com.acmutv.moviedoop.common.util.RecordParser;
-import org.apache.hadoop.io.DoubleWritable;
+import com.acmutv.moviedoop.query2.Query2_2;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The mapper for the {@link Query2_2} job.
+ * The mapper for jobs in: {@link Query2_2}.
  * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
  * the `movieRatingTimestampLowerBound`.
  *
@@ -44,7 +45,17 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RatingsMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
+public class RatingsAggregateCachedMapper extends Mapper<Object,Text,LongWritable,Text> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(RatingsAggregateCachedMapper.class);
+
+  /**
+   * The map movieId->(score,repetitions).
+   */
+  private Map<Long,Map<Double,Long>> movieIdToAggregateRatings = new HashMap<>();
 
   /**
    * The movie id to emit.
@@ -52,9 +63,9 @@ public class RatingsMapper extends Mapper<Object,Text,LongWritable,DoubleWritabl
   private LongWritable movieId = new LongWritable();
 
   /**
-   * The genre rating to emit.
+   * The tuple (score,repetitions) to emit.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private Text tuple = new Text();
 
   /**
    * The mapping routine.
@@ -70,9 +81,25 @@ public class RatingsMapper extends Mapper<Object,Text,LongWritable,DoubleWritabl
 
     long movieId = Long.valueOf(rating.get("movieId"));
     double score = Double.valueOf(rating.get("score"));
-    this.movieId.set(movieId);
-    this.movieRating.set(score);
-    System.out.println("############################################## " + Long.toString(movieId) + " con score " + Double.toString(score));
-    ctx.write(this.movieId, movieRating);
+    this.movieIdToAggregateRatings.putIfAbsent(movieId, new HashMap<>());
+    this.movieIdToAggregateRatings.get(movieId).compute(score, (k,v) -> (v == null) ? 1 : v + 1);
+  }
+
+  /**
+   * Flushes the mapper.
+   *
+   * @param ctx the job context.
+   */
+  protected void cleanup(Context ctx) throws IOException, InterruptedException {
+    for (Long movieId : this.movieIdToAggregateRatings.keySet()) {
+      this.movieId.set(movieId);
+      for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings.get(movieId).entrySet()) {
+        long repetitions = entry.getValue();
+        if (repetitions == 0) continue;
+        double score = entry.getKey();
+        this.tuple.set(score + "," + repetitions);
+        ctx.write(this.movieId, this.tuple);
+      }
+    }
   }
 }

@@ -30,6 +30,7 @@ import org.apache.hadoop.io.WritableComparable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.math.BigDecimal;
 
 /**
  * The record representing a genre.
@@ -54,6 +55,11 @@ public class GenreWritable implements WritableComparable<GenreWritable> {
    * The standard deviation of rating for a genre
    */
   public Double stdDev;
+
+  /**
+   * The standard deviation of rating for a genre
+   */
+  public BigDecimal stDev;
 
   /**
    * The counter of occurence
@@ -102,7 +108,8 @@ public class GenreWritable implements WritableComparable<GenreWritable> {
    * @return the string representation.
    */
   public String printRatings() {
-    return String.format("%f,%f,%d", this.average, this.stdDev, this.occurrences);
+    String st_dev = stDev.toString();
+    return String.format("%f,%f,%d", this.average, st_dev, this.occurrences);
   }
 
   /**

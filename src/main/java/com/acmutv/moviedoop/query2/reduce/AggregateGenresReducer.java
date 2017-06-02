@@ -23,56 +23,65 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.query2.map;
+package com.acmutv.moviedoop.query2.reduce;
 
-import com.acmutv.moviedoop.query2.Query2_2;
 import com.acmutv.moviedoop.common.util.RecordParser;
+import com.acmutv.moviedoop.query2.Query2_2;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 import java.util.Map;
 
 /**
- * The mapper for the {@link Query2_2} job.
- * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
- * the `movieRatingTimestampLowerBound`.
+ * The reducer for the {@link Query2_2} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RatingsMapper extends Mapper<Object,Text,LongWritable,DoubleWritable> {
+public class AggregateGenresReducer extends Reducer<Text, Text, Text, Text> {
 
   /**
-   * The movie id to emit.
-   */
-  private LongWritable movieId = new LongWritable();
-
-  /**
-   * The genre rating to emit.
-   */
-  private DoubleWritable movieRating = new DoubleWritable();
-
-  /**
-   * The mapping routine.
+   * The reduction routine.
    *
    * @param key the input key.
-   * @param value the input value.
+   * @param values the input values.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
+  public void reduce(Text key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
 
-    long movieId = Long.valueOf(rating.get("movieId"));
-    double score = Double.valueOf(rating.get("score"));
-    this.movieId.set(movieId);
-    this.movieRating.set(score);
-    System.out.println("############################################## " + Long.toString(movieId) + " con score " + Double.toString(score));
-    ctx.write(this.movieId, movieRating);
+    Text genreTitle = key;
+    long occ = 0L;
+    double avg = 0.0;
+    double stdDev = 0.0;
+
+    double sum = 0.0;
+    double temp = 0.0;
+
+    double sumStd = 0.0;
+
+    for (Text value : values) {
+      int length = value.toString().length();
+      String[] tokens = value.toString().replaceAll("\\s+","").substring(1,length-1).split(",");
+      for(String t : tokens) {
+        String[] couple = t.split("=");
+        Double score = Double.parseDouble(couple[0]);
+        Long repetitions = Long.parseLong(couple[1]);
+
+        occ += repetitions;
+        sum += score * repetitions;
+        sumStd += (score * repetitions) * (score * repetitions);
+      }
+
+    }
+
+    avg = sum / occ;
+    stdDev = (sumStd - (occ * avg * avg)) / (occ - 1);
+    stdDev = Math.sqrt(stdDev);
+    ctx.write(genreTitle, new Text("AVG:" + Double.toString(avg) + " - STDDEV:"+Double.toString(stdDev)));
   }
 }

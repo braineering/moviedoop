@@ -23,9 +23,9 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.map;
+package com.acmutv.moviedoop.query2.map;
 
-import com.acmutv.moviedoop.query2.Query2_1;
+import com.acmutv.moviedoop.query2.Query2_2;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -33,7 +33,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 import java.io.IOException;
 
 /**
- * The mapper for the {@link Query2_1} job.
+ * The mapper for the {@link Query2_2} job.
  * It emits (movieId,'M'movieTitle).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}

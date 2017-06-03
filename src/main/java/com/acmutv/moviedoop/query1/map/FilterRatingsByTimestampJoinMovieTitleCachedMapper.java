@@ -25,7 +25,7 @@
  */
 package com.acmutv.moviedoop.query1.map;
 
-import com.acmutv.moviedoop.query1.Query1_3;
+import com.acmutv.moviedoop.query1.Query1_2;
 import com.acmutv.moviedoop.common.util.DateParser;
 import com.acmutv.moviedoop.common.util.RecordParser;
 import org.apache.hadoop.fs.Path;
@@ -43,7 +43,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The mapper for jobs in: {@link Query1_3}.
+ * The mapper for jobs in: {@link Query1_2}.
  * It emits (movieTitle,rating) where movieTitle is joined with the movies cached files and rating
  * is a score attributed with timestamp greater or equal to the `movieRatingTimestampLowerBound`.
  *

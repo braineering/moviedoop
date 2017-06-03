@@ -56,8 +56,8 @@ import java.time.LocalDateTime;
 /**
  * A map/reduce program that returns movies with rate greater/equal to the specified {@code threshold}
  * and valuated starting from the specified {@code startDate}.
- * The program leverages inner joins (replication joins as distributed caching on map) and
- * optimizations on average computation.
+ * The program leverages inner joins (replication joins as distributed caching on reduce),
+ * optimizations on average computation and ORC serialization.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}

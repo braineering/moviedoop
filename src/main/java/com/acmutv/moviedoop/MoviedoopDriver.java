@@ -57,28 +57,35 @@ public class MoviedoopDriver {
     int exitCode = -1;
     ProgramDriver driver = new ProgramDriver();
     try {
+
+      /* *******************************************************************************************
+       * QUERY 1
+       ********************************************************************************************/
       driver.addClass("query1_1", Query1_1.class,
           "A map/reduce program that selects movies according to their rating and period. " +
               "The program leverages inner joins (repartition joins).");
 
       driver.addClass("query1_2", Query1_2.class,
           "A map/reduce program that selects movies according to their rating and period. " +
-              "The program leverages inner joins (replication joins as distributed caching on reduce).");
+              "The program leverages inner joins (replication joins as distributed caching on map).");
 
       driver.addClass("query1_3", Query1_3.class,
           "A map/reduce program that selects movies according to their rating and period. " +
-              "The program leverages inner joins (replication joins as distributed caching on map).");
+              "The program leverages inner joins (replication joins as distributed caching on reduce).");
 
       driver.addClass("query1_4", Query1_4.class,
           "A map/reduce program that selects movies according to their rating and period. " +
-              "The program leverages inner joins (replication joins as distributed caching on map) and" +
+              "The program leverages inner joins (replication joins as distributed caching on reduce) and" +
               "optimizations on average computation.");
 
       driver.addClass("query1_5", Query1_5.class,
           "A map/reduce program that selects movies according to their rating and period. " +
-              "The program leverages inner joins (replication joins as distributed caching on map) and" +
-              "optimizations on average computation.");
+              "The program leverages inner joins (replication joins as distributed caching on reduce)," +
+              "optimizations on average computation and ORC serialization.");
 
+      /* *******************************************************************************************
+       * QUERY 2
+       ********************************************************************************************/
       driver.addClass("query2_1", Query2_1.class,
           "A map/reduce program that returns for each genre of the movies with the follow statistics: " +
                   "average and standard deviation of rating. " +
@@ -87,6 +94,9 @@ public class MoviedoopDriver {
       driver.addClass("query2_2", Query2_2.class,
               "INSERT DESCRIPTION HERE");
 
+      /* *******************************************************************************************
+       * QUERY 3
+       ********************************************************************************************/
       driver.addClass("query3_1", Query3_1.class,
           "A map/reduce program that returns the comparison between " +
               "(i) the top-`rankSize` movies, considering average ratings in period from `ratingTimestampTopKLB` \n" +
@@ -104,6 +114,9 @@ public class MoviedoopDriver {
               "The program leverages BestMap for top-k ranking, inner joins (replication joins as distributed caching on map) and" +
               "optimizations on average computation.");
 
+      /* *******************************************************************************************
+       * TESTS
+       ********************************************************************************************/
       driver.addClass("query_serialization_text2text2text", QuerySerializationText2Text2Text.class,
           "A map/reduce program that tests TEXT to TEXT to TEXT serialization.");
 

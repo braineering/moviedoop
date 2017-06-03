@@ -25,7 +25,7 @@
  */
 package com.acmutv.moviedoop.query1.reduce;
 
-import com.acmutv.moviedoop.query1.Query1_3;
+import com.acmutv.moviedoop.query1.Query1_2;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -34,7 +34,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 
 /**
- * The reducer for the {@link Query1_3} job.
+ * The reducer for the {@link Query1_2} job.
  * It emits (movieTitle,avgRating) where avgRating is the average rating greater than or equal to
  * `movieAverageRatingLowerBound`.
  *

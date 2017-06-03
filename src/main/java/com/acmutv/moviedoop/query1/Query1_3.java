@@ -25,8 +25,8 @@
  */
 package com.acmutv.moviedoop.query1;
 
-import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampJoinMovieTitleCachedMapper;
-import com.acmutv.moviedoop.query1.reduce.AverageRatingFilterReducer;
+import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampMapper;
+import com.acmutv.moviedoop.query1.reduce.AverageRatingJoinMovieTitleCachedReducer;
 import com.acmutv.moviedoop.common.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
@@ -47,7 +48,7 @@ import java.time.LocalDateTime;
 /**
  * A map/reduce program that returns movies with rate greater/equal to the specified {@code threshold}
  * and valuated starting from the specified {@code startDate}.
- * The program leverages inner joins (replication joins as distributed caching on map).
+ * The program leverages inner joins (replication joins as distributed caching on reduce).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
@@ -134,12 +135,12 @@ public class Query1_3 extends Configured implements Tool {
     // MAP CONFIGURATION
     job.setInputFormatClass(TextInputFormat.class);
     TextInputFormat.addInputPath(job, inputRatings);
-    job.setMapperClass(FilterRatingsByTimestampJoinMovieTitleCachedMapper.class);
-    job.setMapOutputKeyClass(Text.class);
+    job.setMapperClass(FilterRatingsByTimestampMapper.class);
+    job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(DoubleWritable.class);
 
     // REDUCE CONFIGURATION
-    job.setReducerClass(AverageRatingFilterReducer.class);
+    job.setReducerClass(AverageRatingJoinMovieTitleCachedReducer.class);
     job.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // OUTPUT CONFIGURATION

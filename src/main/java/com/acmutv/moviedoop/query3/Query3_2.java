@@ -27,7 +27,7 @@ package com.acmutv.moviedoop.query3;
 
 import com.acmutv.moviedoop.common.input.LinenoSequenceFileInputFormat;
 import com.acmutv.moviedoop.query3.map.*;
-import com.acmutv.moviedoop.query3.reduce.AverageRating2AndAggregateReducer;
+import com.acmutv.moviedoop.query3.reduce.AverageRating2AndAggregate1Reducer;
 import com.acmutv.moviedoop.query3.reduce.MoviesTopKBestMapReducer;
 import com.acmutv.moviedoop.query3.reduce.ValueReducer;
 import com.acmutv.moviedoop.test.QuerySort_1;
@@ -61,10 +61,10 @@ import java.time.LocalDateTime;
  * A map/reduce program that returns the comparison between
  * (i) the top-`rankSize` movies, considering average ratings in period from `ratingTimestampTopKLB`
  * and `ratingTimestampTopKUB`; and
- * (ii) the total rank of moviues, considering average ratings in period from `ratingTimestampRankLB`
+ * (ii) the total rank of movies, considering average ratings in period from `ratingTimestampRankLB`
  * and `ratingTimestampRankUB`.
  * The program leverages BestMap for top-k ranking, inner joins (replication joins as distributed
- * caching on map) and optimizations on average computation.
+ * caching on map) and optimizations on average computation (1).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
@@ -214,12 +214,12 @@ public class Query3_2 extends Configured implements Tool {
     // JOB AVERAGE RATINGS: MAP CONFIGURATION
     jobAverageRatings.setInputFormatClass(TextInputFormat.class);
     TextInputFormat.addInputPath(jobAverageRatings, inputRatings);
-    jobAverageRatings.setMapperClass(FilterRatingsBy2TimeIntervalAndAggregateMapper.class);
+    jobAverageRatings.setMapperClass(FilterRatingsBy2TimeIntervalAndAggregate1Mapper.class);
     jobAverageRatings.setMapOutputKeyClass(LongWritable.class);
     jobAverageRatings.setMapOutputValueClass(Text.class);
 
     // JOB AVERAGE RATINGS: REDUCE CONFIGURATION
-    jobAverageRatings.setReducerClass(AverageRating2AndAggregateReducer.class);
+    jobAverageRatings.setReducerClass(AverageRating2AndAggregate1Reducer.class);
     jobAverageRatings.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION

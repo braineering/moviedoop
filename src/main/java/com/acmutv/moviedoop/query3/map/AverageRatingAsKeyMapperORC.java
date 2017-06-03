@@ -25,24 +25,40 @@
  */
 package com.acmutv.moviedoop.query3.map;
 
-import com.acmutv.moviedoop.query3.Query3_1;
-import com.acmutv.moviedoop.query3.Query3_2;
 import com.acmutv.moviedoop.query3.Query3_4;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.log4j.Logger;
+import org.apache.orc.mapred.OrcStruct;
 
 import java.io.IOException;
 
 /**
- * The mapper for jobs in: {@link Query3_1}, {@link Query3_2}, {@link Query3_4}.
- * It emits the input.
+ * The mapper for jobs in: {@link Query3_4}.
+ * It emits (rating,movieId) where rating is a the average movie rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class IdentityMapper2 extends Mapper<DoubleWritable,Text,DoubleWritable,Text> {
+public class AverageRatingAsKeyMapperORC extends Mapper<Object,OrcStruct,DoubleWritable,Text> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(AverageRatingAsKeyMapperORC.class);
+
+  /**
+   * The movie rating to emit.
+   */
+  private DoubleWritable movieRating = new DoubleWritable();
+
+  /**
+   * The tuple (movieId,rating) to emit.
+   */
+  private Text tuple = new Text();
+
   /**
    * Configures the mapper.
    *
@@ -61,7 +77,11 @@ public class IdentityMapper2 extends Mapper<DoubleWritable,Text,DoubleWritable,T
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(DoubleWritable key, Text value, Context ctx) throws IOException, InterruptedException {
-    ctx.write(key, value);
+  public void map(Object key, OrcStruct value, Context ctx) throws IOException, InterruptedException {
+    long movieId = Long.valueOf(value.getFieldValue(0).toString());
+    double rating = Double.valueOf(value.getFieldValue(1).toString());
+    this.movieRating.set(rating);
+    this.tuple.set(movieId + "," + rating);
+    ctx.write(this.movieRating, this.tuple);
   }
 }

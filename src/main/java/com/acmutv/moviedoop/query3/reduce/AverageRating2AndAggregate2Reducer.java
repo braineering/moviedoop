@@ -27,6 +27,7 @@ package com.acmutv.moviedoop.query3.reduce;
 
 import com.acmutv.moviedoop.query3.Query3_1;
 import com.acmutv.moviedoop.query3.Query3_2;
+import com.acmutv.moviedoop.query3.Query3_3;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -36,14 +37,14 @@ import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import java.io.IOException;
 
 /**
- * The reducer for jobs in: {@link Query3_1}, {@link Query3_2}.
+ * The reducer for jobs in: {@link Query3_3}.
  * It emits (movieId,avgRating) where avgRating is the average rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRating2AndAggregateReducer extends Reducer<LongWritable,Text,NullWritable,Text> {
+public class AverageRating2AndAggregate2Reducer extends Reducer<LongWritable,Text,NullWritable,Text> {
 
   /**
    * The multiple outputs.
@@ -51,7 +52,7 @@ public class AverageRating2AndAggregateReducer extends Reducer<LongWritable,Text
   private MultipleOutputs<NullWritable,Text> mos;
 
   /**
-   * The tuple (movieId,avgScore) to emit.
+   * The tuple (movieId,avgrating) to emit.
    */
   private Text tuple = new Text();
 
@@ -85,17 +86,30 @@ public class AverageRating2AndAggregateReducer extends Reducer<LongWritable,Text
       String header[] = parts[0].split(";",-1);
       boolean is1 = header.length >= 1 && header[0].equals("1");
       boolean is2 = header.length >= 2 && header[1].equals("2");
-      String fields[] = parts[1].split(",", -1);
-      double score = Double.valueOf(fields[0]);
-      long repetitions = Long.valueOf(fields[1]);
+      String pairs[] = parts[1].split(",", -1);
+      String elems[][] = new String[pairs.length][2];
+      for (int i = 0; i < pairs.length; i++) {
+        String tmp[] = pairs[i].split("=", -1);
+        elems[i][0] = tmp[0];
+        elems[i][1] = tmp[1];
+      }
+
       if (is1) {
-        sum1 += (score * repetitions);
-        num1 += repetitions;
+        for (String elem[] : elems) {
+          double score = Double.valueOf(elem[0]);
+          long repetitions = Long.valueOf(elem[1]);
+          sum1 += (score * repetitions);
+          num1 += repetitions;
+        }
       }
 
       if (is2) {
-        sum2 += (score * repetitions);
-        num2 += repetitions;
+        for (String elem[] : elems) {
+          double score = Double.valueOf(elem[0]);
+          long repetitions = Long.valueOf(elem[1]);
+          sum2 += (score * repetitions);
+          num2 += repetitions;
+        }
       }
     }
 

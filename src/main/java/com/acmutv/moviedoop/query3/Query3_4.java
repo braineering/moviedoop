@@ -26,31 +26,35 @@
 package com.acmutv.moviedoop.query3;
 
 import com.acmutv.moviedoop.common.input.LinenoSequenceFileInputFormat;
-import com.acmutv.moviedoop.query3.map.*;
-import com.acmutv.moviedoop.query3.reduce.AverageRating2Reducer;
-import com.acmutv.moviedoop.query3.reduce.MoviesTopKBestMapReducer;
-import com.acmutv.moviedoop.query3.reduce.ValueReducer;
-import com.acmutv.moviedoop.test.QuerySort_1;
 import com.acmutv.moviedoop.common.util.DateParser;
 import com.acmutv.moviedoop.common.util.DoubleWritableDecreasingComparator;
+import com.acmutv.moviedoop.query3.map.*;
+import com.acmutv.moviedoop.query3.reduce.*;
+import com.acmutv.moviedoop.test.QuerySort_1;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.*;
+import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
+import org.apache.orc.mapred.OrcKey;
+import org.apache.orc.mapred.OrcStruct;
+import org.apache.orc.mapred.OrcValue;
+import org.apache.orc.mapreduce.OrcInputFormat;
+import org.apache.orc.mapreduce.OrcOutputFormat;
 
 import java.time.LocalDateTime;
 
@@ -60,24 +64,24 @@ import java.time.LocalDateTime;
  * and `ratingTimestampTopKUB`; and
  * (ii) the total rank of movies, considering average ratings in period from `ratingTimestampRankLB`
  * and `ratingTimestampRankUB`.
- * The program leverages BestMap for top-k ranking and inner joins (replication joins as distributed
- * caching on map).
+ * The program leverages BestMap for top-k ranking, inner joins (replication joins as distributed
+ * caching on map), optimizations on average computation (2) and ORC serialization.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query3_1 extends Configured implements Tool {
+public class Query3_4 extends Configured implements Tool {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(Query3_1.class);
+  private static final Logger LOG = Logger.getLogger(Query3_4.class);
 
   /**
    * The program name.
    */
-  private static final String PROGRAM_NAME = "Query3_1";
+  private static final String PROGRAM_NAME = "Query3_4";
 
   /**
    * The default movies rank size.
@@ -206,25 +210,31 @@ public class Query3_1 extends Configured implements Tool {
 
     // JOB AVERAGE RATINGS: CONFIGURATION
     Job jobAverageRatings = Job.getInstance(config, PROGRAM_NAME + "_AVERAGE-RATINGS");
-    jobAverageRatings.setJarByClass(Query3_1.class);
+    jobAverageRatings.setJarByClass(Query3_4.class);
 
     // JOB AVERAGE RATINGS: MAP CONFIGURATION
-    jobAverageRatings.setInputFormatClass(TextInputFormat.class);
-    TextInputFormat.addInputPath(jobAverageRatings, inputRatings);
-    jobAverageRatings.setMapperClass(FilterRatingsBy2TimeIntervalMapper.class);
-    jobAverageRatings.setMapOutputKeyClass(LongWritable.class);
-    jobAverageRatings.setMapOutputValueClass(Text.class);
+    jobAverageRatings.setInputFormatClass(OrcInputFormat.class);
+    OrcInputFormat.addInputPath(jobAverageRatings, inputRatings);
+    jobAverageRatings.setMapperClass(FilterRatingsBy2TimeIntervalAndAggregate2MapperORC.class);
+    jobAverageRatings.setMapOutputKeyClass(OrcKey.class);
+    jobAverageRatings.setMapOutputValueClass(OrcValue.class);
+    jobAverageRatings.getConfiguration().setIfUnset("orc.mapred.map.output.key.schema",
+        FilterRatingsBy2TimeIntervalAndAggregate2MapperORC.ORC_SCHEMA_KEY.toString());
+    jobAverageRatings.getConfiguration().setIfUnset("orc.mapred.map.output.value.schema",
+        FilterRatingsBy2TimeIntervalAndAggregate2MapperORC.ORC_SCHEMA_VALUE.toString());
 
     // JOB AVERAGE RATINGS: REDUCE CONFIGURATION
-    jobAverageRatings.setReducerClass(AverageRating2Reducer.class);
+    jobAverageRatings.setReducerClass(AverageRating2AndAggregate2ReducerORC.class);
     jobAverageRatings.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION
-    MultipleOutputs.addNamedOutput(jobAverageRatings, "1", SequenceFileOutputFormat.class, NullWritable.class, Text.class);
-    MultipleOutputs.addNamedOutput(jobAverageRatings, "2", SequenceFileOutputFormat.class, NullWritable.class, Text.class);
+    MultipleOutputs.addNamedOutput(jobAverageRatings, "1", OrcOutputFormat.class, NullWritable.class, OrcStruct.class);
+    MultipleOutputs.addNamedOutput(jobAverageRatings, "2", OrcOutputFormat.class, NullWritable.class, OrcStruct.class);
     jobAverageRatings.setOutputFormatClass(LazyOutputFormat.class);
-    LazyOutputFormat.setOutputFormatClass(jobAverageRatings, SequenceFileOutputFormat.class);
-    SequenceFileOutputFormat.setOutputPath(jobAverageRatings, stagingAverage);
+    LazyOutputFormat.setOutputFormatClass(jobAverageRatings, OrcOutputFormat.class);
+    OrcOutputFormat.setOutputPath(jobAverageRatings, stagingAverage);
+    jobAverageRatings.getConfiguration().setIfUnset("orc.mapred.output.schema",
+        AverageRating2AndAggregate2ReducerORC.ORC_SCHEMA.toString());
 
     // JOB AVERAGE RATINGS: EXECUTION
     int code = jobAverageRatings.waitForCompletion(VERBOSE) ? 0 : 1;
@@ -236,30 +246,36 @@ public class Query3_1 extends Configured implements Tool {
     if (code == 0) {
       // JOB TOP BY RATING: CONFIGURATION
       Job jobTopRatings = Job.getInstance(config, PROGRAM_NAME + "_TOP-BY-RATING");
-      jobTopRatings.setJarByClass(Query3_1.class);
+      jobTopRatings.setJarByClass(Query3_4.class);
 
       // JOB TOP BY RATING: MAP CONFIGURATION
-      jobTopRatings.setInputFormatClass(SequenceFileInputFormat.class);
+      jobTopRatings.setInputFormatClass(OrcInputFormat.class);
       for (FileStatus status : FileSystem.get(config).listStatus(stagingAverage)) {
         Path path = status.getPath();
         if (path.getName().startsWith("1-r")) {
-          SequenceFileInputFormat.addInputPath(jobTopRatings, path);
+          OrcInputFormat.addInputPath(jobTopRatings, path);
         }
       }
 
-      jobTopRatings.setMapperClass(MoviesTopKBestMapMapper.class);
+      jobTopRatings.setMapperClass(MoviesTopKBestMapMapperORC.class);
       jobTopRatings.setMapOutputKeyClass(NullWritable.class);
-      jobTopRatings.setMapOutputValueClass(Text.class);
+      jobTopRatings.setMapOutputValueClass(OrcValue.class);
+      /*jobTopRatings.getConfiguration().setIfUnset("orc.mapred.map.output.key.schema",
+          MoviesTopKBestMapMapperORC.ORC_SCHEMA_KEY.toString());*/
+      jobTopRatings.getConfiguration().setIfUnset("orc.mapred.map.output.value.schema",
+          MoviesTopKBestMapMapperORC.ORC_SCHEMA_VALUE.toString());
 
       // JOB TOP BY RATING: REDUCE CONFIGURATION
-      jobTopRatings.setReducerClass(MoviesTopKBestMapReducer.class);
+      jobTopRatings.setReducerClass(MoviesTopKBestMapReducerORC.class);
       jobTopRatings.setNumReduceTasks(TOPK_REDUCE_CARDINALITY);
 
       // JOB TOP BY RATING: OUTPUT CONFIGURATION
       jobTopRatings.setOutputKeyClass(NullWritable.class);
-      jobTopRatings.setOutputValueClass(Text.class);
-      jobTopRatings.setOutputFormatClass(TextOutputFormat.class);
-      TextOutputFormat.setOutputPath(jobTopRatings, stagingTopK);
+      jobTopRatings.setOutputValueClass(OrcStruct.class);
+      jobTopRatings.setOutputFormatClass(OrcOutputFormat.class);
+      OrcOutputFormat.setOutputPath(jobTopRatings, stagingTopK);
+      jobTopRatings.getConfiguration().setIfUnset("orc.mapred.output.schema",
+          MoviesTopKBestMapReducerORC.ORC_SCHEMA.toString());
 
       // JOB TOP BY RATING: JOB EXECUTION
       code = jobTopRatings.waitForCompletion(VERBOSE) ? 0 : 1;
@@ -275,14 +291,14 @@ public class Query3_1 extends Configured implements Tool {
       jobRatingAsKey.setJarByClass(QuerySort_1.class);
 
       // JOB RATING AS KEY: MAP CONFIGURATION
-      jobRatingAsKey.setInputFormatClass(SequenceFileInputFormat.class);
+      jobRatingAsKey.setInputFormatClass(OrcInputFormat.class);
       for (FileStatus status : FileSystem.get(config).listStatus(stagingAverage)) {
         Path path = status.getPath();
         if (path.getName().startsWith("2-r")) {
-          SequenceFileInputFormat.addInputPath(jobRatingAsKey, path);
+          OrcInputFormat.addInputPath(jobRatingAsKey, path);
         }
       }
-      jobRatingAsKey.setMapperClass(AverageRatingAsKeyMapper.class);
+      jobRatingAsKey.setMapperClass(AverageRatingAsKeyMapperORC.class);
 
       // JOB RATING AS KEY: REDUCE CONFIGURATION
       jobRatingAsKey.setNumReduceTasks(0);
@@ -339,7 +355,7 @@ public class Query3_1 extends Configured implements Tool {
     if (code == 0) {
       // JOB RANK COMPARISON: CONFIGURATION
       Job jobRankComparison = Job.getInstance(config, PROGRAM_NAME + "_RANK_COMPARISON");
-      jobRankComparison.setJarByClass(Query3_1.class);
+      jobRankComparison.setJarByClass(Query3_4.class);
       for (FileStatus status : FileSystem.get(config).listStatus(stagingTopK)) {
         jobRankComparison.addCacheFile(status.getPath().toUri());
       }
@@ -352,7 +368,7 @@ public class Query3_1 extends Configured implements Tool {
       // JOB AVERAGE RATINGS: MAP CONFIGURATION
       jobRankComparison.setInputFormatClass(LinenoSequenceFileInputFormat.class);
       LinenoSequenceFileInputFormat.addInputPath(jobRankComparison, stagingSort2);
-      jobRankComparison.setMapperClass(RankComparisonMapper.class);
+      jobRankComparison.setMapperClass(RankComparisonMapperMixed.class);
 
       // JOB AVERAGE RATINGS: REDUCE CONFIGURATION
       jobRankComparison.setNumReduceTasks(0);
@@ -384,7 +400,7 @@ public class Query3_1 extends Configured implements Tool {
    * @throws Exception when the program cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new Query3_1(), args);
+    int res = ToolRunner.run(new Configuration(), new Query3_4(), args);
     System.exit(res);
   }
 }

@@ -27,6 +27,7 @@ package com.acmutv.moviedoop.query3.reduce;
 
 import com.acmutv.moviedoop.query3.Query3_1;
 import com.acmutv.moviedoop.query3.Query3_2;
+import org.apache.commons.lang.ObjectUtils;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -44,7 +45,7 @@ import java.io.IOException;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRating2Reducer extends Reducer<LongWritable,Text,NullWritable,Text> {
+public class AverageRating2AndAggregate1Reducer extends Reducer<LongWritable,Text,NullWritable,Text> {
 
   /**
    * The multiple outputs.
@@ -86,15 +87,17 @@ public class AverageRating2Reducer extends Reducer<LongWritable,Text,NullWritabl
       String header[] = parts[0].split(";",-1);
       boolean is1 = header.length >= 1 && header[0].equals("1");
       boolean is2 = header.length >= 2 && header[1].equals("2");
-      double rating = Double.valueOf(parts[1]);
+      String fields[] = parts[1].split(",", -1);
+      double score = Double.valueOf(fields[0]);
+      long repetitions = Long.valueOf(fields[1]);
       if (is1) {
-        sum1 += rating;
-        num1++;
+        sum1 += (score * repetitions);
+        num1 += repetitions;
       }
 
       if (is2) {
-        sum2 += rating;
-        num2++;
+        sum2 += (score * repetitions);
+        num2 += repetitions;
       }
     }
 

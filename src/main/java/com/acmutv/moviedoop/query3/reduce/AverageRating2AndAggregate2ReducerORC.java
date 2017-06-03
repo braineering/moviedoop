@@ -25,36 +25,60 @@
  */
 package com.acmutv.moviedoop.query3.reduce;
 
-import com.acmutv.moviedoop.query3.Query3_1;
-import com.acmutv.moviedoop.query3.Query3_2;
+import com.acmutv.moviedoop.query3.Query3_4;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
+import org.apache.log4j.Logger;
+import org.apache.orc.TypeDescription;
+import org.apache.orc.mapred.OrcKey;
+import org.apache.orc.mapred.OrcStruct;
+import org.apache.orc.mapred.OrcValue;
 
 import java.io.IOException;
 
 /**
- * The reducer for jobs in: {@link Query3_1}, {@link Query3_2}.
+ * The reducer for jobs in: {@link Query3_4}.
  * It emits (movieId,avgRating) where avgRating is the average rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRating2Reducer extends Reducer<LongWritable,Text,NullWritable,Text> {
+public class AverageRating2AndAggregate2ReducerORC extends Reducer<OrcKey,OrcValue,NullWritable,OrcStruct> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(AverageRating2AndAggregate2ReducerORC.class);
 
   /**
    * The multiple outputs.
    */
-  private MultipleOutputs<NullWritable,Text> mos;
+  private MultipleOutputs<NullWritable,OrcStruct> mos;
 
   /**
-   * The tuple (movieId,avgrating) to emit.
+   * The ORC schema.
    */
-  private Text tuple = new Text();
+  public static final TypeDescription ORC_SCHEMA = TypeDescription.fromString("struct<id:bigint,avgrating:double>");
+
+  /**
+   * The ORC tuple (movieId,avgrating) to emit.
+   */
+  private OrcStruct tuple = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA);
+
+  /**
+   * The movieId to emit.
+   */
+  private LongWritable movieId = (LongWritable) tuple.getFieldValue(0);
+
+  /**
+   * The avgrating to emit.
+   */
+  private DoubleWritable avgrating = (DoubleWritable) tuple.getFieldValue(1);
 
   /**
    * Configures the reducer.
@@ -74,42 +98,60 @@ public class AverageRating2Reducer extends Reducer<LongWritable,Text,NullWritabl
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(LongWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+  public void reduce(OrcKey key, Iterable<OrcValue> values, Context ctx) throws IOException, InterruptedException {
     long num1 = 0L;
     double sum1 = 0.0;
 
     long num2 = 0L;
     double sum2 = 0.0;
 
-    for (Text value : values) {
-      String parts[] = value.toString().split(":");
+    for (OrcValue orcValue : values) {
+      String value = ((Text)((OrcStruct) orcValue.value).getFieldValue(0)).toString();
+      String parts[] = value.split(":");
       String header[] = parts[0].split(";",-1);
       boolean is1 = header.length >= 1 && header[0].equals("1");
       boolean is2 = header.length >= 2 && header[1].equals("2");
-      double rating = Double.valueOf(parts[1]);
+      String pairs[] = parts[1].split(",", -1);
+      String elems[][] = new String[pairs.length][2];
+      for (int i = 0; i < pairs.length; i++) {
+        String tmp[] = pairs[i].split("=", -1);
+        elems[i][0] = tmp[0];
+        elems[i][1] = tmp[1];
+      }
+
       if (is1) {
-        sum1 += rating;
-        num1++;
+        for (String elem[] : elems) {
+          double score = Double.valueOf(elem[0]);
+          long repetitions = Long.valueOf(elem[1]);
+          sum1 += (score * repetitions);
+          num1 += repetitions;
+        }
       }
 
       if (is2) {
-        sum2 += rating;
-        num2++;
+        for (String elem[] : elems) {
+          double score = Double.valueOf(elem[0]);
+          long repetitions = Long.valueOf(elem[1]);
+          sum2 += (score * repetitions);
+          num2 += repetitions;
+        }
       }
     }
 
     double avgScore1 = sum1 / num1;
     double avgScore2 = sum2 / num2;
 
-    long movieId = key.get();
+    long movieId = ((LongWritable) ((OrcStruct) key.key).getFieldValue(0)).get();
 
     if (num1 > 0) {
-      this.tuple.set(movieId + "," + avgScore1);
+      this.movieId.set(movieId);
+      this.avgrating.set(avgScore1);
       this.mos.write("1", NullWritable.get(), this.tuple);
     }
 
     if (num2 > 0) {
-      this.tuple.set(movieId + "," + avgScore2);
+      this.movieId.set(movieId);
+      this.avgrating.set(avgScore2);
       this.mos.write("2", NullWritable.get(), this.tuple);
     }
   }

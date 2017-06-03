@@ -114,7 +114,6 @@ public class FilterRatingsByTimestampAndAggregate1Mapper extends Mapper<Object,T
       this.movieId.set(movieId);
       for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings.get(movieId).entrySet()) {
         long repetitions = entry.getValue();
-        if (repetitions == 0) continue;
         double score = entry.getKey();
         this.tuple.set(score + "," + repetitions);
         ctx.write(this.movieId, this.tuple);

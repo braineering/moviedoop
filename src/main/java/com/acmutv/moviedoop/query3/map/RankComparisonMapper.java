@@ -28,6 +28,7 @@ package com.acmutv.moviedoop.query3.map;
 import com.acmutv.moviedoop.query3.Query3_1;
 import com.acmutv.moviedoop.common.util.RecordParser;
 import com.acmutv.moviedoop.query3.Query3_2;
+import com.acmutv.moviedoop.query3.Query3_3;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -41,7 +42,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The mapper for jobs in: {@link Query3_1}, {@link Query3_2}.
+ * The mapper for jobs in: {@link Query3_1}, {@link Query3_2}. {@link Query3_3}.
  * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
  * the `movieRatingTimestampLowerBound`.
  *
@@ -118,14 +119,16 @@ public class RankComparisonMapper extends Mapper<LongWritable,Text,NullWritable,
 
     long movieId = Long.valueOf(movie.get("movieId"));
     long rankPosition = key.get();
-    //double rankScore = Double.valueOf(movie.get("score"));
+    double rankScore = Double.valueOf(movie.get("score"));
 
     if (this.movieIdToMovieTopKPositionAndScore.containsKey(movieId)) {
-      String rankDetails[] = this.movieIdToMovieTopKPositionAndScore.get(movieId).split(";");
+      String topkDetails[] = this.movieIdToMovieTopKPositionAndScore.get(movieId).split(";");
       String movieTitle = this.movieIdToMovieTitle.get(movieId);
-      long topKPosition = Long.valueOf(rankDetails[0]);
-      long delta = rankPosition - topKPosition;
-      this.tuple.set(movieTitle + "\t" + delta);
+      long topKPosition = Long.valueOf(topkDetails[0]);
+      double topkScore = Double.valueOf(topkDetails[1]);
+      long deltaPosition = rankPosition - topKPosition;
+      double deltaScore = topkScore - rankScore;
+      this.tuple.set(movieTitle + "\t" + deltaPosition + "\t" + deltaScore);
       ctx.write(NullWritable.get(), this.tuple);
       this.movieIdToMovieTopKPositionAndScore.remove(movieId);
       this.movieIdToMovieTitle.remove(movieId);
@@ -142,10 +145,7 @@ public class RankComparisonMapper extends Mapper<LongWritable,Text,NullWritable,
       for (Map.Entry<Long,String> entry : this.movieIdToMovieTopKPositionAndScore.entrySet()) {
         long movieId = entry.getKey();
         String movieTitle = this.movieIdToMovieTitle.get(movieId);
-        //String rankDetails[] = entry.getValue().split(";");
-        //long topKPosition = Long.valueOf(rankDetails[0]);
-        //double topKScore = Double.valueOf(rankDetails[1]);
-        this.tuple.set(movieTitle + "\tna");
+        this.tuple.set(movieTitle + "\tna\tna");
         ctx.write(NullWritable.get(), this.tuple);
       }
     }

@@ -60,15 +60,6 @@ public class AverageRatingAsKeyMapperORC extends Mapper<Object,OrcStruct,DoubleW
   private Text tuple = new Text();
 
   /**
-   * Configures the mapper.
-   *
-   * @param ctx the job context.
-   */
-  protected void setup(Context ctx) {
-    //
-  }
-
-  /**
    * The mapping routine.
    *
    * @param key the input key.

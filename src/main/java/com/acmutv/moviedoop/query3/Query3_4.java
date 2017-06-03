@@ -288,7 +288,7 @@ public class Query3_4 extends Configured implements Tool {
     if (code == 0) {
       // JOB RATING AS KEY: CONFIGURATION
       Job jobRatingAsKey = Job.getInstance(config, PROGRAM_NAME + "_RATING-AS-KEY");
-      jobRatingAsKey.setJarByClass(QuerySort_1.class);
+      jobRatingAsKey.setJarByClass(Query3_4.class);
 
       // JOB RATING AS KEY: MAP CONFIGURATION
       jobRatingAsKey.setInputFormatClass(OrcInputFormat.class);
@@ -316,7 +316,7 @@ public class Query3_4 extends Configured implements Tool {
     if (code == 0) {
       // JOB SORT BY AVERAGE RATING: CONFIGURATION
       Job jobSortByRating = Job.getInstance(config, PROGRAM_NAME + "_SORT-BY-AVERAGE-RATING");
-      jobSortByRating.setJarByClass(QuerySort_1.class);
+      jobSortByRating.setJarByClass(Query3_4.class);
       jobSortByRating.setSortComparatorClass(DoubleWritableDecreasingComparator.class);
 
       // JOB SORT BY AVERAGE RATING: MAP CONFIGURATION

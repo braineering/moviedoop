@@ -27,6 +27,7 @@ package com.acmutv.moviedoop.query3.map;
 
 import com.acmutv.moviedoop.query3.Query3_1;
 import com.acmutv.moviedoop.query3.Query3_2;
+import com.acmutv.moviedoop.query3.Query3_3;
 import com.acmutv.moviedoop.query3.Query3_4;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
@@ -35,7 +36,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 import java.io.IOException;
 
 /**
- * The mapper for jobs in: {@link Query3_1}, {@link Query3_2}, {@link Query3_4}.
+ * The mapper for jobs in: {@link Query3_1}, {@link Query3_2}, {@link Query3_3}, {@link Query3_4}.
  * It emits the input.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
@@ -43,14 +44,6 @@ import java.io.IOException;
  * @since 1.0
  */
 public class IdentityMapper2 extends Mapper<DoubleWritable,Text,DoubleWritable,Text> {
-  /**
-   * Configures the mapper.
-   *
-   * @param ctx the job context.
-   */
-  protected void setup(Context ctx) {
-    //
-  }
 
   /**
    * The mapping routine.

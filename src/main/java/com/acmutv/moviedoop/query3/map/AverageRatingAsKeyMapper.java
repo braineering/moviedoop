@@ -28,6 +28,7 @@ package com.acmutv.moviedoop.query3.map;
 import com.acmutv.moviedoop.query3.Query3_1;
 import com.acmutv.moviedoop.query3.Query3_2;
 import com.acmutv.moviedoop.common.util.RecordParser;
+import com.acmutv.moviedoop.query3.Query3_3;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -36,7 +37,7 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * The mapper for jobs in: {@link Query3_1}, {@link Query3_2}.
+ * The mapper for jobs in: {@link Query3_1}, {@link Query3_2}, {@link Query3_3}.
  * It emits (rating,movieId) where rating is a the average movie rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
@@ -54,15 +55,6 @@ public class AverageRatingAsKeyMapper extends Mapper<Object,Text,DoubleWritable,
    * The tuple (movieId,rating) to emit.
    */
   private Text tuple = new Text();
-
-  /**
-   * Configures the mapper.
-   *
-   * @param ctx the job context.
-   */
-  protected void setup(Context ctx) {
-    //
-  }
 
   /**
    * The mapping routine.

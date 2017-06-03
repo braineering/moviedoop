@@ -116,9 +116,6 @@ public class IdentityMapperOrc2Orc extends Mapper<Object,OrcStruct,OrcKey,OrcVal
     this.movieId.set(movieId);
     this.rating.set(rating);
     this.time.set(time);
-    //this.keyStruct.setFieldValue(0, this.movieId);
-    //this.valueStruct.setFieldValue(0, this.rating);
-    //this.valueStruct.setFieldValue(1, this.time);
     this.keywrapper.key = this.keyStruct;
     this.valuewrapper.value = this.valueStruct;
     ctx.write(this.keywrapper, this.valuewrapper);

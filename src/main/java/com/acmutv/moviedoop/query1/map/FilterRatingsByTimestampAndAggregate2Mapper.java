@@ -25,43 +25,34 @@
  */
 package com.acmutv.moviedoop.query1.map;
 
-import com.acmutv.moviedoop.query1.Query1_2;
 import com.acmutv.moviedoop.common.util.DateParser;
 import com.acmutv.moviedoop.common.util.RecordParser;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
+import com.acmutv.moviedoop.query1.Query1_4;
+import com.acmutv.moviedoop.query1.Query1_5;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.log4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The mapper for jobs in: {@link Query1_2}.
- * It emits (movieTitle,rating) where movieTitle is joined with the movies cached files and rating
- * is a score attributed with timestamp greater or equal to the `movieRatingTimestampLowerBound`.
+ * The mapper for jobs in: {@link Query1_5}.
+ * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
+ * the `movieRatingTimestampLowerBound`.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class FilterRatingsByTimestampJoinMovieTitleCachedMapper extends Mapper<Object,Text,Text,DoubleWritable> {
+public class FilterRatingsByTimestampAndAggregate2Mapper extends Mapper<Object,Text,LongWritable,Text> {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(FilterRatingsByTimestampJoinMovieTitleCachedMapper.class);
-
-  /**
-   * The cached map (movieId,movieTitle).
-   */
-  private Map<Long,String> movieIdToMovieTitle = new HashMap<>();
+  private static final Logger LOG = Logger.getLogger(FilterRatingsByTimestampAndAggregate2Mapper.class);
 
   /**
    * The lower bound for the movie rating timestamp.
@@ -69,14 +60,19 @@ public class FilterRatingsByTimestampJoinMovieTitleCachedMapper extends Mapper<O
   private long movieRatingTimestampLowerBound;
 
   /**
-   * The movie title to emit.
+   * The map movieId->(score,repetitions).
    */
-  private Text movieTitle = new Text();
+  private Map<Long,Map<Double,Long>> movieIdToAggregateRatings = new HashMap<>();
 
   /**
-   * The movie rating to emit.
+   * The movie id to emit.
    */
-  private DoubleWritable movieRating = new DoubleWritable();
+  private LongWritable movieId = new LongWritable();
+
+  /**
+   * The tuple {rating=repetitions,...,rating=repetitions} to emit.
+   */
+  private Text tuple = new Text();
 
   /**
    * Configures the mapper.
@@ -86,25 +82,6 @@ public class FilterRatingsByTimestampJoinMovieTitleCachedMapper extends Mapper<O
     this.movieRatingTimestampLowerBound =
         DateParser.toSeconds(ctx.getConfiguration().get("moviedoop.average.rating.timestamp.lb"));
     LOG.debug("[SETUP] moviedoop.average.rating.timestamp.lb: " + this.movieRatingTimestampLowerBound);
-
-    try {
-      for (URI uri : ctx.getCacheFiles()) {
-        Path path = new Path(uri);
-        BufferedReader br = new BufferedReader(
-            new InputStreamReader(
-                new FileInputStream(path.getName())));
-        String line;
-        while ((line = br.readLine()) != null) {
-          Map<String,String> movie = RecordParser.parse(line, new String[] {"id","title","genres"},RecordParser.ESCAPED_DELIMITER);
-          long movieId = Long.valueOf(movie.get("id"));
-          String movieTitle = movie.get("title");
-          this.movieIdToMovieTitle.put(movieId, movieTitle);
-        }
-        br.close();
-      }
-    } catch (IOException exc) {
-      exc.printStackTrace();
-    }
   }
 
   /**
@@ -123,9 +100,23 @@ public class FilterRatingsByTimestampJoinMovieTitleCachedMapper extends Mapper<O
     if (timestamp >= this.movieRatingTimestampLowerBound) {
       long movieId = Long.valueOf(rating.get("movieId"));
       double score = Double.valueOf(rating.get("score"));
-      this.movieTitle.set(this.movieIdToMovieTitle.getOrDefault(movieId, "N/A-"+movieId));
-      this.movieRating.set(score);
-      ctx.write(this.movieTitle, this.movieRating);
+      this.movieIdToAggregateRatings.putIfAbsent(movieId, new HashMap<>());
+      this.movieIdToAggregateRatings.get(movieId).compute(score, (k,v) -> (v == null) ? 1 : v + 1);
+    }
+  }
+
+  /**
+   * Flushes the mapper.
+   *
+   * @param ctx the job context.
+   */
+  protected void cleanup(Context ctx) throws IOException, InterruptedException {
+    for (Long movieId : this.movieIdToAggregateRatings.keySet()) {
+      this.movieId.set(movieId);
+      String report = this.movieIdToAggregateRatings.get(movieId).toString().replaceAll(" ", "");
+      report = report.substring(1, report.length() - 1);
+      this.tuple.set(report);
+      ctx.write(this.movieId, this.tuple);
     }
   }
 }

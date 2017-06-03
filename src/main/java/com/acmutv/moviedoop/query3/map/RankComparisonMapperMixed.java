@@ -25,24 +25,29 @@
  */
 package com.acmutv.moviedoop.query3.map;
 
-import com.acmutv.moviedoop.query3.Query3_1;
 import com.acmutv.moviedoop.common.util.RecordParser;
-import com.acmutv.moviedoop.query3.Query3_2;
-import com.acmutv.moviedoop.query3.Query3_3;
+import com.acmutv.moviedoop.query3.Query3_4;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.*;
+import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.DoubleColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.LongColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.log4j.Logger;
+import org.apache.orc.OrcFile;
+import org.apache.orc.Reader;
+import org.apache.orc.RecordReader;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The mapper for jobs in: {@link Query3_1}, {@link Query3_2}. {@link Query3_3}.
+ * The mapper for jobs in: {@link Query3_4}.
  * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
  * the `movieRatingTimestampLowerBound`.
  *
@@ -50,7 +55,12 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RankComparisonMapper extends Mapper<LongWritable,Text,NullWritable,Text> {
+public class RankComparisonMapperMixed extends Mapper<LongWritable,Text,NullWritable,Text> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(RankComparisonMapperMixed.class);
 
   /**
    * The map between movieId and movie top-k rankin (rank position and score).
@@ -74,33 +84,47 @@ public class RankComparisonMapper extends Mapper<LongWritable,Text,NullWritable,
   protected void setup(Context ctx) {
     String pathMovies = ctx.getConfiguration().get("moviedoop.path.movies");
     String pathTopK = ctx.getConfiguration().get("moviedoop.path.topk");
+    LOG.debug("[SETUP] moviedoop.path.movies: " + pathMovies);
+    LOG.debug("[SETUP] moviedoop.path.topk: " + pathTopK);
+
     try {
       for (URI uri : ctx.getCacheFiles()) {
         Path path = new Path(uri);
-        BufferedReader br = new BufferedReader(
-            new InputStreamReader(
-                new FileInputStream(path.getName())));
-        String line;
         if (path.getParent().toString().endsWith(pathMovies)) {
-          while ((line = br.readLine()) != null) {
-            Map<String,String> movie = RecordParser.parse(line, new String[] {"id","title","genres"},RecordParser.ESCAPED_DELIMITER);
-            long movieId = Long.valueOf(movie.get("id"));
-            String movieTitle = movie.get("title");
-            this.movieIdToMovieTitle.put(movieId, movieTitle);
+          System.out.printf("### MAP ### reading cached file (movies): %s\n", path);
+          Reader reader = OrcFile.createReader(path, new OrcFile.ReaderOptions(ctx.getConfiguration()));
+          RecordReader rows = reader.rows();
+          VectorizedRowBatch batch = reader.getSchema().createRowBatch();
+          while (rows.nextBatch(batch)) {
+            BytesColumnVector cvMovieId = (BytesColumnVector) batch.cols[0];
+            BytesColumnVector cvMovieTitle = (BytesColumnVector) batch.cols[1];
+            for (int r = 0; r < batch.size; r++) {
+              long movieId = Long.valueOf(cvMovieId.toString(r));
+              String movieTitle = cvMovieTitle.toString(r);
+              this.movieIdToMovieTitle.put(movieId, movieTitle);
+            }
           }
-        } else if (path.getParent().toString().endsWith(pathTopK)) {
-          long movieTopKPosition = 1;
-          while ((line = br.readLine()) != null) {
-            Map<String,String> movie = RecordParser.parse(line, new String[] {"id","score"},",");
-            long movieId = Long.valueOf(movie.get("id"));
-            double movieTopKScore = Double.valueOf(movie.get("score"));
-            this.movieIdToMovieTopKPositionAndScore.put(movieId, movieTopKPosition + ";" + movieTopKScore);
-            movieTopKPosition++;
+          rows.close();
+        } else if (path.getParent().toString().endsWith(pathTopK) && !"_SUCCESS".equals(path.getName())) {
+          System.out.printf("### MAP ### reading cached file (topk): %s\n", path);
+          Reader reader = OrcFile.createReader(path, new OrcFile.ReaderOptions(ctx.getConfiguration()));
+          RecordReader rows = reader.rows();
+          VectorizedRowBatch batch = reader.getSchema().createRowBatch();
+          while (rows.nextBatch(batch)) {
+            LongColumnVector cvMovieId = (LongColumnVector) batch.cols[0];
+            DoubleColumnVector cvMovieScore = (DoubleColumnVector) batch.cols[1];
+            for (int r = 0; r < batch.size; r++) {
+              long movieId = cvMovieId.vector[r];
+              double movieTopKScore = cvMovieScore.vector[r];
+              long movieTopKPosition = r + 1;
+              this.movieIdToMovieTopKPositionAndScore.put(movieId, movieTopKPosition + ";" + movieTopKScore);
+            }
           }
+          rows.close();
         }
-        br.close();
       }
     } catch (IOException exc) {
+      LOG.error(exc.getMessage());
       exc.printStackTrace();
     }
   }

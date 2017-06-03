@@ -49,12 +49,12 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageAggregateRatingJoinMovieTitleCachedReducer extends Reducer<LongWritable,Text,Text,DoubleWritable> {
+public class AverageAggregate1RatingJoinMovieTitleCachedReducer extends Reducer<LongWritable,Text,Text,DoubleWritable> {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(AverageAggregateRatingJoinMovieTitleCachedReducer.class);
+  private static final Logger LOG = Logger.getLogger(AverageAggregate1RatingJoinMovieTitleCachedReducer.class);
 
   /**
    * The cached map (movieId,movieTitle).

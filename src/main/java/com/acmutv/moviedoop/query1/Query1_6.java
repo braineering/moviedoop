@@ -26,48 +26,47 @@
 package com.acmutv.moviedoop.query1;
 
 import com.acmutv.moviedoop.common.util.DateParser;
-import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampAndAggregate1Mapper;
-import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampAndAggregate2Mapper;
-import com.acmutv.moviedoop.query1.reduce.AverageAggregate1RatingJoinMovieTitleCachedReducer;
-import com.acmutv.moviedoop.query1.reduce.AverageAggregate2RatingJoinMovieTitleCachedReducer;
+import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampAndAggregate2MapperORC;
+import com.acmutv.moviedoop.query1.reduce.AverageAggregate2RatingJoinMovieTitleCachedReducerORC;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
+import org.apache.orc.mapred.OrcKey;
+import org.apache.orc.mapred.OrcValue;
+import org.apache.orc.mapreduce.OrcInputFormat;
 
 import java.time.LocalDateTime;
 
 /**
  * A map/reduce program that returns movies with rate greater/equal to the specified {@code threshold}
  * and valuated starting from the specified {@code startDate}.
- * The program leverages inner joins (replication joins as distributed caching on reduce) and
- * optimizations on average computation (type 2).
+ * The program leverages inner joins (replication joins as distributed caching on reduce),
+ * optimizations on average computation (type 2) and ORC serialization.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query1_5 extends Configured implements Tool {
+public class Query1_6 extends Configured implements Tool {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(Query1_5.class);
+  private static final Logger LOG = Logger.getLogger(Query1_6.class);
 
   /**
    * The program name.
    */
-  private static final String PROGRAM_NAME = "Query1_5";
+  private static final String PROGRAM_NAME = "Query1_6";
 
   /**
    * The default lower bound for movie average rating.
@@ -130,20 +129,24 @@ public class Query1_5 extends Configured implements Tool {
 
     // JOB CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME);
-    job.setJarByClass(Query1_5.class);
+    job.setJarByClass(Query1_6.class);
     for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
     }
 
     // MAP CONFIGURATION
-    job.setInputFormatClass(TextInputFormat.class);
-    TextInputFormat.addInputPath(job, inputRatings);
-    job.setMapperClass(FilterRatingsByTimestampAndAggregate2Mapper.class);
-    job.setMapOutputKeyClass(LongWritable.class);
-    job.setMapOutputValueClass(Text.class);
+    job.setInputFormatClass(OrcInputFormat.class);
+    OrcInputFormat.addInputPath(job, inputRatings);
+    job.setMapperClass(FilterRatingsByTimestampAndAggregate2MapperORC.class);
+    job.setMapOutputKeyClass(OrcKey.class);
+    job.setMapOutputValueClass(OrcValue.class);
+    job.getConfiguration().setIfUnset("orc.mapred.map.output.key.schema",
+        FilterRatingsByTimestampAndAggregate2MapperORC.ORC_SCHEMA_KEY.toString());
+    job.getConfiguration().setIfUnset("orc.mapred.map.output.value.schema",
+        FilterRatingsByTimestampAndAggregate2MapperORC.ORC_SCHEMA_VALUE.toString());
 
     // REDUCE CONFIGURATION
-    job.setReducerClass(AverageAggregate2RatingJoinMovieTitleCachedReducer.class);
+    job.setReducerClass(AverageAggregate2RatingJoinMovieTitleCachedReducerORC.class);
     job.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // OUTPUT CONFIGURATION
@@ -163,7 +166,7 @@ public class Query1_5 extends Configured implements Tool {
    * @throws Exception when the program cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new Query1_5(), args);
+    int res = ToolRunner.run(new Configuration(), new Query1_6(), args);
     System.exit(res);
   }
 }

@@ -89,10 +89,8 @@ public class RatingJoinMovieTitleCachedOrcReducerOrc2Text extends Reducer<OrcKey
           BytesColumnVector cvMovieId = (BytesColumnVector) batch.cols[0];
           BytesColumnVector cvMovieTitle = (BytesColumnVector) batch.cols[1];
           for (int r = 0; r < batch.size; r++) {
-            String strMovieId = cvMovieId.toString(r);
-            String strMovieTitle = cvMovieTitle.toString(r);
-            long movieId = Long.valueOf(strMovieId);
-            String movieTitle = strMovieTitle;
+            long movieId = Long.valueOf(cvMovieId.toString(r));
+            String movieTitle = cvMovieTitle.toString(r);
             this.movieIdToMovieTitle.put(movieId, movieTitle);
           }
         }

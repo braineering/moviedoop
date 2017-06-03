@@ -70,14 +70,14 @@ public class RatingJoinMovieTitleCachedOrcReducerOrc2Orc extends Reducer<OrcKey,
   public static final TypeDescription ORC_SCHEMA = TypeDescription.fromString("struct<id:bigint,title:string,rating:double,time:bigint>");
 
   /**
-   * The cached map (movieId,movieTitle).
-   */
-  private Map<Long,String> movieIdToMovieTitle = new HashMap<>();
-
-  /**
    * The ORC tuple (movieId,movieTitle,rating,time) title to emit.
    */
   private OrcStruct tuple = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA);
+
+  /**
+   * The cached map (movieId,movieTitle).
+   */
+  private Map<Long,String> movieIdToMovieTitle = new HashMap<>();
 
   /**
    * Configures the reducer.
@@ -123,10 +123,6 @@ public class RatingJoinMovieTitleCachedOrcReducerOrc2Orc extends Reducer<OrcKey,
     long movieId = ((LongWritable) ((OrcStruct) key.key).getFieldValue(0)).get();
     String movieTitle = this.movieIdToMovieTitle.get(movieId);
     for (OrcValue orcValue : values) {
-      //Text value = ((OrcStruct) orcValue.value).getFieldValue(0);
-      //Map<String,String> parsed = RecordParser.parse(value.toString(), new String[] {"rating","time"}, RecordParser.ESCAPED_DELIMITER);
-      //double rating = Double.valueOf(parsed.get("rating"));
-      //long time = Long.valueOf(parsed.get("time"));
       double rating = ((DoubleWritable)((OrcStruct) orcValue.value).getFieldValue(0)).get();
       long time = ((LongWritable)((OrcStruct) orcValue.value).getFieldValue(1)).get();
       this.tuple.setFieldValue(0, new LongWritable(movieId));

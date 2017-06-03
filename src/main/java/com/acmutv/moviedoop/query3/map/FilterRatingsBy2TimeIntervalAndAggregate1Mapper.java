@@ -42,18 +42,18 @@ import java.util.Map;
  * The mapper for jobs in: {@link Query3_1}, {@link Query3_2}.
  * It emits N(movieId,rating) where N=(1|2) and rating is a score attributed with timestamp within
  * [`movieRatingTimestampLowerBound1`,`movieRatingTimestampUpperBound1`] or within
- * [``]
+ * [`movieRatingTimestampLowerBound2`,`movieRatingTimestampUpperBound2`]
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class FilterRatingsBy2TimeIntervalAndAggregateMapper extends Mapper<Object,Text,LongWritable,Text> {
+public class FilterRatingsBy2TimeIntervalAndAggregate1Mapper extends Mapper<Object,Text,LongWritable,Text> {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(FilterRatingsBy2TimeIntervalAndAggregateMapper.class);
+  private static final Logger LOG = Logger.getLogger(FilterRatingsBy2TimeIntervalAndAggregate1Mapper.class);
 
   /**
    * The lower bound for the movie rating timestamp (1).
@@ -165,7 +165,6 @@ public class FilterRatingsBy2TimeIntervalAndAggregateMapper extends Mapper<Objec
       this.movieId.set(movieId);
       for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings_1_2.get(movieId).entrySet()) {
         long repetitions = entry.getValue();
-        if (repetitions == 0) continue;
         double score = entry.getKey();
         this.tuple.set("1;2:" + score + "," + repetitions);
         ctx.write(this.movieId, this.tuple);
@@ -176,7 +175,6 @@ public class FilterRatingsBy2TimeIntervalAndAggregateMapper extends Mapper<Objec
       this.movieId.set(movieId);
       for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings_1.get(movieId).entrySet()) {
         long repetitions = entry.getValue();
-        if (repetitions == 0) continue;
         double score = entry.getKey();
         this.tuple.set("1:" + score + "," + repetitions);
         ctx.write(this.movieId, this.tuple);
@@ -187,7 +185,6 @@ public class FilterRatingsBy2TimeIntervalAndAggregateMapper extends Mapper<Objec
       this.movieId.set(movieId);
       for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings_2.get(movieId).entrySet()) {
         long repetitions = entry.getValue();
-        if (repetitions == 0) continue;
         double score = entry.getKey();
         this.tuple.set("2:" + score + "," + repetitions);
         ctx.write(this.movieId, this.tuple);

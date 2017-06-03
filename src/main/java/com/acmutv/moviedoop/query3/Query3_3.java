@@ -26,13 +26,14 @@
 package com.acmutv.moviedoop.query3;
 
 import com.acmutv.moviedoop.common.input.LinenoSequenceFileInputFormat;
+import com.acmutv.moviedoop.common.util.DateParser;
+import com.acmutv.moviedoop.common.util.DoubleWritableDecreasingComparator;
 import com.acmutv.moviedoop.query3.map.*;
-import com.acmutv.moviedoop.query3.reduce.AverageRating2Reducer;
+import com.acmutv.moviedoop.query3.reduce.AverageRating2AndAggregate1Reducer;
+import com.acmutv.moviedoop.query3.reduce.AverageRating2AndAggregate2Reducer;
 import com.acmutv.moviedoop.query3.reduce.MoviesTopKBestMapReducer;
 import com.acmutv.moviedoop.query3.reduce.ValueReducer;
 import com.acmutv.moviedoop.test.QuerySort_1;
-import com.acmutv.moviedoop.common.util.DateParser;
-import com.acmutv.moviedoop.common.util.DoubleWritableDecreasingComparator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
@@ -45,7 +46,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.*;
+import org.apache.hadoop.mapreduce.lib.output.LazyOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
+import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
 import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
 import org.apache.hadoop.util.Tool;
@@ -60,24 +64,24 @@ import java.time.LocalDateTime;
  * and `ratingTimestampTopKUB`; and
  * (ii) the total rank of movies, considering average ratings in period from `ratingTimestampRankLB`
  * and `ratingTimestampRankUB`.
- * The program leverages BestMap for top-k ranking and inner joins (replication joins as distributed
- * caching on map).
+ * The program leverages BestMap for top-k ranking, inner joins (replication joins as distributed
+ * caching on map) and optimizations on average computation (2).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query3_1 extends Configured implements Tool {
+public class Query3_3 extends Configured implements Tool {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(Query3_1.class);
+  private static final Logger LOG = Logger.getLogger(Query3_3.class);
 
   /**
    * The program name.
    */
-  private static final String PROGRAM_NAME = "Query3_1";
+  private static final String PROGRAM_NAME = "Query3_3";
 
   /**
    * The default movies rank size.
@@ -206,17 +210,17 @@ public class Query3_1 extends Configured implements Tool {
 
     // JOB AVERAGE RATINGS: CONFIGURATION
     Job jobAverageRatings = Job.getInstance(config, PROGRAM_NAME + "_AVERAGE-RATINGS");
-    jobAverageRatings.setJarByClass(Query3_1.class);
+    jobAverageRatings.setJarByClass(Query3_3.class);
 
     // JOB AVERAGE RATINGS: MAP CONFIGURATION
     jobAverageRatings.setInputFormatClass(TextInputFormat.class);
     TextInputFormat.addInputPath(jobAverageRatings, inputRatings);
-    jobAverageRatings.setMapperClass(FilterRatingsBy2TimeIntervalMapper.class);
+    jobAverageRatings.setMapperClass(FilterRatingsBy2TimeIntervalAndAggregate2Mapper.class);
     jobAverageRatings.setMapOutputKeyClass(LongWritable.class);
     jobAverageRatings.setMapOutputValueClass(Text.class);
 
     // JOB AVERAGE RATINGS: REDUCE CONFIGURATION
-    jobAverageRatings.setReducerClass(AverageRating2Reducer.class);
+    jobAverageRatings.setReducerClass(AverageRating2AndAggregate2Reducer.class);
     jobAverageRatings.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // JOB AVERAGE RATINGS: OUTPUT CONFIGURATION
@@ -236,7 +240,7 @@ public class Query3_1 extends Configured implements Tool {
     if (code == 0) {
       // JOB TOP BY RATING: CONFIGURATION
       Job jobTopRatings = Job.getInstance(config, PROGRAM_NAME + "_TOP-BY-RATING");
-      jobTopRatings.setJarByClass(Query3_1.class);
+      jobTopRatings.setJarByClass(Query3_3.class);
 
       // JOB TOP BY RATING: MAP CONFIGURATION
       jobTopRatings.setInputFormatClass(SequenceFileInputFormat.class);
@@ -268,10 +272,11 @@ public class Query3_1 extends Configured implements Tool {
     /* *********************************************************************************************
      * TOTAL RANK OF MOVIES BY AVERAGE MOVIE RATINGS IN PERIOD [Tlb2,Tub2]
      **********************************************************************************************/
+
     if (code == 0) {
       // JOB RATING AS KEY: CONFIGURATION
       Job jobRatingAsKey = Job.getInstance(config, PROGRAM_NAME + "_RATING-AS-KEY");
-      jobRatingAsKey.setJarByClass(Query3_1.class);
+      jobRatingAsKey.setJarByClass(Query3_3.class);
 
       // JOB RATING AS KEY: MAP CONFIGURATION
       jobRatingAsKey.setInputFormatClass(SequenceFileInputFormat.class);
@@ -299,7 +304,7 @@ public class Query3_1 extends Configured implements Tool {
     if (code == 0) {
       // JOB SORT BY AVERAGE RATING: CONFIGURATION
       Job jobSortByRating = Job.getInstance(config, PROGRAM_NAME + "_SORT-BY-AVERAGE-RATING");
-      jobSortByRating.setJarByClass(Query3_1.class);
+      jobSortByRating.setJarByClass(Query3_3.class);
       jobSortByRating.setSortComparatorClass(DoubleWritableDecreasingComparator.class);
 
       // JOB SORT BY AVERAGE RATING: MAP CONFIGURATION
@@ -338,7 +343,7 @@ public class Query3_1 extends Configured implements Tool {
     if (code == 0) {
       // JOB RANK COMPARISON: CONFIGURATION
       Job jobRankComparison = Job.getInstance(config, PROGRAM_NAME + "_RANK_COMPARISON");
-      jobRankComparison.setJarByClass(Query3_1.class);
+      jobRankComparison.setJarByClass(Query3_3.class);
       for (FileStatus status : FileSystem.get(config).listStatus(stagingTopK)) {
         jobRankComparison.addCacheFile(status.getPath().toUri());
       }
@@ -383,7 +388,7 @@ public class Query3_1 extends Configured implements Tool {
    * @throws Exception when the program cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new Query3_1(), args);
+    int res = ToolRunner.run(new Configuration(), new Query3_3(), args);
     System.exit(res);
   }
 }

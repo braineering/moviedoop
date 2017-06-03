@@ -27,6 +27,7 @@ package com.acmutv.moviedoop.query3.reduce;
 
 import com.acmutv.moviedoop.query3.Query3_1;
 import com.acmutv.moviedoop.query3.Query3_2;
+import com.acmutv.moviedoop.query3.Query3_4;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -35,7 +36,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import java.io.IOException;
 
 /**
- * The reducer for jobs in: {@link Query3_1}, {@link Query3_2}.
+ * The reducer for jobs in: {@link Query3_1}, {@link Query3_2}, {@link Query3_4}, {@link Query3_4}.
  * It emits all received values as keyes.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}

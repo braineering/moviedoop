@@ -25,29 +25,45 @@
  */
 package com.acmutv.moviedoop.query1.reduce;
 
-import com.acmutv.moviedoop.query1.Query1_2;
+import com.acmutv.moviedoop.query1.Query1_1;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.log4j.Logger;
+import org.apache.orc.OrcFile;
+import org.apache.orc.Reader;
+import org.apache.orc.RecordReader;
+import org.apache.orc.mapred.OrcKey;
+import org.apache.orc.mapred.OrcStruct;
+import org.apache.orc.mapred.OrcValue;
 
 import java.io.IOException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * The reducer for the {@link Query1_2} job.
- * It emits (movieTitle,avgRating) where avgRating is the average rating greater than or equal to
- * `movieAverageRatingLowerBound`.
+ * The reducer for the {@link Query1_1} job.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRatingFilterReducer extends Reducer<Text,DoubleWritable,Text,DoubleWritable> {
+public class AverageAggregate2RatingJoinMovieTitleCachedReducerORC extends Reducer<OrcKey,OrcValue,Text,DoubleWritable> {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(AverageRatingFilterReducer.class);
+  private static final Logger LOG = Logger.getLogger(AverageAggregate2RatingJoinMovieTitleCachedReducerORC.class);
+
+  /**
+   * The cached map (movieId,movieTitle).
+   */
+  private Map<Long,String> movieIdToMovieTitle = new HashMap<>();
 
   /**
    * The lower bound for the movie average rating.
@@ -73,6 +89,27 @@ public class AverageRatingFilterReducer extends Reducer<Text,DoubleWritable,Text
     this.movieAverageRatingLowerBound =
         Double.valueOf(ctx.getConfiguration().get("moviedoop.average.rating.lb"));
     LOG.debug("[SETUP] moviedoop.average.rating.lb: " + this.movieAverageRatingLowerBound);
+    try {
+      for (URI uri : ctx.getCacheFiles()) {
+        Path path = new Path(uri);
+        Reader reader = OrcFile.createReader(path, new OrcFile.ReaderOptions(ctx.getConfiguration()));
+        RecordReader rows = reader.rows();
+        VectorizedRowBatch batch = reader.getSchema().createRowBatch();
+        while (rows.nextBatch(batch)) {
+          BytesColumnVector cvMovieId = (BytesColumnVector) batch.cols[0];
+          BytesColumnVector cvMovieTitle = (BytesColumnVector) batch.cols[1];
+          for (int r = 0; r < batch.size; r++) {
+            long movieId = Long.valueOf(cvMovieId.toString(r));
+            String movieTitle = cvMovieTitle.toString(r);
+            this.movieIdToMovieTitle.put(movieId, movieTitle);
+          }
+        }
+        rows.close();
+      }
+    } catch (IOException exc) {
+      LOG.error(exc.getMessage());
+      exc.printStackTrace();
+    }
   }
 
   /**
@@ -84,20 +121,28 @@ public class AverageRatingFilterReducer extends Reducer<Text,DoubleWritable,Text
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(Text key, Iterable<DoubleWritable> values, Context ctx) throws IOException, InterruptedException {
+  public void reduce(OrcKey key, Iterable<OrcValue> values, Context ctx) throws IOException, InterruptedException {
     long num = 0L;
     double sum = 0.0;
 
-    for (DoubleWritable value : values) {
-      double rating = value.get();
-      sum += rating;
-      num++;
+    for (OrcValue orcValue : values) {
+      String value = ((Text)((OrcStruct) orcValue.value).getFieldValue(0)).toString();
+      String pairs[] = value.split(",", -1);
+      for (String pair : pairs) {
+        String elems[] = pair.split("=", -1);
+        double score = Double.valueOf(elems[0]);
+        long repetitions = Long.valueOf(elems[1]);
+        sum += (score * repetitions);
+        num += repetitions;
+      }
     }
 
     double avgRating = sum / num;
 
     if (avgRating >= this.movieAverageRatingLowerBound) {
-      this.movieTitle.set(key.toString());
+      long movieId = ((LongWritable) ((OrcStruct) key.key).getFieldValue(0)).get();
+      String movieTitle = this.movieIdToMovieTitle.getOrDefault(movieId, "N/A-"+movieId);
+      this.movieTitle.set(movieTitle);
       this.movieAverageRating.set(avgRating);
       ctx.write(this.movieTitle, this.movieAverageRating);
     }

@@ -25,26 +25,29 @@
  */
 package com.acmutv.moviedoop.query3.map;
 
-import com.acmutv.moviedoop.query3.Query3_1;
-import com.acmutv.moviedoop.query3.Query3_2;
-import com.acmutv.moviedoop.common.util.RecordParser;
-import com.acmutv.moviedoop.query3.Query3_3;
+import com.acmutv.moviedoop.query3.Query3_4;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.log4j.Logger;
+import org.apache.orc.mapred.OrcStruct;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
- * The mapper for jobs in: {@link Query3_1}, {@link Query3_2}, {@link Query3_3}.
+ * The mapper for jobs in: {@link Query3_4}.
  * It emits (rating,movieId) where rating is a the average movie rating.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRatingAsKeyMapper extends Mapper<Object,Text,DoubleWritable,Text> {
+public class AverageRatingAsKeyMapperORC extends Mapper<Object,OrcStruct,DoubleWritable,Text> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(AverageRatingAsKeyMapperORC.class);
 
   /**
    * The movie rating to emit.
@@ -65,12 +68,11 @@ public class AverageRatingAsKeyMapper extends Mapper<Object,Text,DoubleWritable,
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
-
-    double score = Double.valueOf(rating.get("score"));
-    this.movieRating.set(score);
-    this.tuple.set(value);
+  public void map(Object key, OrcStruct value, Context ctx) throws IOException, InterruptedException {
+    long movieId = Long.valueOf(value.getFieldValue(0).toString());
+    double rating = Double.valueOf(value.getFieldValue(1).toString());
+    this.movieRating.set(rating);
+    this.tuple.set(movieId + "," + rating);
     ctx.write(this.movieRating, this.tuple);
   }
 }

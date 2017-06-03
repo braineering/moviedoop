@@ -32,7 +32,6 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.log4j.Logger;
-import org.apache.orc.mapred.OrcStruct;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -47,12 +46,12 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class FilterRatingsByTimestampAndAggregateMapperORC extends Mapper<Object,OrcStruct,LongWritable,Text> {
+public class FilterRatingsByTimestampAndAggregate1Mapper extends Mapper<Object,Text,LongWritable,Text> {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(FilterRatingsByTimestampAndAggregateMapperORC.class);
+  private static final Logger LOG = Logger.getLogger(FilterRatingsByTimestampAndAggregate1Mapper.class);
 
   /**
    * The lower bound for the movie rating timestamp.
@@ -93,17 +92,13 @@ public class FilterRatingsByTimestampAndAggregateMapperORC extends Mapper<Object
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, OrcStruct value, Context ctx) throws IOException, InterruptedException {
+  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
+    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
 
-    //Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
-
-    //long timestamp = Long.valueOf(rating.get("timestamp"));
-    long timestamp = Long.valueOf(value.getFieldValue("time").toString());
+    long timestamp = Long.valueOf(rating.get("timestamp"));
     if (timestamp >= this.movieRatingTimestampLowerBound) {
-      //long movieId = Long.valueOf(rating.get("movieId"));
-      //double score = Double.valueOf(rating.get("score"));
-      long movieId = Long.valueOf(value.getFieldValue("movieId").toString());
-      double score = Double.valueOf(value.getFieldValue("score").toString());
+      long movieId = Long.valueOf(rating.get("movieId"));
+      double score = Double.valueOf(rating.get("score"));
       this.movieIdToAggregateRatings.putIfAbsent(movieId, new HashMap<>());
       this.movieIdToAggregateRatings.get(movieId).compute(score, (k,v) -> (v == null) ? 1 : v + 1);
     }
@@ -119,7 +114,6 @@ public class FilterRatingsByTimestampAndAggregateMapperORC extends Mapper<Object
       this.movieId.set(movieId);
       for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings.get(movieId).entrySet()) {
         long repetitions = entry.getValue();
-        if (repetitions == 0) continue;
         double score = entry.getKey();
         this.tuple.set(score + "," + repetitions);
         ctx.write(this.movieId, this.tuple);

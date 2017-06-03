@@ -70,7 +70,7 @@ public class AggregateRatingJoinGenreCachedReducer extends Reducer<LongWritable,
   /**
    *
    */
-  private Map<Text,Map<Double,Long>> allRatingsForAGenre = new HashMap<>();
+  private Map<Double,Long> allRatingsForAMovie = new HashMap<>();
 
   /**
    * The genre name to emit.
@@ -121,80 +121,24 @@ public class AggregateRatingJoinGenreCachedReducer extends Reducer<LongWritable,
   public void reduce(LongWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
     long movieId = key.get();
 
-    Map<Double,Long> allRatingsForAMovie = new HashMap<>();
+    this.allRatingsForAMovie.clear();
 
     for (Text value : values) {
-      Map<String,String> parsed = RecordParser.parse(value.toString(), new String[]{"score","repetitions"}, RecordParser.DELIMITER);
-      double score = Double.valueOf(parsed.get("score"));
-      long repetitions = Long.valueOf(parsed.get("repetitions"));
-      allRatingsForAMovie.put(score,repetitions);
+      String[] tokens = value.toString().split(",");
+      for(String t : tokens) {
+        String[] couple = t.split("=");
+        double score = Double.parseDouble(couple[0]);
+        long repetitions = Long.parseLong(couple[1]);
+        this.allRatingsForAMovie.put(score,repetitions);
+      }
     }
 
     if (this.movieIdToGenres.containsKey(movieId)) {
       String[] genres = this.movieIdToGenres.get(movieId).toString().split("\\|");
       for (int i = 0; i < genres.length; i++) {
         this.genreTitle.set(genres[i]);
-        this.allRatingsForAGenre.put(genreTitle,allRatingsForAMovie);
-        ctx.write(genreTitle,new Text(allRatingsForAMovie.toString()));
+        ctx.write(genreTitle,new Text(this.allRatingsForAMovie.toString().replaceAll("\\s+","")));
       }
     }
   }
-
-  /**
-   * Flushes the mapper.
-   *
-   * @param ctx the job context.
-   */
- /* protected void cleanup(Reducer.Context ctx) throws IOException, InterruptedException {
-    for (Text genreId : this.allRatingsForAGenre.keySet()) {
-      this.genreId.set(genreId);
-
-      long occ = 0L;
-      double sum = 0.0;
-      double sumStd = 0.0;
-      double avg = 0.0;
-      double stdDev = 0.0;
-
-      String value = " - ";
-
-      for(Map.Entry<Double,Long> entry : this.allRatingsForAGenre.get(genreId).entrySet()) {
-        long repetitions = entry.getValue();
-        if(repetitions == 0) continue;
-        //occ += repetitions;
-        double score = entry.getKey();
-        /*sum += score * repetitions;
-        sumStd += ((score * repetitions) * (score * repetitions));*/
-     /*   value += "["+Long.toString(repetitions)+";"+Double.toString(score)+"] - ";
-      }
-
-      ctx.write(this.genreId,new Text(value));
-
-      /*
-       Double sumq = 0.0;
-
-    for (DoubleWritable value : values) {
-      occ += 1L;
-      temp = value.get();
-      sum += temp;
-      sumq += temp * temp;
-    }
-    avg = sum / occ;
-
-    stdDev = (sumq - (occ * avg * avg)) / (occ - 1);
-
-    stdDev = Math.sqrt(stdDev);
-        */
-
-
-      /*this.movieId.set(movieId);
-      for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings.get(movieId).entrySet()) {
-        long repetitions = entry.getValue();
-        if (repetitions == 0) continue;
-        double score = entry.getKey();
-        this.tuple.set(score + "," + repetitions);
-        ctx.write(this.movieId, this.tuple);
-      }*/
-   /* }
-  }*/
-
 }

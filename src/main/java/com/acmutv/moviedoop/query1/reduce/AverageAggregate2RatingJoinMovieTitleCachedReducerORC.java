@@ -25,7 +25,6 @@
  */
 package com.acmutv.moviedoop.query1.reduce;
 
-import com.acmutv.moviedoop.common.util.RecordParser;
 import com.acmutv.moviedoop.query1.Query1_1;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
@@ -42,10 +41,7 @@ import org.apache.orc.mapred.OrcKey;
 import org.apache.orc.mapred.OrcStruct;
 import org.apache.orc.mapred.OrcValue;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -57,12 +53,12 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageAggregateRatingJoinMovieTitleCachedReducerORC extends Reducer<OrcKey,OrcValue,Text,DoubleWritable> {
+public class AverageAggregate2RatingJoinMovieTitleCachedReducerORC extends Reducer<OrcKey,OrcValue,Text,DoubleWritable> {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(AverageAggregateRatingJoinMovieTitleCachedReducerORC.class);
+  private static final Logger LOG = Logger.getLogger(AverageAggregate2RatingJoinMovieTitleCachedReducerORC.class);
 
   /**
    * The cached map (movieId,movieTitle).

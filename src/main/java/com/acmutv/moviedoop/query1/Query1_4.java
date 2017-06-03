@@ -25,8 +25,8 @@
  */
 package com.acmutv.moviedoop.query1;
 
-import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampAndAggregateMapper;
-import com.acmutv.moviedoop.query1.reduce.AverageAggregateRatingJoinMovieTitleCachedReducer;
+import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampAndAggregate1Mapper;
+import com.acmutv.moviedoop.query1.reduce.AverageAggregate1RatingJoinMovieTitleCachedReducer;
 import com.acmutv.moviedoop.common.util.DateParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -49,7 +49,7 @@ import java.time.LocalDateTime;
  * A map/reduce program that returns movies with rate greater/equal to the specified {@code threshold}
  * and valuated starting from the specified {@code startDate}.
  * The program leverages inner joins (replication joins as distributed caching on reduce) and
- * optimizations on average computation.
+ * optimizations on average computation (type 1).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
@@ -136,12 +136,12 @@ public class Query1_4 extends Configured implements Tool {
     // MAP CONFIGURATION
     job.setInputFormatClass(TextInputFormat.class);
     TextInputFormat.addInputPath(job, inputRatings);
-    job.setMapperClass(FilterRatingsByTimestampAndAggregateMapper.class);
+    job.setMapperClass(FilterRatingsByTimestampAndAggregate1Mapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(Text.class);
 
     // REDUCE CONFIGURATION
-    job.setReducerClass(AverageAggregateRatingJoinMovieTitleCachedReducer.class);
+    job.setReducerClass(AverageAggregate1RatingJoinMovieTitleCachedReducer.class);
     job.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // OUTPUT CONFIGURATION

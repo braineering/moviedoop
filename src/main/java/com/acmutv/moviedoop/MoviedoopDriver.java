@@ -30,6 +30,8 @@ import com.acmutv.moviedoop.query2.Query2_1;
 import com.acmutv.moviedoop.query2.Query2_2;
 import com.acmutv.moviedoop.query3.Query3_1;
 import com.acmutv.moviedoop.query3.Query3_2;
+import com.acmutv.moviedoop.query3.Query3_3;
+import com.acmutv.moviedoop.query3.Query3_4;
 import com.acmutv.moviedoop.test.*;
 import org.apache.hadoop.util.ProgramDriver;
 import org.apache.log4j.Logger;
@@ -76,12 +78,17 @@ public class MoviedoopDriver {
       driver.addClass("query1_4", Query1_4.class,
           "A map/reduce program that selects movies according to their rating and period. " +
               "The program leverages inner joins (replication joins as distributed caching on reduce) and" +
-              "optimizations on average computation.");
+              "optimizations on average computation (type 1).");
 
       driver.addClass("query1_5", Query1_5.class,
           "A map/reduce program that selects movies according to their rating and period. " +
               "The program leverages inner joins (replication joins as distributed caching on reduce)," +
-              "optimizations on average computation and ORC serialization.");
+              "optimizations on average computation (type 2).");
+
+      driver.addClass("query1_6", Query1_6.class,
+          "A map/reduce program that selects movies according to their rating and period. " +
+              "The program leverages inner joins (replication joins as distributed caching on reduce)," +
+              "optimizations on average computation (type 2) and ORC serialization.");
 
       /* *******************************************************************************************
        * QUERY 2
@@ -101,7 +108,7 @@ public class MoviedoopDriver {
           "A map/reduce program that returns the comparison between " +
               "(i) the top-`rankSize` movies, considering average ratings in period from `ratingTimestampTopKLB` \n" +
               "and `ratingTimestampTopKUB`; and\n" +
-              "(ii) the total rank of moviues, considering average ratings in period from `ratingTimestampRankLB`\n" +
+              "(ii) the total rank of movies, considering average ratings in period from `ratingTimestampRankLB`\n" +
               "and `ratingTimestampRankUB`.\n" +
               "The program leverages BestMap for top-k ranking and inner joins (replication joins as distributed caching on map).");
 
@@ -109,10 +116,28 @@ public class MoviedoopDriver {
           "A map/reduce program that returns the comparison between " +
               "(i) the top-`rankSize` movies, considering average ratings in period from `ratingTimestampTopKLB` \n" +
               "and `ratingTimestampTopKUB`; and\n" +
-              "(ii) the total rank of moviues, considering average ratings in period from `ratingTimestampRankLB`\n" +
+              "(ii) the total rank of movies, considering average ratings in period from `ratingTimestampRankLB`\n" +
               "and `ratingTimestampRankUB`.\n" +
               "The program leverages BestMap for top-k ranking, inner joins (replication joins as distributed caching on map) and" +
-              "optimizations on average computation.");
+              "optimizations on average computation (1).");
+
+      driver.addClass("query3_3", Query3_3.class,
+          "A map/reduce program that returns the comparison between " +
+              "(i) the top-`rankSize` movies, considering average ratings in period from `ratingTimestampTopKLB` \n" +
+              "and `ratingTimestampTopKUB`; and\n" +
+              "(ii) the total rank of movies, considering average ratings in period from `ratingTimestampRankLB`\n" +
+              "and `ratingTimestampRankUB`.\n" +
+              "The program leverages BestMap for top-k ranking, inner joins (replication joins as distributed caching on map)," +
+              "optimizations on average computation (2).");
+
+      driver.addClass("query3_4", Query3_4.class,
+          "A map/reduce program that returns the comparison between " +
+              "(i) the top-`rankSize` movies, considering average ratings in period from `ratingTimestampTopKLB` \n" +
+              "and `ratingTimestampTopKUB`; and\n" +
+              "(ii) the total rank of movies, considering average ratings in period from `ratingTimestampRankLB`\n" +
+              "and `ratingTimestampRankUB`.\n" +
+              "The program leverages BestMap for top-k ranking, inner joins (replication joins as distributed caching on map)," +
+              "optimizations on average computation (2) and ORC serialization.");
 
       /* *******************************************************************************************
        * TESTS

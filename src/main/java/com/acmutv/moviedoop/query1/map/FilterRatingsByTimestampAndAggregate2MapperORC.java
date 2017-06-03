@@ -26,19 +26,22 @@
 package com.acmutv.moviedoop.query1.map;
 
 import com.acmutv.moviedoop.common.util.DateParser;
-import com.acmutv.moviedoop.common.util.RecordParser;
-import com.acmutv.moviedoop.query1.Query1_4;
+import com.acmutv.moviedoop.query1.Query1_6;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.log4j.Logger;
+import org.apache.orc.TypeDescription;
+import org.apache.orc.mapred.OrcKey;
+import org.apache.orc.mapred.OrcStruct;
+import org.apache.orc.mapred.OrcValue;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The mapper for jobs in: {@link Query1_4}.
+ * The mapper for jobs in: {@link Query1_6}.
  * It emits (movieId,rating) where rating is a score attributed with timestamp greater or equal to
  * the `movieRatingTimestampLowerBound`.
  *
@@ -46,12 +49,52 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class FilterRatingsByTimestampAndAggregateMapper extends Mapper<Object,Text,LongWritable,Text> {
+public class FilterRatingsByTimestampAndAggregate2MapperORC extends Mapper<Object,OrcStruct,OrcKey,OrcValue> {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(FilterRatingsByTimestampAndAggregateMapper.class);
+  private static final Logger LOG = Logger.getLogger(FilterRatingsByTimestampAndAggregate2MapperORC.class);
+
+  /**
+   * The ORC schema for key.
+   */
+  public static final TypeDescription ORC_SCHEMA_KEY = TypeDescription.fromString("struct<id:bigint>");
+
+  /**
+   * The ORC schema for value.
+   */
+  public static final TypeDescription ORC_SCHEMA_VALUE = TypeDescription.fromString("struct<ratings:string>");
+
+  /**
+   * The key ORC wrapper
+   */
+  private OrcKey keywrapper = new OrcKey();
+
+  /**
+   * The value ORC wrapper.
+   */
+  private OrcValue valuewrapper = new OrcValue();
+
+  /**
+   * The ORC struct for key.
+   */
+  private OrcStruct keyStruct = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA_KEY);
+
+  /**
+   * The ORC struct for value.
+   */
+  private OrcStruct valueStruct = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA_VALUE);
+
+  /**
+   * The movieId to emit.
+   */
+  private LongWritable movieId = (LongWritable) keyStruct.getFieldValue(0);
+
+  /**
+   * The tuple {rating=repetitions,...,rating=repetitions} to emit.
+   */
+  private Text tuple = (Text) valueStruct.getFieldValue(0);
 
   /**
    * The lower bound for the movie rating timestamp.
@@ -62,16 +105,6 @@ public class FilterRatingsByTimestampAndAggregateMapper extends Mapper<Object,Te
    * The map movieId->(score,repetitions).
    */
   private Map<Long,Map<Double,Long>> movieIdToAggregateRatings = new HashMap<>();
-
-  /**
-   * The movie id to emit.
-   */
-  private LongWritable movieId = new LongWritable();
-
-  /**
-   * The tuple (score,repetitions) to emit.
-   */
-  private Text tuple = new Text();
 
   /**
    * Configures the mapper.
@@ -92,15 +125,13 @@ public class FilterRatingsByTimestampAndAggregateMapper extends Mapper<Object,Te
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
-
-    long timestamp = Long.valueOf(rating.get("timestamp"));
+  public void map(Object key, OrcStruct value, Context ctx) throws IOException, InterruptedException {
+    long timestamp = Long.valueOf(value.getFieldValue(3).toString());
     if (timestamp >= this.movieRatingTimestampLowerBound) {
-      long movieId = Long.valueOf(rating.get("movieId"));
-      double score = Double.valueOf(rating.get("score"));
+      long movieId = Long.valueOf(value.getFieldValue(1).toString());
+      double rating = Double.valueOf(value.getFieldValue(2).toString());
       this.movieIdToAggregateRatings.putIfAbsent(movieId, new HashMap<>());
-      this.movieIdToAggregateRatings.get(movieId).compute(score, (k,v) -> (v == null) ? 1 : v + 1);
+      this.movieIdToAggregateRatings.get(movieId).compute(rating, (k,v) -> (v == null) ? 1 : v + 1);
     }
   }
 
@@ -112,13 +143,12 @@ public class FilterRatingsByTimestampAndAggregateMapper extends Mapper<Object,Te
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
     for (Long movieId : this.movieIdToAggregateRatings.keySet()) {
       this.movieId.set(movieId);
-      for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings.get(movieId).entrySet()) {
-        long repetitions = entry.getValue();
-        if (repetitions == 0) continue;
-        double score = entry.getKey();
-        this.tuple.set(score + "," + repetitions);
-        ctx.write(this.movieId, this.tuple);
-      }
+      String report = this.movieIdToAggregateRatings.get(movieId).toString().trim();
+      report = report.substring(1, report.length() - 1);
+      this.tuple.set(report);
+      this.keywrapper.key = keyStruct;
+      this.valuewrapper.value = valueStruct;
+      ctx.write(this.keywrapper, this.valuewrapper);
     }
   }
 }

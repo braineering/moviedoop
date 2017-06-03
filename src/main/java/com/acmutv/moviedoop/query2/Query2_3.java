@@ -34,7 +34,6 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -54,7 +53,7 @@ import org.apache.hadoop.util.ToolRunner;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query2_2 extends Configured implements Tool {
+public class Query2_3 extends Configured implements Tool {
 
   /**
    * The program name.
@@ -89,7 +88,7 @@ public class Query2_2 extends Configured implements Tool {
 
     // JOB1 CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME+"_STEP1");
-    job.setJarByClass(Query2_1.class);
+    job.setJarByClass(Query2_3.class);
 
     for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
@@ -116,7 +115,7 @@ public class Query2_2 extends Configured implements Tool {
 
     // JOB 2 CONFIGURATION
     Job job2 = Job.getInstance(config, PROGRAM_NAME+"_STEP2");
-    job2.setJarByClass(Query2_2.class);
+    job2.setJarByClass(Query2_3.class);
 
     FileInputFormat.addInputPath(job2, staging);
     job2.setInputFormatClass(SequenceFileInputFormat.class);
@@ -144,7 +143,7 @@ public class Query2_2 extends Configured implements Tool {
    * @throws Exception when the program cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new Query2_2(), args);
+    int res = ToolRunner.run(new Configuration(), new Query2_3(), args);
     System.exit(res);
   }
 }

@@ -136,7 +136,7 @@ public class MoviedoopDriver {
               "and `ratingTimestampTopKUB`; and\n" +
               "(ii) the total rank of movies, considering average ratings in period from `ratingTimestampRankLB`\n" +
               "and `ratingTimestampRankUB`.\n" +
-              "The program leverages BestMap for top-k ranking, inner joins (replication joins as distributed caching on map)," +
+              "The program leverages BestMap for top-k ranking (aggregated ranking), inner joins (replication joins as distributed caching on map)," +
               "optimizations on average computation (2) and ORC serialization.");
 
       /* *******************************************************************************************

@@ -268,7 +268,6 @@ public class Query3_1 extends Configured implements Tool {
     /* *********************************************************************************************
      * TOTAL RANK OF MOVIES BY AVERAGE MOVIE RATINGS IN PERIOD [Tlb2,Tub2]
      **********************************************************************************************/
-
     if (code == 0) {
       // JOB RATING AS KEY: CONFIGURATION
       Job jobRatingAsKey = Job.getInstance(config, PROGRAM_NAME + "_RATING-AS-KEY");

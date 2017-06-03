@@ -61,7 +61,7 @@ public class MoviesTopKBestMapReducerORC extends Reducer<NullWritable,OrcValue,N
   /**
    * The ORC schema.
    */
-  public static final TypeDescription ORC_SCHEMA = TypeDescription.fromString("struct<topk:string>");
+  public static final TypeDescription ORC_SCHEMA = TypeDescription.fromString("struct<id:bigint,avgrating:double>");
 
   /**
    * The ORC tuple (movieId,avgrating) to emit.
@@ -69,9 +69,14 @@ public class MoviesTopKBestMapReducerORC extends Reducer<NullWritable,OrcValue,N
   private OrcStruct out = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA);
 
   /**
-   * The tuple {movieId=avgrating,...,movieId=avgrating} to emit.
+   * The movieId to emit.
    */
-  private Text tuple = (Text) out.getFieldValue(0);
+  private LongWritable movieId = (LongWritable) out.getFieldValue(0);
+
+  /**
+   * The avgrating to emit.
+   */
+  private DoubleWritable avgrating = (DoubleWritable) out.getFieldValue(1);
 
   /**
    * The rank data structure.
@@ -118,15 +123,13 @@ public class MoviesTopKBestMapReducerORC extends Reducer<NullWritable,OrcValue,N
    * @param ctx the job context.
    */
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
-    StringJoiner sj = new StringJoiner(",");
     for (Map.Entry<Long,Double> entry :
         this.rank.entrySet().stream().sorted((e1,e2)-> e2.getValue().compareTo(e1.getValue())).collect(Collectors.toList())) {
-      sj.add(entry.getKey() + "=" + entry.getValue());
+      this.movieId.set(entry.getKey());
+      this.avgrating.set(entry.getValue());
+      ctx.write(NullWritable.get(), this.out);
+      System.out.printf("### RED ### out = (%d,%f)\n", this.movieId.get(), this.avgrating.get());
     }
-    String report = sj.toString();
-    System.out.printf("### RED ### out = %s\n", report);
-    this.tuple.set(report);
-    ctx.write(NullWritable.get(), this.out);
   }
 
 }

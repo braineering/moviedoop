@@ -39,6 +39,7 @@ import org.apache.orc.mapred.OrcValue;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 /**
@@ -60,22 +61,17 @@ public class MoviesTopKBestMapReducerORC extends Reducer<NullWritable,OrcValue,N
   /**
    * The ORC schema.
    */
-  public static final TypeDescription ORC_SCHEMA = TypeDescription.fromString("struct<id:bigint,avgrating:double>");
+  public static final TypeDescription ORC_SCHEMA = TypeDescription.fromString("struct<topk:string>");
 
   /**
    * The ORC tuple (movieId,avgrating) to emit.
    */
-  private OrcStruct tuple = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA);
+  private OrcStruct out = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA);
 
   /**
-   * The movieId to emit.
+   * The tuple {movieId=avgrating,...,movieId=avgrating} to emit.
    */
-  private LongWritable movieId = (LongWritable) tuple.getFieldValue(0);
-
-  /**
-   * The avgrating to emit.
-   */
-  private DoubleWritable avgrating = (DoubleWritable) tuple.getFieldValue(1);
+  private Text tuple = (Text) out.getFieldValue(0);
 
   /**
    * The rank data structure.
@@ -105,6 +101,7 @@ public class MoviesTopKBestMapReducerORC extends Reducer<NullWritable,OrcValue,N
   public void reduce(NullWritable key, Iterable<OrcValue> values, Context ctx) throws IOException, InterruptedException {
     for (OrcValue orcValue : values) {
       String value = ((Text)((OrcStruct) orcValue.value).getFieldValue(0)).toString();
+      System.out.printf("### RED ### in = %s\n", value);
       String pairs[] = value.split(",", -1);
       for (String pair : pairs) {
         String elem[] = pair.split("=", -1);
@@ -121,12 +118,15 @@ public class MoviesTopKBestMapReducerORC extends Reducer<NullWritable,OrcValue,N
    * @param ctx the job context.
    */
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
+    StringJoiner sj = new StringJoiner(",");
     for (Map.Entry<Long,Double> entry :
         this.rank.entrySet().stream().sorted((e1,e2)-> e2.getValue().compareTo(e1.getValue())).collect(Collectors.toList())) {
-      this.movieId.set(entry.getKey());
-      this.avgrating.set(entry.getValue());
-      ctx.write(NullWritable.get(), this.tuple);
+      sj.add(entry.getKey() + "=" + entry.getValue());
     }
+    String report = sj.toString();
+    System.out.printf("### RED ### out = %s\n", report);
+    this.tuple.set(report);
+    ctx.write(NullWritable.get(), this.out);
   }
 
 }

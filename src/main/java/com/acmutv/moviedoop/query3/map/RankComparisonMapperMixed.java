@@ -139,13 +139,16 @@ public class RankComparisonMapperMixed extends Mapper<LongWritable,Text,NullWrit
 
     long movieId = Long.valueOf(movie.get("movieId"));
     long rankPosition = key.get();
+    double rankScore = Double.valueOf(movie.get("score"));
 
     if (this.movieIdToMovieTopKPositionAndScore.containsKey(movieId)) {
-      String rankDetails[] = this.movieIdToMovieTopKPositionAndScore.get(movieId).split(";");
+      String topkDetails[] = this.movieIdToMovieTopKPositionAndScore.get(movieId).split(";");
       String movieTitle = this.movieIdToMovieTitle.get(movieId);
-      long topKPosition = Long.valueOf(rankDetails[0]);
-      long delta = rankPosition - topKPosition;
-      this.tuple.set(movieTitle + "\t" + delta);
+      long topKPosition = Long.valueOf(topkDetails[0]);
+      double topkScore = Double.valueOf(topkDetails[1]);
+      long deltaPosition = rankPosition - topKPosition;
+      double deltaScore = topkScore - rankScore;
+      this.tuple.set(movieTitle + "\t" + deltaPosition + "\t" + deltaScore);
       ctx.write(NullWritable.get(), this.tuple);
       this.movieIdToMovieTopKPositionAndScore.remove(movieId);
       this.movieIdToMovieTitle.remove(movieId);
@@ -162,7 +165,7 @@ public class RankComparisonMapperMixed extends Mapper<LongWritable,Text,NullWrit
       for (Map.Entry<Long,String> entry : this.movieIdToMovieTopKPositionAndScore.entrySet()) {
         long movieId = entry.getKey();
         String movieTitle = this.movieIdToMovieTitle.get(movieId);
-        this.tuple.set(movieTitle + "\tna");
+        this.tuple.set(movieTitle + "\tna\tna");
         ctx.write(NullWritable.get(), this.tuple);
       }
     }

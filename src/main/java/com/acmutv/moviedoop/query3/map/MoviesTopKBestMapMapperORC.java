@@ -126,8 +126,9 @@ public class MoviesTopKBestMapMapperORC extends Mapper<Object,OrcStruct,NullWrit
    * @param ctx the job context.
    */
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
-    String report = this.rank.toString().trim();
+    String report = this.rank.toString().replaceAll(" ", "");
     report = report.substring(1, report.length() - 1);
+    System.out.printf("### MAP ### report = %s\n", report);
     this.tuple.set(report);
     this.valuewrapper.value = valueStruct;
     ctx.write(NullWritable.get(), this.valuewrapper);

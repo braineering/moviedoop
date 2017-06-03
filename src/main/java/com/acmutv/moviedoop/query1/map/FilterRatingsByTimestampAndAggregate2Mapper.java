@@ -113,7 +113,7 @@ public class FilterRatingsByTimestampAndAggregate2Mapper extends Mapper<Object,T
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
     for (Long movieId : this.movieIdToAggregateRatings.keySet()) {
       this.movieId.set(movieId);
-      String report = this.movieIdToAggregateRatings.get(movieId).toString().trim();
+      String report = this.movieIdToAggregateRatings.get(movieId).toString().replaceAll(" ", "");
       report = report.substring(1, report.length() - 1);
       this.tuple.set(report);
       ctx.write(this.movieId, this.tuple);

@@ -164,7 +164,7 @@ public class FilterRatingsBy2TimeIntervalAndAggregate2Mapper extends Mapper<Obje
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
     for (Long movieId : this.movieIdToAggregateRatings_1_2.keySet()) {
       this.movieId.set(movieId);
-      String report = this.movieIdToAggregateRatings_1_2.get(movieId).toString().trim();
+      String report = this.movieIdToAggregateRatings_1_2.get(movieId).toString().replaceAll(" ", "");
       report = report.substring(1, report.length() - 1);
       this.tuple.set("1;2:" + report);
       ctx.write(this.movieId, this.tuple);
@@ -172,7 +172,7 @@ public class FilterRatingsBy2TimeIntervalAndAggregate2Mapper extends Mapper<Obje
 
     for (Long movieId : this.movieIdToAggregateRatings_1.keySet()) {
       this.movieId.set(movieId);
-      String report = this.movieIdToAggregateRatings_1.get(movieId).toString().trim();
+      String report = this.movieIdToAggregateRatings_1.get(movieId).toString().replaceAll(" ", "");
       report = report.substring(1, report.length() - 1);
       this.tuple.set("1:" + report);
       ctx.write(this.movieId, this.tuple);
@@ -180,7 +180,7 @@ public class FilterRatingsBy2TimeIntervalAndAggregate2Mapper extends Mapper<Obje
 
     for (Long movieId : this.movieIdToAggregateRatings_2.keySet()) {
       this.movieId.set(movieId);
-      String report = this.movieIdToAggregateRatings_2.get(movieId).toString().trim();
+      String report = this.movieIdToAggregateRatings_2.get(movieId).toString().replaceAll(" ", "");
       report = report.substring(1, report.length() - 1);
       this.tuple.set("2:" + report);
       ctx.write(this.movieId, this.tuple);

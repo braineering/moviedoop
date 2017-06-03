@@ -28,6 +28,9 @@ package com.acmutv.moviedoop.query1;
 import com.acmutv.moviedoop.common.util.DateParser;
 import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampAndAggregateMapperORC;
 import com.acmutv.moviedoop.query1.reduce.AverageAggregateRatingJoinMovieTitleCachedReducer;
+import com.acmutv.moviedoop.query1.reduce.AverageAggregateRatingJoinMovieTitleCachedReducerORC;
+import com.acmutv.moviedoop.test.map.IdentityMapperOrc2Orc;
+import com.acmutv.moviedoop.test.reduce.RatingJoinMovieTitleCachedOrcReducerText2Orc;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
@@ -35,13 +38,18 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
+import org.apache.orc.mapred.OrcKey;
+import org.apache.orc.mapred.OrcStruct;
+import org.apache.orc.mapred.OrcValue;
 import org.apache.orc.mapreduce.OrcInputFormat;
+import org.apache.orc.mapreduce.OrcOutputFormat;
 
 import java.time.LocalDateTime;
 
@@ -137,11 +145,15 @@ public class Query1_5 extends Configured implements Tool {
     job.setInputFormatClass(OrcInputFormat.class);
     OrcInputFormat.addInputPath(job, inputRatings);
     job.setMapperClass(FilterRatingsByTimestampAndAggregateMapperORC.class);
-    job.setMapOutputKeyClass(LongWritable.class);
-    job.setMapOutputValueClass(Text.class);
+    job.setMapOutputKeyClass(OrcKey.class);
+    job.setMapOutputValueClass(OrcValue.class);
+    job.getConfiguration().setIfUnset("orc.mapred.map.output.key.schema",
+        FilterRatingsByTimestampAndAggregateMapperORC.ORC_SCHEMA_KEY.toString());
+    job.getConfiguration().setIfUnset("orc.mapred.map.output.value.schema",
+        FilterRatingsByTimestampAndAggregateMapperORC.ORC_SCHEMA_VALUE.toString());
 
     // REDUCE CONFIGURATION
-    job.setReducerClass(AverageAggregateRatingJoinMovieTitleCachedReducer.class);
+    job.setReducerClass(AverageAggregateRatingJoinMovieTitleCachedReducerORC.class);
     job.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
 
     // OUTPUT CONFIGURATION

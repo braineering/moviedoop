@@ -157,6 +157,12 @@ public class MoviedoopDriver {
       driver.addClass("query_serialization_orc2orc2orc", QuerySerializationOrc2Orc2Orc.class,
           "A map/reduce program that tests ORC to ORC to ORC serialization.");
 
+      driver.addClass("query_topk_1", QueryTopK_1.class,
+          "A map/reduce program that tests top-k ranking.");
+
+      driver.addClass("query_sort_1", QuerySort_1.class,
+          "A map/reduce program that tests total ranking.");
+
       exitCode = driver.run(args);
     } catch (Throwable exc) {
       exc.printStackTrace();

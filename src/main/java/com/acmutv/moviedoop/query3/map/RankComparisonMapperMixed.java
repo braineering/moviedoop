@@ -63,6 +63,11 @@ public class RankComparisonMapperMixed extends Mapper<LongWritable,Text,NullWrit
   private static final Logger LOG = Logger.getLogger(RankComparisonMapperMixed.class);
 
   /**
+   * The null writable value.
+   */
+  private static final NullWritable NULL = NullWritable.get();
+
+  /**
    * The map between movieId and movie top-k rankin (rank position and score).
    */
   private Map<Long,String> movieIdToMovieTopKPositionAndScore = new HashMap<>();
@@ -91,7 +96,6 @@ public class RankComparisonMapperMixed extends Mapper<LongWritable,Text,NullWrit
       for (URI uri : ctx.getCacheFiles()) {
         Path path = new Path(uri);
         if (path.getParent().toString().endsWith(pathMovies)) {
-          System.out.printf("### MAP ### reading cached file (movies): %s\n", path);
           Reader reader = OrcFile.createReader(path, new OrcFile.ReaderOptions(ctx.getConfiguration()));
           RecordReader rows = reader.rows();
           VectorizedRowBatch batch = reader.getSchema().createRowBatch();
@@ -105,8 +109,7 @@ public class RankComparisonMapperMixed extends Mapper<LongWritable,Text,NullWrit
             }
           }
           rows.close();
-        } else if (path.getParent().toString().endsWith(pathTopK) && !"_SUCCESS".equals(path.getName())) {
-          System.out.printf("### MAP ### reading cached file (topk): %s\n", path);
+        } else if (path.getParent().toString().endsWith(pathTopK)) {
           Reader reader = OrcFile.createReader(path, new OrcFile.ReaderOptions(ctx.getConfiguration()));
           RecordReader rows = reader.rows();
           VectorizedRowBatch batch = reader.getSchema().createRowBatch();
@@ -170,7 +173,7 @@ public class RankComparisonMapperMixed extends Mapper<LongWritable,Text,NullWrit
         long movieId = entry.getKey();
         String movieTitle = this.movieIdToMovieTitle.get(movieId);
         this.tuple.set(movieTitle + "\tna\tna");
-        ctx.write(NullWritable.get(), this.tuple);
+        ctx.write(NULL, this.tuple);
       }
     }
   }

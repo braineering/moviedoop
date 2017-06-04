@@ -14,7 +14,7 @@ Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deseru
 The system needs to be provided with the following:
 * Java >= 1.8.0
 * Maven >= 3.3.9
-* Hadoop 3.0.0.0-alpha2
+* Hadoop 2.8.0
 
 
 ## Build
@@ -43,13 +43,19 @@ where
 * *[ARGS]* are the mandatory program arguments.
 
 Notice that the following map/reduce programs are available:
-* **query1_1** the 1st query with inner join (repartition join).
-* **query1_2** the 1st query with inner join (replication join, distributed cache on reducer).
-* **query1_3** the 1st query with inner join (replication join, distributed cache on mapper).
-* **query2** the 2nd query.
-* **query3_1** the 3rd query with inner join (repartition join).
-* **query3_2** the 3rd query with inner join (replication join, distributed cache on reducer).
-* **query3_3** the 3rd query with inner join (replication join, distributed cache on mapper).
+* **query1_1** the 1st query, leveraging inner join (repartition join).
+* **query1_2** the 1st query, leveraging inner join (replication join, distributed cache on map).
+* **query1_3** the 1st query, leveraging inner join (replication join, distributed cache on reduce).
+* **query1_4** the 1st query, leveraging inner join (replication join, distributed cache on reduce) and optimizations on average computation (type 1).
+* **query1_5** the 1st query, leveraging inner join (replication join, distributed cache on reduce) and optimizations on average computation (type 2).
+* **query1_6** the 1st query, leveraging inner join (replication join, distributed cache on mapper), optimizations on average computation (type 2) and ORC serialization.
+* **query2_1** the 2nd query, leveraging ....
+* **query2_2** the 2nd query, leveraging ....
+* **query3_1** the 3rd query, leveraging inner join (replication join, distributed cache on map) and BestMap for top-k.
+* **query3_2** the 3rd query, leveraging inner join (replication join, distributed cache on map), BestMap for top-k and optimizations on average computation (type 1).
+* **query3_3** the 3rd query, leveraging inner join (replication join, distributed cache on map), BestMap for top-k and optimizations on average computation (type 2).
+* **query3_4** the 3rd query, leveraging inner join (replication join, distributed cache on map), BestMap for top-k, optimizations on average computation (type 2) and ORC serialization.
+* **query3_5** the 3rd query, leveraging inner join (replication join, distributed cache on map), BestMap for top-k, optimizations on average computation (type 2), ORC serialization and parallel jobs.
 
 Read the output:
 

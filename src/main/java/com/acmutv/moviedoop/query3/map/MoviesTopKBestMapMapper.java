@@ -32,6 +32,7 @@ import com.acmutv.moviedoop.common.util.RecordParser;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Map;
@@ -46,6 +47,16 @@ import java.util.Map;
  * @since 1.0
  */
 public class MoviesTopKBestMapMapper extends Mapper<Object,Text,NullWritable,Text> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(MoviesTopKBestMapMapper.class);
+
+  /**
+   * The null writable value.
+   */
+  private static final NullWritable NULL = NullWritable.get();
 
   /**
    * The rank data structure.
@@ -93,7 +104,7 @@ public class MoviesTopKBestMapMapper extends Mapper<Object,Text,NullWritable,Tex
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
     for (Map.Entry<Long,Double> entry : this.rank.entrySet()) {
       this.tuple.set(entry.getKey() + "," + entry.getValue());
-      ctx.write(NullWritable.get(), this.tuple);
+      ctx.write(NULL, this.tuple);
     }
   }
 }

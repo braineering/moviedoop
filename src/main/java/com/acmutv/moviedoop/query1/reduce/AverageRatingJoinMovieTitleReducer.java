@@ -43,7 +43,7 @@ import java.io.IOException;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable, Text, Text, DoubleWritable> {
+public class AverageRatingJoinMovieTitleReducer extends Reducer<LongWritable,Text,Text,DoubleWritable> {
 
   /**
    * The logger.

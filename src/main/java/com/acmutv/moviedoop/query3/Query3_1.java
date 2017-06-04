@@ -340,7 +340,9 @@ public class Query3_1 extends Configured implements Tool {
       Job jobRankComparison = Job.getInstance(config, PROGRAM_NAME + "_RANK_COMPARISON");
       jobRankComparison.setJarByClass(Query3_1.class);
       for (FileStatus status : FileSystem.get(config).listStatus(stagingTopK)) {
-        jobRankComparison.addCacheFile(status.getPath().toUri());
+        Path path = status.getPath();
+        if ("_SUCCESS".equals(path.getName())) continue;
+        jobRankComparison.addCacheFile(path.toUri());
       }
       for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
         jobRankComparison.addCacheFile(status.getPath().toUri());

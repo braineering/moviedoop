@@ -33,6 +33,7 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -45,6 +46,16 @@ import java.io.IOException;
  * @since 1.0
  */
 public class AverageRating2Reducer extends Reducer<LongWritable,Text,NullWritable,Text> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(AverageRating2Reducer.class);
+
+  /**
+   * The null writable value.
+   */
+  private static final NullWritable NULL = NullWritable.get();
 
   /**
    * The multiple outputs.
@@ -105,12 +116,12 @@ public class AverageRating2Reducer extends Reducer<LongWritable,Text,NullWritabl
 
     if (num1 > 0) {
       this.tuple.set(movieId + "," + avgScore1);
-      this.mos.write("1", NullWritable.get(), this.tuple);
+      this.mos.write("1", NULL, this.tuple);
     }
 
     if (num2 > 0) {
       this.tuple.set(movieId + "," + avgScore2);
-      this.mos.write("2", NullWritable.get(), this.tuple);
+      this.mos.write("2", NULL, this.tuple);
     }
   }
 

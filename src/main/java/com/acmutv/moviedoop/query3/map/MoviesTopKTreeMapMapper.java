@@ -31,6 +31,7 @@ import com.acmutv.moviedoop.common.util.RecordParser;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Map;
@@ -46,6 +47,16 @@ import java.util.TreeMap;
  * @since 1.0
  */
 public class MoviesTopKTreeMapMapper extends Mapper<Object,Text,NullWritable,Text> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(MoviesTopKTreeMapMapper.class);
+
+  /**
+   * The null writable value.
+   */
+  private static final NullWritable NULL = NullWritable.get();
 
   /**
    * The movies rank size.
@@ -83,8 +94,6 @@ public class MoviesTopKTreeMapMapper extends Mapper<Object,Text,NullWritable,Tex
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
     Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"movieId","score"}, ",");
 
-    System.out.printf("### MAP ### TopKBestMapMapper :: value: %s\n", value.toString());
-
     long movieId = Long.valueOf(rating.get("movieId"));
     double score = Double.valueOf(rating.get("score"));
 
@@ -103,7 +112,7 @@ public class MoviesTopKTreeMapMapper extends Mapper<Object,Text,NullWritable,Tex
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
     for (Map.Entry<Double,Long> entry : this.rank.entrySet()) {
       this.tuple.set(entry.getValue() + "," + entry.getKey());
-      ctx.write(NullWritable.get(), this.tuple);
+      ctx.write(NULL, this.tuple);
     }
   }
 }

@@ -32,6 +32,7 @@ import com.acmutv.moviedoop.query3.Query3_3;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -51,6 +52,16 @@ import java.util.Map;
  * @since 1.0
  */
 public class RankComparisonMapper extends Mapper<LongWritable,Text,NullWritable,Text> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(RankComparisonMapper.class);
+
+  /**
+   * The null writable value.
+   */
+  private static final NullWritable NULL = NullWritable.get();
 
   /**
    * The map between movieId and movie top-k rankin (rank position and score).
@@ -146,7 +157,7 @@ public class RankComparisonMapper extends Mapper<LongWritable,Text,NullWritable,
         long movieId = entry.getKey();
         String movieTitle = this.movieIdToMovieTitle.get(movieId);
         this.tuple.set(movieTitle + "\tna\tna");
-        ctx.write(NullWritable.get(), this.tuple);
+        ctx.write(NULL, this.tuple);
       }
     }
   }

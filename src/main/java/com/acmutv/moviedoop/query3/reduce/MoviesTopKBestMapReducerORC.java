@@ -59,6 +59,11 @@ public class MoviesTopKBestMapReducerORC extends Reducer<NullWritable,OrcValue,N
   private static final Logger LOG = Logger.getLogger(MoviesTopKBestMapReducerORC.class);
 
   /**
+   * The null writable value.
+   */
+  private static final NullWritable NULL = NullWritable.get();
+
+  /**
    * The ORC schema.
    */
   public static final TypeDescription ORC_SCHEMA = TypeDescription.fromString("struct<id:bigint,avgrating:double>");
@@ -106,7 +111,6 @@ public class MoviesTopKBestMapReducerORC extends Reducer<NullWritable,OrcValue,N
   public void reduce(NullWritable key, Iterable<OrcValue> values, Context ctx) throws IOException, InterruptedException {
     for (OrcValue orcValue : values) {
       String value = ((Text)((OrcStruct) orcValue.value).getFieldValue(0)).toString();
-      System.out.printf("### RED ### in = %s\n", value);
       String pairs[] = value.split(",", -1);
       for (String pair : pairs) {
         String elem[] = pair.split("=", -1);
@@ -127,8 +131,7 @@ public class MoviesTopKBestMapReducerORC extends Reducer<NullWritable,OrcValue,N
         this.rank.entrySet().stream().sorted((e1,e2)-> e2.getValue().compareTo(e1.getValue())).collect(Collectors.toList())) {
       this.movieId.set(entry.getKey());
       this.avgrating.set(entry.getValue());
-      ctx.write(NullWritable.get(), this.out);
-      System.out.printf("### RED ### out = (%d,%f)\n", this.movieId.get(), this.avgrating.get());
+      ctx.write(NULL, this.out);
     }
   }
 

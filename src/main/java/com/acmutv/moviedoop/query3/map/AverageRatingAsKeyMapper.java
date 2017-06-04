@@ -32,6 +32,7 @@ import com.acmutv.moviedoop.query3.Query3_3;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Map;
@@ -45,6 +46,11 @@ import java.util.Map;
  * @since 1.0
  */
 public class AverageRatingAsKeyMapper extends Mapper<Object,Text,DoubleWritable,Text> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(AverageRatingAsKeyMapper.class);
 
   /**
    * The movie rating to emit.

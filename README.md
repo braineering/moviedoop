@@ -90,6 +90,24 @@ Here is an example:
     /moviedoop/_test/output/query1_1
 
 
+### Query2_*
+
+    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query2_1 <IN_RATINGS> <IN_MOVIES> <OUT>
+    
+where:
+* *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR,
+* *[IN\_RATINGS]* is the HDFS absolute path to the directory containing the ratings data set,
+* *[IN\_MOVIES]* is the HDFS absolute path to the directory containing the movies data set,
+* *[OUT]* is the HDFS absolute path to the directory for the output.
+
+Here is an example:
+
+    $hadoop_home> bin/hadoop jar moviedoop-1.0.jar \
+    query2_1 \
+    /moviedoop/_test/input/ratings \
+    /moviedoop/_test/input/movies \
+    /moviedoop/_test/output/query2_1
+
 ### Query3_*
 
     $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query3_1 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>

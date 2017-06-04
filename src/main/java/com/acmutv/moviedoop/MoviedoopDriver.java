@@ -110,7 +110,7 @@ public class MoviedoopDriver {
                       "average and standard deviation of rating. " +
                       "The program leverages inner joins (replication joins as distributed caching on reduce)" +
                       "and optimizations (aggregations in a single tupla) on average - stdDev computation." +
-                      "Data beetween steps of mapreduce in ocr format" );
+                      "Data beetween mapreduce's steps with ORC serialization" );
 
       /* *******************************************************************************************
        * QUERY 3

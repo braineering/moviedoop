@@ -34,6 +34,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.log4j.Logger;
+import org.apache.orc.mapred.OrcKey;
+import org.apache.orc.mapred.OrcValue;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -50,7 +52,7 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AggregateRatingJoinGenreCachedReducer extends Reducer<LongWritable,Text,Text,Text> {
+public class AggregateRatingJoinGenreCachedReducer extends Reducer<OrcKey,OrcValue,Text,Text> {
 
   /**
    * The logger.

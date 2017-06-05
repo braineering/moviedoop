@@ -63,6 +63,11 @@ public class Query2_1 extends Configured implements Tool {
   private static final String PROGRAM_NAME = "Query2_1";
 
   /**
+   * The default number of reducers for the averaging job.
+   */
+  private static final int REDUCE_CARDINALITY = 1;
+
+  /**
    * The job main method.
    *
    * @param args the job arguments.
@@ -85,6 +90,10 @@ public class Query2_1 extends Configured implements Tool {
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
 
+    // OTHER CONFIGURATION
+    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(REDUCE_CARDINALITY)));
+    config.unset("moviedoop.average.reduce.cardinality");
+
     // CONFIGURATION RESUME
     System.out.println("############################################################################");
     System.out.printf("%s\n", PROGRAM_NAME);
@@ -92,6 +101,8 @@ public class Query2_1 extends Configured implements Tool {
     System.out.println("Input Ratings: " + inputRatings);
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
+    System.out.println("----------------------------------------------------------------------------");
+    System.out.println("Reduce Cardinality (average): " + REDUCE_CARDINALITY);
     System.out.println("############################################################################");
 
     /* *********************************************************************************************
@@ -112,7 +123,7 @@ public class Query2_1 extends Configured implements Tool {
     job.setMapOutputValueClass(DoubleWritable.class);
 
     job.setReducerClass(RatingJoinGenreCachedReducer.class);
-    job.setNumReduceTasks(1);
+    job.setNumReduceTasks(REDUCE_CARDINALITY);
 
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(DoubleWritable.class);
@@ -137,7 +148,7 @@ public class Query2_1 extends Configured implements Tool {
     job2.setMapOutputValueClass(DoubleWritable.class);
 
     job2.setReducerClass(GenresReducer.class);
-    job2.setNumReduceTasks(1);
+    job2.setNumReduceTasks(REDUCE_CARDINALITY);
     job2.setOutputKeyClass(Text.class);
     job2.setOutputValueClass(Text.class);
     FileOutputFormat.setOutputPath(job2, output);

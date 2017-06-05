@@ -15,6 +15,9 @@ The system needs to be provided with the following:
 * Java >= 1.8.0
 * Maven >= 3.3.9
 * Hadoop 2.8.0
+* Hive
+* HBase
+* Flume
 
 
 ## Build
@@ -145,6 +148,31 @@ Here is an example:
     /moviedoop/_test/input/ratings \
     /moviedoop/_test/input/movies \
     /moviedoop/_test/output/query3_1
+    
+### Data Injestion
+
+Required:
+
+*[Put data with Flume on HDFS from local file system:]* 
+
+ USAGE:													
+ 1) Put configuration file (./flume/moviedoop.conf) in the $FLUME_HOME/conf directory 											
+ 2) Change the spoolDir path for setting the source directory
+ 3) Change path of HDFS sink
+ 4) Create a directory in HDFS with: $hdfs dfs -mkdir /namedirectory_of_sink						
+ 5) Run:
+		$ cd $FLUME_HOME/bin (if you have FLUME_HOME as environment variable)
+		$ ./flume-ng agent -n movieagent -f $FLUME_HOME/conf/moviedoop.conf -c $FLUME_HOME/conf
+
+*[Put data with Flume on HBase from HDFS:]*
+ 
+ USAGE:													
+ 1) Put configuration file (./flume/moviedoop.conf) in the $FLUME_HOME/conf directory 											
+ 2) Change path of HDFS source
+ 3) Create table on HBase with command: create 'movietable','d'
+ 4) Run:
+        $ cd $FLUME_HOME/bin (if you have FLUME_HOME as environment variable)
+        $ ./flume-ng agent -n movieagent2 -f $FLUME_HOME/conf/moviedoop.conf -c $FLUME_HOME/conf		
 
 ## Authors
 Giacomo Marciani, [gmarciani@acm.org](mailto:gmarciani@acm.org)

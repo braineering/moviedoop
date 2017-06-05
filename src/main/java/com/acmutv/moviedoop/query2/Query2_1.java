@@ -63,7 +63,7 @@ public class Query2_1 extends Configured implements Tool {
   private static final String PROGRAM_NAME = "Query2_1";
 
   /**
-   * The default number of reducers for the averaging job.
+   * The default number of reducers for the job.
    */
   private static final int REDUCE_CARDINALITY = 1;
 
@@ -91,7 +91,8 @@ public class Query2_1 extends Configured implements Tool {
     Configuration config = super.getConf();
 
     // OTHER CONFIGURATION
-    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(REDUCE_CARDINALITY)));
+    final int RATINGS_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(REDUCE_CARDINALITY)));
+    final int GENRES_REDUCE_CARDINALITY = RATINGS_REDUCE_CARDINALITY;
     config.unset("moviedoop.average.reduce.cardinality");
 
     // CONFIGURATION RESUME
@@ -102,7 +103,7 @@ public class Query2_1 extends Configured implements Tool {
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
     System.out.println("----------------------------------------------------------------------------");
-    System.out.println("Reduce Cardinality (average): " + REDUCE_CARDINALITY);
+    System.out.println("Reduce Cardinality (average): " + RATINGS_REDUCE_CARDINALITY);
     System.out.println("############################################################################");
 
     /* *********************************************************************************************
@@ -123,7 +124,7 @@ public class Query2_1 extends Configured implements Tool {
     job.setMapOutputValueClass(DoubleWritable.class);
 
     job.setReducerClass(RatingJoinGenreCachedReducer.class);
-    job.setNumReduceTasks(REDUCE_CARDINALITY);
+    job.setNumReduceTasks(RATINGS_REDUCE_CARDINALITY);
 
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(DoubleWritable.class);
@@ -148,7 +149,8 @@ public class Query2_1 extends Configured implements Tool {
     job2.setMapOutputValueClass(DoubleWritable.class);
 
     job2.setReducerClass(GenresReducer.class);
-    job2.setNumReduceTasks(REDUCE_CARDINALITY);
+    job2.setNumReduceTasks(GENRES_REDUCE_CARDINALITY);
+
     job2.setOutputKeyClass(Text.class);
     job2.setOutputValueClass(Text.class);
     FileOutputFormat.setOutputPath(job2, output);

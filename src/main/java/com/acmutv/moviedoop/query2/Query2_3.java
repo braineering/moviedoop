@@ -65,7 +65,12 @@ public class Query2_3 extends Configured implements Tool {
   /**
    * The program name.
    */
-  private static final String PROGRAM_NAME = "Query2_2";
+  private static final String PROGRAM_NAME = "Query2_3";
+
+  /**
+   * The default number of reducers for the averaging job.
+   */
+  private static final int REDUCE_CARDINALITY = 1;
 
   @Override
   public int run(String[] args) throws Exception {
@@ -84,6 +89,11 @@ public class Query2_3 extends Configured implements Tool {
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
 
+    // OTHER CONFIGURATION
+    final int RATINGS_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(REDUCE_CARDINALITY)));
+    final int GENRES_REDUCE_CARDINALITY = RATINGS_REDUCE_CARDINALITY;
+    config.unset("moviedoop.average.reduce.cardinality");
+
     // USER PARAMETERS RESUME
     System.out.println("############################################################################");
     System.out.printf("%s\n", PROGRAM_NAME);
@@ -91,6 +101,8 @@ public class Query2_3 extends Configured implements Tool {
     System.out.println("Input Ratings: " + inputRatings);
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
+    System.out.println("----------------------------------------------------------------------------");
+    System.out.println("Reduce Cardinality (average): " + RATINGS_REDUCE_CARDINALITY);
     System.out.println("############################################################################");
 
     // JOB1 CONFIGURATION

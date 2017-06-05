@@ -26,13 +26,8 @@
 package com.acmutv.moviedoop;
 
 import com.acmutv.moviedoop.query1.*;
-import com.acmutv.moviedoop.query2.Query2_1;
-import com.acmutv.moviedoop.query2.Query2_2;
-import com.acmutv.moviedoop.query2.Query2_3;
-import com.acmutv.moviedoop.query3.Query3_1;
-import com.acmutv.moviedoop.query3.Query3_2;
-import com.acmutv.moviedoop.query3.Query3_3;
-import com.acmutv.moviedoop.query3.Query3_4;
+import com.acmutv.moviedoop.query2.*;
+import com.acmutv.moviedoop.query3.*;
 import com.acmutv.moviedoop.test.*;
 import org.apache.hadoop.util.ProgramDriver;
 import org.apache.log4j.Logger;
@@ -150,6 +145,15 @@ public class MoviedoopDriver {
               "The program leverages BestMap for top-k ranking (aggregated ranking), inner joins (replication joins as distributed caching on map)," +
               "optimizations on average computation (2) and ORC serialization.");
 
+      driver.addClass("query3_5", Query3_5.class,
+          "A map/reduce program that returns the comparison between " +
+              "(i) the top-`rankSize` movies, considering average ratings in period from `ratingTimestampTopKLB` \n" +
+              "and `ratingTimestampTopKUB`; and\n" +
+              "(ii) the total rank of movies, considering average ratings in period from `ratingTimestampRankLB`\n" +
+              "and `ratingTimestampRankUB`.\n" +
+              "The program leverages BestMap for top-k ranking (aggregated ranking), inner joins (replication joins as distributed caching on map)," +
+              "optimizations on average computation (2), ORC serialization and parallel jobs.");
+
       /* *******************************************************************************************
        * TESTS
        ********************************************************************************************/
@@ -167,6 +171,12 @@ public class MoviedoopDriver {
 
       driver.addClass("query_serialization_orc2orc2orc", QuerySerializationOrc2Orc2Orc.class,
           "A map/reduce program that tests ORC to ORC to ORC serialization.");
+
+      driver.addClass("query_topk_1", QueryTopK_1.class,
+          "A map/reduce program that tests top-k ranking.");
+
+      driver.addClass("query_sort_1", QuerySort_1.class,
+          "A map/reduce program that tests total ranking.");
 
       exitCode = driver.run(args);
     } catch (Throwable exc) {

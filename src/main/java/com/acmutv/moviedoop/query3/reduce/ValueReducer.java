@@ -32,6 +32,7 @@ import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -46,6 +47,16 @@ import java.io.IOException;
 public class ValueReducer extends Reducer<DoubleWritable,Text,NullWritable,Text> {
 
   /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(ValueReducer.class);
+
+  /**
+   * The null writable value.
+   */
+  private static final NullWritable NULL = NullWritable.get();
+
+  /**
    * The reduction routine.
    *
    * @param key the input key.
@@ -56,7 +67,7 @@ public class ValueReducer extends Reducer<DoubleWritable,Text,NullWritable,Text>
    */
   public void reduce(DoubleWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
     for (Text value : values) {
-      ctx.write(NullWritable.get(), value);
+      ctx.write(NULL, value);
     }
   }
 

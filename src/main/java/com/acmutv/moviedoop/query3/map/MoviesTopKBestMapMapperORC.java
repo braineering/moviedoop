@@ -54,6 +54,11 @@ public class MoviesTopKBestMapMapperORC extends Mapper<Object,OrcStruct,NullWrit
   private static final Logger LOG = Logger.getLogger(MoviesTopKBestMapMapperORC.class);
 
   /**
+   * The null writable value.
+   */
+  private static final NullWritable NULL = NullWritable.get();
+
+  /**
    * The ORC schema for key.
    */
   //public static final TypeDescription ORC_SCHEMA_KEY = TypeDescription.fromString("struct<id:bigint>");
@@ -128,9 +133,8 @@ public class MoviesTopKBestMapMapperORC extends Mapper<Object,OrcStruct,NullWrit
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
     String report = this.rank.toString().replaceAll(" ", "");
     report = report.substring(1, report.length() - 1);
-    System.out.printf("### MAP ### report = %s\n", report);
     this.tuple.set(report);
     this.valuewrapper.value = valueStruct;
-    ctx.write(NullWritable.get(), this.valuewrapper);
+    ctx.write(NULL, this.valuewrapper);
   }
 }

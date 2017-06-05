@@ -43,7 +43,7 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class MoviesJMapper extends Mapper<Object, Text, LongWritable, Text> {
+public class MoviesJMapper extends Mapper<Object,Text,LongWritable,Text> {
 
   /**
    * The logger.

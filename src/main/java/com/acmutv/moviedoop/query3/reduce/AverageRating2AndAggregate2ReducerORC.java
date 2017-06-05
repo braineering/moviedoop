@@ -56,6 +56,11 @@ public class AverageRating2AndAggregate2ReducerORC extends Reducer<OrcKey,OrcVal
   private static final Logger LOG = Logger.getLogger(AverageRating2AndAggregate2ReducerORC.class);
 
   /**
+   * The null writable value.
+   */
+  private static final NullWritable NULL = NullWritable.get();
+
+  /**
    * The multiple outputs.
    */
   private MultipleOutputs<NullWritable,OrcStruct> mos;
@@ -146,13 +151,13 @@ public class AverageRating2AndAggregate2ReducerORC extends Reducer<OrcKey,OrcVal
     if (num1 > 0) {
       this.movieId.set(movieId);
       this.avgrating.set(avgScore1);
-      this.mos.write("1", NullWritable.get(), this.tuple);
+      this.mos.write("1", NULL, this.tuple);
     }
 
     if (num2 > 0) {
       this.movieId.set(movieId);
       this.avgrating.set(avgScore2);
-      this.mos.write("2", NullWritable.get(), this.tuple);
+      this.mos.write("2", NULL, this.tuple);
     }
   }
 

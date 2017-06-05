@@ -29,9 +29,11 @@ import com.acmutv.moviedoop.query3.Query3_1;
 import com.acmutv.moviedoop.query3.Query3_2;
 import com.acmutv.moviedoop.query3.Query3_3;
 import com.acmutv.moviedoop.query3.Query3_4;
+import com.acmutv.moviedoop.test.map.IdentityMapper;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -44,6 +46,11 @@ import java.io.IOException;
  * @since 1.0
  */
 public class IdentityMapper2 extends Mapper<DoubleWritable,Text,DoubleWritable,Text> {
+
+  /**
+   * The logger.
+   */
+  private static final Logger LOG = Logger.getLogger(IdentityMapper2.class);
 
   /**
    * The mapping routine.

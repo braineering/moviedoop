@@ -26,8 +26,14 @@
 package com.acmutv.moviedoop.query2.map;
 
 import com.acmutv.moviedoop.query2.Query2_2;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.orc.TypeDescription;
+import org.apache.orc.mapred.OrcKey;
+import org.apache.orc.mapred.OrcStruct;
+import org.apache.orc.mapred.OrcValue;
 
 import java.io.IOException;
 
@@ -39,7 +45,47 @@ import java.io.IOException;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AggregateGenresIdentityMapper2ORC extends Mapper<Text, Text, Text, Text> {
+public class AggregateGenresIdentityMapper2ORC extends Mapper<Object, OrcStruct, OrcKey, OrcValue> {
+
+  /**
+   * The ORC schema for key.
+   */
+  public static final TypeDescription ORC_SCHEMA_KEY = TypeDescription.fromString("struct<genre:string>");
+
+  /**
+   * The ORC schema for value.
+   */
+  public static final TypeDescription ORC_SCHEMA_VALUE = TypeDescription.fromString("struct<ratings:string>");
+
+  /**
+   * The key ORC wrapper
+   */
+  private OrcKey keywrapper = new OrcKey();
+
+  /**
+   * The value ORC wrapper.
+   */
+  private OrcValue valuewrapper = new OrcValue();
+
+  /**
+   * The ORC struct for key.
+   */
+  private OrcStruct keyStruct = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA_KEY);
+
+  /**
+   * The ORC struct for value.
+   */
+  private OrcStruct valueStruct = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA_VALUE);
+
+  /**
+   * The movieId to emit.
+   */
+  private Text genre = (Text) keyStruct.getFieldValue(0);
+
+  /**
+   * The tuple {rating=repetitions,...,rating=repetitions} to emit.
+   */
+  private Text ratings = (Text) valueStruct.getFieldValue(0);
 
   /**
    * The mapping routine.
@@ -50,7 +96,13 @@ public class AggregateGenresIdentityMapper2ORC extends Mapper<Text, Text, Text, 
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Text key, Text value, Context ctx) throws IOException, InterruptedException {
-    ctx.write(key,value);
+  public void map(Object key, OrcStruct value, Context ctx) throws IOException, InterruptedException {
+    String genre = String.valueOf(value.getFieldValue(0).toString());
+    String ratings = String.valueOf(value.getFieldValue(1).toString());
+    this.genre.set(genre);
+    this.ratings.set(ratings);
+    this.keywrapper.key = this.keyStruct;
+    this.valuewrapper.value = this.valueStruct;
+    ctx.write(this.keywrapper,this.valuewrapper);
   }
 }

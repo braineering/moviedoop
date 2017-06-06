@@ -92,19 +92,14 @@ public class RatingsAggregateCachedMapper2Orc extends Mapper<Object,OrcStruct,Or
   private Map<Long,Map<Double,Long>> movieIdToAggregateRatings = new HashMap<>();
 
   /**
-   * The movie id to emit.
+   * The movieId to emit.
    */
-  private LongWritable movieId = new LongWritable();
+  private LongWritable movieId = (LongWritable) keyStruct.getFieldValue(0);
 
   /**
-   * The tuple (score,repetitions) to emit.
+   * The tuple {rating=repetitions,...,rating=repetitions} to emit.
    */
-  private String tupla = new String();
-
-  /**
-   * The tuple (score,repetitions) to emit.
-   */
-  private Text tuple = new Text();
+  private Text tupla = (Text) valueStruct.getFieldValue(0);
 
   /**
    * The mapping routine.
@@ -115,13 +110,12 @@ public class RatingsAggregateCachedMapper2Orc extends Mapper<Object,OrcStruct,Or
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
+  public void map(Object key, OrcStruct value, Context ctx) throws IOException, InterruptedException {
+    long movieId = Long.valueOf(value.getFieldValue(1).toString());
+    double rating = Double.valueOf(value.getFieldValue(2).toString());
 
-    long movieId = Long.valueOf(rating.get("movieId"));
-    double score = Double.valueOf(rating.get("score"));
     this.movieIdToAggregateRatings.putIfAbsent(movieId, new HashMap<>());
-    this.movieIdToAggregateRatings.get(movieId).compute(score, (k,v) -> (v == null) ? 1 : v + 1);
+    this.movieIdToAggregateRatings.get(movieId).compute(rating, (k,v) -> (v == null) ? 1 : v + 1);
   }
 
   /**
@@ -132,12 +126,21 @@ public class RatingsAggregateCachedMapper2Orc extends Mapper<Object,OrcStruct,Or
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
     for (Long movieId : this.movieIdToAggregateRatings.keySet()) {
       this.movieId.set(movieId);
-      String report = this.movieIdToAggregateRatings.get(movieId).toString().replaceAll(" ", "");
-      report = report.substring(1, report.length() - 1);
-      this.tuple.set(report);
+      this.tupla.set("");
+
+      for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings.get(movieId).entrySet()) {
+        long repetitions = entry.getValue();
+        if (repetitions == 0) continue;
+        double score = entry.getKey();
+        if (this.tupla.toString().isEmpty())
+          this.tupla.set(this.tupla + Double.toString(score) + "=" + Long.toString(repetitions));
+        else
+          this.tupla.set(this.tupla + "," + Double.toString(score) + "=" + Long.toString(repetitions));
+      }
       this.keywrapper.key = keyStruct;
       this.valuewrapper.value = valueStruct;
-      ctx.write(this.keywrapper, this.valuewrapper);
+      ctx.write(this.keywrapper, valuewrapper);
     }
+
   }
 }

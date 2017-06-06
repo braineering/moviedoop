@@ -27,6 +27,7 @@ package com.acmutv.moviedoop.query2;
 
 import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampAndAggregate2MapperORC;
 import com.acmutv.moviedoop.query2.map.AggregateGenresIdentityMapper2ORC;
+import com.acmutv.moviedoop.query2.map.RatingsAggregateCachedMapper2Orc;
 import com.acmutv.moviedoop.query2.reduce.AggregateGenresReducerORC;
 import com.acmutv.moviedoop.query2.reduce.AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc;
 import com.acmutv.moviedoop.query3.reduce.MoviesTopKBestMapReducerORC;
@@ -35,6 +36,7 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -45,6 +47,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.orc.mapred.OrcKey;
+import org.apache.orc.mapred.OrcStruct;
 import org.apache.orc.mapred.OrcValue;
 import org.apache.orc.mapreduce.OrcInputFormat;
 import org.apache.orc.mapreduce.OrcOutputFormat;
@@ -113,22 +116,20 @@ public class Query2_5 extends Configured implements Tool {
     job.setMapOutputKeyClass(OrcKey.class);
     job.setMapOutputValueClass(OrcValue.class);
     job.getConfiguration().setIfUnset("orc.mapred.map.output.key.schema",
-            FilterRatingsByTimestampAndAggregate2MapperORC.ORC_SCHEMA_KEY.toString());
+            RatingsAggregateCachedMapper2Orc.ORC_SCHEMA_KEY.toString());
     job.getConfiguration().setIfUnset("orc.mapred.map.output.value.schema",
-            FilterRatingsByTimestampAndAggregate2MapperORC.ORC_SCHEMA_VALUE.toString());
+            RatingsAggregateCachedMapper2Orc.ORC_SCHEMA_VALUE.toString());
 
     job.setReducerClass(AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc.class);
     job.setNumReduceTasks(RATINGS_REDUCE_CARDINALITY);
 
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(Text.class);
-    job.setOutputFormatClass(SequenceFileOutputFormat.class);
-    FileOutputFormat.setOutputPath(job, staging);
+    job.setOutputKeyClass(NullWritable.class);
+    job.setOutputValueClass(OrcStruct.class);
 
     job.setOutputFormatClass(OrcOutputFormat.class);
     OrcOutputFormat.setOutputPath(job, staging);
     job.getConfiguration().setIfUnset("orc.mapred.output.schema",
-            MoviesTopKBestMapReducerORC.ORC_SCHEMA.toString());
+            AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc.ORC_SCHEMA.toString());
 
     job.waitForCompletion(true);
 
@@ -140,12 +141,16 @@ public class Query2_5 extends Configured implements Tool {
     Job job2 = Job.getInstance(config, PROGRAM_NAME+"_STEP2");
     job2.setJarByClass(Query2_5.class);
 
-    FileInputFormat.addInputPath(job2, staging);
-    job2.setInputFormatClass(SequenceFileInputFormat.class);
+    job2.setInputFormatClass(OrcInputFormat.class);
+    OrcInputFormat.addInputPath(job2, staging);
 
     job2.setMapperClass(AggregateGenresIdentityMapper2ORC.class);
-    job2.setMapOutputKeyClass(Text.class);
-    job2.setMapOutputValueClass(Text.class);
+    job.setMapOutputKeyClass(OrcKey.class);
+    job.setMapOutputValueClass(OrcValue.class);
+    job.getConfiguration().setIfUnset("orc.mapred.map.output.key.schema",
+            AggregateGenresIdentityMapper2ORC.ORC_SCHEMA_KEY.toString());
+    job.getConfiguration().setIfUnset("orc.mapred.map.output.value.schema",
+            AggregateGenresIdentityMapper2ORC.ORC_SCHEMA_VALUE.toString());
 
     job2.setReducerClass(AggregateGenresReducerORC.class);
     job2.setNumReduceTasks(GENRES_REDUCE_CARDINALITY);

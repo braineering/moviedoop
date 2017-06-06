@@ -4,7 +4,7 @@
 # EVAL_Q2
 ##
 
-MOVIEDOOP_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+MOVIEDOOP_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 MOVIEDOOP_JAR="${MOVIEDOOP_HOME}/target/moviedoop-1.0.jar"
 
 HADOOP_JAR="${HADOOP_HOME}/bin/hadoop jar"

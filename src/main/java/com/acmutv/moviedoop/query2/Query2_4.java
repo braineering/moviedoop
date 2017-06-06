@@ -63,9 +63,14 @@ public class Query2_4 extends Configured implements Tool {
   private static final String PROGRAM_NAME = "Query2_4";
 
   /**
-   * The default number of reducers for the job.
+   * The default number of reducers for the job of ratings emission.
    */
-  private static final int REDUCE_CARDINALITY = 1;
+  private static final int RATING_REDUCE_CARDINALITY = 1;
+
+  /**
+   * The default number of reducers for the job of genres ratings average computation.
+   */
+  private static final int AVERAGE_REDUCE_CARDINALITY = 1;
 
   @Override
   public int run(String[] args) throws Exception {
@@ -79,14 +84,15 @@ public class Query2_4 extends Configured implements Tool {
     final Path inputRatings = new Path(args[0]);
     final Path inputMovies = new Path(args[1]);
     final Path output = new Path(args[2]);
-    final Path staging = new Path(args[2]+"_staging");
+    final Path staging = new Path(args[2] + ".staging");
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
 
     // OTHER CONFIGURATION
-    final int RATINGS_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(REDUCE_CARDINALITY)));
-    final int GENRES_REDUCE_CARDINALITY = RATINGS_REDUCE_CARDINALITY;
+    final int ratingsReduceCardinality = Integer.valueOf(config.get("moviedoop.ratings.reduce.cardinality", String.valueOf(RATING_REDUCE_CARDINALITY)));
+    final int averageReduceCardinality = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(AVERAGE_REDUCE_CARDINALITY)));
+    config.unset("moviedoop.ratings.reduce.cardinality");
     config.unset("moviedoop.average.reduce.cardinality");
 
     // USER PARAMETERS RESUME
@@ -97,7 +103,8 @@ public class Query2_4 extends Configured implements Tool {
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
     System.out.println("----------------------------------------------------------------------------");
-    System.out.println("Reduce Cardinality (average): " + RATINGS_REDUCE_CARDINALITY);
+    System.out.println("Reduce Cardinality (ratings): " + ratingsReduceCardinality);
+    System.out.println("Reduce Cardinality (average): " + averageReduceCardinality);
     System.out.println("############################################################################");
 
     // JOB1 CONFIGURATION
@@ -114,7 +121,7 @@ public class Query2_4 extends Configured implements Tool {
     job.setMapOutputValueClass(Text.class);
 
     job.setReducerClass(AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer.class);
-    job.setNumReduceTasks(RATINGS_REDUCE_CARDINALITY);
+    job.setNumReduceTasks(ratingsReduceCardinality);
 
 
     job.setOutputKeyClass(Text.class);
@@ -122,11 +129,12 @@ public class Query2_4 extends Configured implements Tool {
     job.setOutputFormatClass(SequenceFileOutputFormat.class);
     FileOutputFormat.setOutputPath(job, staging);
 
-    job.waitForCompletion(true);
+    int code = job.waitForCompletion(true)  ? 0 : 1;
+
     /* *********************************************************************************************
      * GENRES MAPPER AND GENRE'S STATISTICS COMPUTING
      **********************************************************************************************/
-
+    if (code == 0) {
     // JOB 2 CONFIGURATION
     Job job2 = Job.getInstance(config, PROGRAM_NAME+"_STEP2");
     job2.setJarByClass(Query2_4.class);
@@ -139,15 +147,18 @@ public class Query2_4 extends Configured implements Tool {
     job2.setMapOutputValueClass(Text.class);
 
     job2.setReducerClass(AggregateGenresReducer.class);
-    job2.setNumReduceTasks(RATINGS_REDUCE_CARDINALITY);
+    job2.setNumReduceTasks(ratingsReduceCardinality);
     job2.setOutputKeyClass(Text.class);
     job2.setOutputValueClass(Text.class);
     job2.setOutputFormatClass(TextOutputFormat.class);
 
     TextOutputFormat.setOutputPath(job2, output);
 
-    // JOB EXECUTION
-    return job2.waitForCompletion(true) ? 0 : 1;
+      // JOB EXECUTION
+      code = job2.waitForCompletion(true) ? 0 : 1;
+    }
+
+    return code;
   }
 
   /**

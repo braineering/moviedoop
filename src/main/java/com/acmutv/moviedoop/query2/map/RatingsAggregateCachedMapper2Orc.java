@@ -88,11 +88,6 @@ public class RatingsAggregateCachedMapper2Orc extends Mapper<Object,OrcStruct,Or
   private OrcStruct valueStruct = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA_VALUE);
 
   /**
-   * The map movieId->(score,repetitions).
-   */
-  private Map<Long,Map<Double,Long>> movieIdToAggregateRatings = new HashMap<>();
-
-  /**
    * The movieId to emit.
    */
   private LongWritable movieId = (LongWritable) keyStruct.getFieldValue(0);
@@ -101,6 +96,11 @@ public class RatingsAggregateCachedMapper2Orc extends Mapper<Object,OrcStruct,Or
    * The tuple {rating=repetitions,...,rating=repetitions} to emit.
    */
   private Text ratings = (Text) valueStruct.getFieldValue(0);
+
+  /**
+   * The map movieId->(score,repetitions).
+   */
+  private Map<Long,Map<Double,Long>> movieIdToAggregateRatings = new HashMap<>();
 
   /**
    * The mapping routine.
@@ -125,9 +125,9 @@ public class RatingsAggregateCachedMapper2Orc extends Mapper<Object,OrcStruct,Or
    * @param ctx the job context.
    */
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
+    /*
     for (Long movieId : this.movieIdToAggregateRatings.keySet()) {
       this.movieId.set(movieId);
-      this.ratings.set("");
 
       StringJoiner sj = new StringJoiner(",");
       for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings.get(movieId).entrySet()) {
@@ -136,10 +136,22 @@ public class RatingsAggregateCachedMapper2Orc extends Mapper<Object,OrcStruct,Or
         sj.add(score + "=" + repetitions);
       }
       String ratingsStr = sj.toString();
+
       this.ratings.set(ratingsStr);
       this.keywrapper.key = keyStruct;
       this.valuewrapper.value = valueStruct;
       ctx.write(this.keywrapper, valuewrapper);
+    }
+    */
+
+    for (Long movieId : this.movieIdToAggregateRatings.keySet()) {
+      this.movieId.set(movieId);
+      String report = this.movieIdToAggregateRatings.get(movieId).toString().replaceAll(" ", "");
+      report = report.substring(1, report.length() - 1);
+      this.ratings.set(report);
+      this.keywrapper.key = keyStruct;
+      this.valuewrapper.value = valueStruct;
+      ctx.write(this.keywrapper, this.valuewrapper);
     }
 
   }

@@ -66,9 +66,14 @@ public class Query2_5 extends Configured implements Tool {
   private static final String PROGRAM_NAME = "Query2_5";
 
   /**
-   * The default number of reducers for the averaging job.
+   * The default number of reducers for the job of ratings emission.
    */
-  private static final int REDUCE_CARDINALITY = 1;
+  private static final int RATING_REDUCE_CARDINALITY = 1;
+
+  /**
+   * The default number of reducers for the job of genres ratings average computation.
+   */
+  private static final int AVERAGE_REDUCE_CARDINALITY = 1;
 
   @Override
   public int run(String[] args) throws Exception {
@@ -82,14 +87,15 @@ public class Query2_5 extends Configured implements Tool {
     final Path inputRatings = new Path(args[0]);
     final Path inputMovies = new Path(args[1]);
     final Path output = new Path(args[2]);
-    final Path staging = new Path(args[2]+"_staging");
+    final Path staging = new Path(args[2] + ".staging");
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
 
     // OTHER CONFIGURATION
-    final int RATINGS_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(REDUCE_CARDINALITY)));
-    final int GENRES_REDUCE_CARDINALITY = RATINGS_REDUCE_CARDINALITY;
+    final int ratingsReduceCardinality = Integer.valueOf(config.get("moviedoop.ratings.reduce.cardinality", String.valueOf(RATING_REDUCE_CARDINALITY)));
+    final int averageReduceCardinality = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(AVERAGE_REDUCE_CARDINALITY)));
+    config.unset("moviedoop.ratings.reduce.cardinality");
     config.unset("moviedoop.average.reduce.cardinality");
 
     // USER PARAMETERS RESUME
@@ -100,68 +106,81 @@ public class Query2_5 extends Configured implements Tool {
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
     System.out.println("----------------------------------------------------------------------------");
-    System.out.println("Reduce Cardinality (average): " + RATINGS_REDUCE_CARDINALITY);
+    System.out.println("Reduce Cardinality (ratings): " + ratingsReduceCardinality);
+    System.out.println("Reduce Cardinality (average): " + averageReduceCardinality);
     System.out.println("############################################################################");
 
-    // JOB1 CONFIGURATION
+    /* *********************************************************************************************
+     * JOB 1
+     **********************************************************************************************/
+
+    // JOB CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME+"_STEP1");
     job.setJarByClass(Query2_5.class);
-
     for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
     }
+
+    // MAP CONFIGURATION
     job.setInputFormatClass(OrcInputFormat.class);
     OrcInputFormat.addInputPath(job, inputRatings);
+    job.setMapperClass(RatingsAggregateCachedMapper2Orc.class);
     job.setMapOutputKeyClass(OrcKey.class);
     job.setMapOutputValueClass(OrcValue.class);
-    job.setMapperClass(RatingsAggregateCachedMapper2Orc.class);
     job.getConfiguration().setIfUnset("orc.mapred.map.output.key.schema",
             RatingsAggregateCachedMapper2Orc.ORC_SCHEMA_KEY.toString());
     job.getConfiguration().setIfUnset("orc.mapred.map.output.value.schema",
             RatingsAggregateCachedMapper2Orc.ORC_SCHEMA_VALUE.toString());
 
+    // REDUCE CONFIGURATION
     job.setReducerClass(AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc.class);
-    job.setNumReduceTasks(RATINGS_REDUCE_CARDINALITY);
+    job.setNumReduceTasks(ratingsReduceCardinality);
 
+    // OUTPUT CONFIGURATION
     job.setOutputKeyClass(NullWritable.class);
     job.setOutputValueClass(OrcStruct.class);
-
     job.setOutputFormatClass(OrcOutputFormat.class);
     OrcOutputFormat.setOutputPath(job, staging);
     job.getConfiguration().setIfUnset("orc.mapred.output.schema",
             AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc.ORC_SCHEMA.toString());
 
-    job.waitForCompletion(true);
+    int code = job.waitForCompletion(true)  ? 0 : 1;
 
     /* *********************************************************************************************
      * GENRES MAPPER AND GENRE'S STATISTICS COMPUTING
      **********************************************************************************************/
+    if (code == 0) {
+      // JOB 2 CONFIGURATION
+      Job job2 = Job.getInstance(config, PROGRAM_NAME+"_STEP2");
+      job2.setJarByClass(Query2_5.class);
 
-    // JOB 2 CONFIGURATION
-    Job job2 = Job.getInstance(config, PROGRAM_NAME+"_STEP2");
-    job2.setJarByClass(Query2_5.class);
+      // MAP CONFIGURATION
+      job2.setInputFormatClass(OrcInputFormat.class);
+      OrcInputFormat.addInputPath(job2, staging);
+      job2.setMapperClass(AggregateGenresIdentityMapper2ORC.class);
+      job2.setMapOutputKeyClass(OrcKey.class);
+      job2.setMapOutputValueClass(OrcValue.class);
+      job2.getConfiguration().setIfUnset("orc.mapred.map.output.key.schema",
+          AggregateGenresIdentityMapper2ORC.ORC_SCHEMA_KEY.toString());
+      job2.getConfiguration().setIfUnset("orc.mapred.map.output.value.schema",
+          AggregateGenresIdentityMapper2ORC.ORC_SCHEMA_VALUE.toString());
 
-    job2.setInputFormatClass(OrcInputFormat.class);
-    OrcInputFormat.addInputPath(job2, staging);
+      // REDUCE CONFIGURATION
+      job2.setReducerClass(AggregateGenresReducerORC.class);
+      job2.setNumReduceTasks(averageReduceCardinality);
 
-    job2.setMapperClass(AggregateGenresIdentityMapper2ORC.class);
-    job.setMapOutputKeyClass(OrcKey.class);
-    job.setMapOutputValueClass(OrcValue.class);
-    job.getConfiguration().setIfUnset("orc.mapred.map.output.key.schema",
-            AggregateGenresIdentityMapper2ORC.ORC_SCHEMA_KEY.toString());
-    job.getConfiguration().setIfUnset("orc.mapred.map.output.value.schema",
-            AggregateGenresIdentityMapper2ORC.ORC_SCHEMA_VALUE.toString());
+      // OUTPUT CONFIGURATION
+      job2.setOutputKeyClass(Text.class);
+      job2.setOutputValueClass(Text.class);
+      job2.setOutputFormatClass(TextOutputFormat.class);
 
-    job2.setReducerClass(AggregateGenresReducerORC.class);
-    job2.setNumReduceTasks(GENRES_REDUCE_CARDINALITY);
-    job2.setOutputKeyClass(Text.class);
-    job2.setOutputValueClass(Text.class);
-    job2.setOutputFormatClass(TextOutputFormat.class);
+      TextOutputFormat.setOutputPath(job2, output);
 
-    TextOutputFormat.setOutputPath(job2, output);
+      // JOB EXECUTION
+      code = job2.waitForCompletion(true) ? 0 : 1;
+    }
 
-    // JOB EXECUTION
-    return job2.waitForCompletion(true) ? 0 : 1;
+    return code;
   }
 
   /**

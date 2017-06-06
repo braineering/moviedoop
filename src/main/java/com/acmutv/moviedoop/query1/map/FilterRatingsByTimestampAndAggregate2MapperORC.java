@@ -94,7 +94,7 @@ public class FilterRatingsByTimestampAndAggregate2MapperORC extends Mapper<Objec
   /**
    * The tuple {rating=repetitions,...,rating=repetitions} to emit.
    */
-  private Text tuple = (Text) valueStruct.getFieldValue(0);
+  private Text ratings = (Text) valueStruct.getFieldValue(0);
 
   /**
    * The lower bound for the movie rating timestamp.
@@ -145,7 +145,7 @@ public class FilterRatingsByTimestampAndAggregate2MapperORC extends Mapper<Objec
       this.movieId.set(movieId);
       String report = this.movieIdToAggregateRatings.get(movieId).toString().replaceAll(" ", "");
       report = report.substring(1, report.length() - 1);
-      this.tuple.set(report);
+      this.ratings.set(report);
       this.keywrapper.key = keyStruct;
       this.valuewrapper.value = valueStruct;
       ctx.write(this.keywrapper, this.valuewrapper);

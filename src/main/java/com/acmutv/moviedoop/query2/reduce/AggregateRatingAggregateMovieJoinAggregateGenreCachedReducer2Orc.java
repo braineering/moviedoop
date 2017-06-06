@@ -29,6 +29,7 @@ import com.acmutv.moviedoop.common.util.RecordParser;
 import com.acmutv.moviedoop.query1.Query1_1;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.LongColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -66,6 +67,11 @@ public class AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc ex
   private static final Logger LOG = Logger.getLogger(AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc.class);
 
   /**
+   * The null writable value.
+   */
+  private static final NullWritable NULL = NullWritable.get();
+
+  /**
    * The ORC schema.
    */
   public static final TypeDescription ORC_SCHEMA = TypeDescription.fromString("struct<genre:string,ratings:string>");
@@ -74,16 +80,6 @@ public class AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc ex
    * The ORC struct for value.
    */
   private OrcStruct valueStruct = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA);
-
-  /**
-   * The cached map (movieId,movieTitle)
-   */
-  private Map<Long,Text> movieIdToGenres = new HashMap<>();
-
-  /**
-   *
-   */
-  private Map<Double,Long> allRatingsForAMovie = new HashMap<>();
 
   /**
    * The genre name to emit.
@@ -96,32 +92,21 @@ public class AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc ex
   private Text ratings = (Text) valueStruct.getFieldValue(1);
 
   /**
+   * The cached map (movieId,movieTitle)
+   */
+  private Map<Long,String> movieIdToGenres = new HashMap<>();
+
+  /**
+   *
+   */
+  private Map<Double,Long> allRatingsForAMovie = new HashMap<>();
+
+  /**
    * Configures the reducer.
    *
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
-    /*
-    try {
-      for (URI uri : ctx.getCacheFiles()) {
-        Path path = new Path(uri);
-        BufferedReader br = new BufferedReader(
-                new InputStreamReader(
-                        new FileInputStream(path.getName())));
-        String line;
-        while ((line = br.readLine()) != null) {
-          Map<String,String> movie = RecordParser.parse(line, new String[] {"id","title","genres"},RecordParser.ESCAPED_DELIMITER);
-          long movieId = Long.valueOf(movie.get("id"));
-          String genres = String.valueOf(movie.get("genres"));
-          if(!genres.equals("(no genres listed)"))
-            this.movieIdToGenres.put(movieId,new Text(genres));
-        }
-      }
-    } catch (IOException exc) {
-      exc.printStackTrace();
-    }
-    */
-
     try {
       for (URI uri : ctx.getCacheFiles()) {
         Path path = new Path(uri);
@@ -130,12 +115,12 @@ public class AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc ex
         VectorizedRowBatch batch = reader.getSchema().createRowBatch();
         while (rows.nextBatch(batch)) {
           BytesColumnVector cvMovieId = (BytesColumnVector) batch.cols[0];
-          BytesColumnVector cvGeneres = (BytesColumnVector) batch.cols[1];
+          BytesColumnVector cvGeneres = (BytesColumnVector) batch.cols[2];
           for (int r = 0; r < batch.size; r++) {
             long movieId = Long.valueOf(cvMovieId.toString(r));
             String genres = cvGeneres.toString(r);
             if(!genres.equals("(no genres listed)"))
-              this.movieIdToGenres.put(movieId,new Text(genres));
+              this.movieIdToGenres.put(movieId,genres);
           }
         }
         rows.close();
@@ -172,11 +157,13 @@ public class AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc ex
     }
 
     if (this.movieIdToGenres.containsKey(movieId)) {
-      String[] genres = this.movieIdToGenres.get(movieId).toString().split("\\|");
-      for (int i = 0; i < genres.length; i++) {
-        this.genreTitle.set(genres[i]);
-        this.ratings.set(new Text(this.allRatingsForAMovie.toString().replaceAll("\\s+","")));
-        ctx.write(NullWritable.get(), this.valueStruct);
+      String[] genres = this.movieIdToGenres.get(movieId).split("\\|");
+      for (String genre : genres) {
+        this.genreTitle.set(genre);
+        String report = this.allRatingsForAMovie.toString().replaceAll(" ", "");
+        report = report.substring(1, report.length() - 1);
+        this.ratings.set(report);
+        ctx.write(NULL, this.valueStruct);
       }
     }
   }

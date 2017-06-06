@@ -26,9 +26,7 @@
 package com.acmutv.moviedoop.query1;
 
 import com.acmutv.moviedoop.common.util.DateParser;
-import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampAndAggregate1Mapper;
 import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampAndAggregate2Mapper;
-import com.acmutv.moviedoop.query1.reduce.AverageAggregate1RatingJoinMovieTitleCachedReducer;
 import com.acmutv.moviedoop.query1.reduce.AverageAggregate2RatingJoinMovieTitleCachedReducer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -72,17 +70,17 @@ public class Query1_5 extends Configured implements Tool {
   /**
    * The default lower bound for movie average rating.
    */
-  private static final double MOVIE_RATING_AVERAGE_LB = 2.5;
+  private static final double RATING_AVERAGE_LB = 2.5;
 
   /**
    * The default lower bound for movie ratings timestamp.
    */
-  private static final LocalDateTime MOVIE_RATINGS_TIMESTAMP_LB = DateParser.MIN;
+  private static final LocalDateTime RATING_TIMESTAMP_LB = DateParser.MIN;
 
   /**
    * The default number of reducers for the averaging job.
    */
-  private static final int MOVIE_AVERAGE_REDUCE_CARDINALITY = 1;
+  private static final int AVERAGE_REDUCE_CARDINALITY = 1;
 
   /**
    * The default verbosity.
@@ -104,11 +102,11 @@ public class Query1_5 extends Configured implements Tool {
 
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
-    config.setIfUnset("moviedoop.average.rating.lb", String.valueOf(MOVIE_RATING_AVERAGE_LB));
-    config.setIfUnset("moviedoop.average.rating.timestamp.lb", DateParser.toString(MOVIE_RATINGS_TIMESTAMP_LB));
+    config.setIfUnset("moviedoop.average.rating.lb", String.valueOf(RATING_AVERAGE_LB));
+    config.setIfUnset("moviedoop.average.rating.timestamp.lb", DateParser.toString(RATING_TIMESTAMP_LB));
 
     // OTHER CONFIGURATION
-    final int AVERAGE_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(MOVIE_AVERAGE_REDUCE_CARDINALITY)));
+    final int averageReduceCardinality = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(AVERAGE_REDUCE_CARDINALITY)));
     config.unset("moviedoop.average.reduce.cardinality");
 
     // CONFIGURATION RESUME
@@ -121,7 +119,7 @@ public class Query1_5 extends Configured implements Tool {
     System.out.println("Movie Average Rating Lower Bound: " + config.get("moviedoop.average.rating.lb"));
     System.out.println("Movie Rating Timestamp Lower Bound: " + config.get("moviedoop.average.rating.timestamp.lb"));
     System.out.println("----------------------------------------------------------------------------");
-    System.out.println("Reduce Cardinality (average): " + AVERAGE_REDUCE_CARDINALITY);
+    System.out.println("Reduce Cardinality (average): " + averageReduceCardinality);
     System.out.println("############################################################################");
 
     /* *********************************************************************************************
@@ -144,7 +142,7 @@ public class Query1_5 extends Configured implements Tool {
 
     // REDUCE CONFIGURATION
     job.setReducerClass(AverageAggregate2RatingJoinMovieTitleCachedReducer.class);
-    job.setNumReduceTasks(AVERAGE_REDUCE_CARDINALITY);
+    job.setNumReduceTasks(averageReduceCardinality);
 
     // OUTPUT CONFIGURATION
     job.setOutputKeyClass(Text.class);

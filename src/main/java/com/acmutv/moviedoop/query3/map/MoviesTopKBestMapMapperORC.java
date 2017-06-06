@@ -59,29 +59,14 @@ public class MoviesTopKBestMapMapperORC extends Mapper<Object,OrcStruct,NullWrit
   private static final NullWritable NULL = NullWritable.get();
 
   /**
-   * The ORC schema for key.
-   */
-  //public static final TypeDescription ORC_SCHEMA_KEY = TypeDescription.fromString("struct<id:bigint>");
-
-  /**
    * The ORC schema for value.
    */
   public static final TypeDescription ORC_SCHEMA_VALUE = TypeDescription.fromString("struct<topk:string>");
 
   /**
-   * The key ORC wrapper
-   */
-  //private OrcKey keywrapper = new OrcKey();
-
-  /**
    * The value ORC wrapper.
    */
   private OrcValue valuewrapper = new OrcValue();
-
-  /**
-   * The ORC struct for key.
-   */
-  //private OrcStruct keyStruct = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA_KEY);
 
   /**
    * The ORC struct for value.

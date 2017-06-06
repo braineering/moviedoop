@@ -26,11 +26,9 @@
 package com.acmutv.moviedoop.query2;
 
 import com.acmutv.moviedoop.query2.map.AggregateGenresIdentityMapper;
-import com.acmutv.moviedoop.query2.map.RatingsAggregateCachedMapper;
 import com.acmutv.moviedoop.query2.map.RatingsAggregateMoviesAggregateCachedMapper;
 import com.acmutv.moviedoop.query2.reduce.AggregateGenresReducer;
 import com.acmutv.moviedoop.query2.reduce.AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer;
-import com.acmutv.moviedoop.query2.reduce.AggregateRatingJoinGenreCachedReducer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;

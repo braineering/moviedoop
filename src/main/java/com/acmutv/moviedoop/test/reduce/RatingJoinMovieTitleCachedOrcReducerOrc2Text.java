@@ -25,7 +25,6 @@
  */
 package com.acmutv.moviedoop.test.reduce;
 
-import com.acmutv.moviedoop.test.QuerySerializationOrc2Orc2Orc;
 import com.acmutv.moviedoop.test.QuerySerializationOrc2Orc2Text;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
@@ -39,7 +38,6 @@ import org.apache.log4j.Logger;
 import org.apache.orc.OrcFile;
 import org.apache.orc.Reader;
 import org.apache.orc.RecordReader;
-import org.apache.orc.TypeDescription;
 import org.apache.orc.mapred.OrcKey;
 import org.apache.orc.mapred.OrcStruct;
 import org.apache.orc.mapred.OrcValue;

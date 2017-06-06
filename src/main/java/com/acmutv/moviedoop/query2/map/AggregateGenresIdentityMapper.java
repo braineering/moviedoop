@@ -26,7 +26,6 @@
 package com.acmutv.moviedoop.query2.map;
 
 import com.acmutv.moviedoop.query2.Query2_2;
-import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 

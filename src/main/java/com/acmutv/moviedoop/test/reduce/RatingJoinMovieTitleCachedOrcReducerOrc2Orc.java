@@ -25,9 +25,7 @@
  */
 package com.acmutv.moviedoop.test.reduce;
 
-import com.acmutv.moviedoop.common.util.RecordParser;
 import com.acmutv.moviedoop.test.QuerySerializationOrc2Orc2Orc;
-import com.acmutv.moviedoop.test.QuerySerializationOrc2Text2Orc;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;

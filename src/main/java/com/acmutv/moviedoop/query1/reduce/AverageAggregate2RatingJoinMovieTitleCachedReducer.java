@@ -26,7 +26,6 @@
 package com.acmutv.moviedoop.query1.reduce;
 
 import com.acmutv.moviedoop.common.util.RecordParser;
-import com.acmutv.moviedoop.query1.Query1_1;
 import com.acmutv.moviedoop.query1.Query1_5;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;

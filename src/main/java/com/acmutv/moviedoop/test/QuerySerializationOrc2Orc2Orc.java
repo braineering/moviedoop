@@ -26,7 +26,6 @@
 package com.acmutv.moviedoop.test;
 
 import com.acmutv.moviedoop.test.map.IdentityMapperOrc2Orc;
-import com.acmutv.moviedoop.test.map.IdentityMapperOrc2Text;
 import com.acmutv.moviedoop.test.reduce.RatingJoinMovieTitleCachedOrcReducerOrc2Orc;
 import com.acmutv.moviedoop.test.reduce.RatingJoinMovieTitleCachedOrcReducerText2Orc;
 import org.apache.hadoop.conf.Configuration;
@@ -34,9 +33,7 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;

@@ -25,7 +25,6 @@
  */
 package com.acmutv.moviedoop.query2.map;
 
-import com.acmutv.moviedoop.common.util.RecordParser;
 import com.acmutv.moviedoop.query2.Query2_2;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -39,7 +38,6 @@ import org.apache.orc.mapred.OrcValue;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.StringJoiner;
 
 /**
  * The mapper for jobs in: {@link Query2_2}.

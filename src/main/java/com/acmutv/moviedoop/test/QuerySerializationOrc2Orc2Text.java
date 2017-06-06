@@ -26,9 +26,7 @@
 package com.acmutv.moviedoop.test;
 
 import com.acmutv.moviedoop.test.map.IdentityMapperOrc2Orc;
-import com.acmutv.moviedoop.test.reduce.RatingJoinMovieTitleCachedOrcReducerOrc2Orc;
 import com.acmutv.moviedoop.test.reduce.RatingJoinMovieTitleCachedOrcReducerOrc2Text;
-import com.acmutv.moviedoop.test.reduce.RatingJoinMovieTitleCachedOrcReducerText2Orc;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
@@ -41,10 +39,8 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.orc.mapred.OrcKey;
-import org.apache.orc.mapred.OrcStruct;
 import org.apache.orc.mapred.OrcValue;
 import org.apache.orc.mapreduce.OrcInputFormat;
-import org.apache.orc.mapreduce.OrcOutputFormat;
 
 /**
  * A map/reduce program that tests ORC to ORC to TEXT serialization.

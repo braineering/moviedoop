@@ -26,12 +26,8 @@
 package com.acmutv.moviedoop.test.map;
 
 import com.acmutv.moviedoop.test.QuerySerializationOrc2Orc2Orc;
-import com.acmutv.moviedoop.test.QuerySerializationOrc2Text2Text;
-import com.acmutv.moviedoop.test.reduce.RatingJoinMovieTitleCachedOrcReducerOrc2Orc;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.log4j.Logger;
 import org.apache.orc.TypeDescription;

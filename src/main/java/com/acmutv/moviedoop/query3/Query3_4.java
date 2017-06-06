@@ -30,7 +30,6 @@ import com.acmutv.moviedoop.common.util.DateParser;
 import com.acmutv.moviedoop.common.util.DoubleWritableDecreasingComparator;
 import com.acmutv.moviedoop.query3.map.*;
 import com.acmutv.moviedoop.query3.reduce.*;
-import com.acmutv.moviedoop.test.QuerySort_1;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;

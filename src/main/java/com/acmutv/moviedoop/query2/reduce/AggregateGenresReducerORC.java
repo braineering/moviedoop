@@ -26,7 +26,6 @@
 package com.acmutv.moviedoop.query2.reduce;
 
 import com.acmutv.moviedoop.query2.Query2_2;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.orc.mapred.OrcKey;

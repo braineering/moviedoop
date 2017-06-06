@@ -30,7 +30,6 @@ import com.acmutv.moviedoop.query3.map.*;
 import com.acmutv.moviedoop.query3.reduce.AverageRating2AndAggregate1Reducer;
 import com.acmutv.moviedoop.query3.reduce.MoviesTopKBestMapReducer;
 import com.acmutv.moviedoop.query3.reduce.ValueReducer;
-import com.acmutv.moviedoop.test.QuerySort_1;
 import com.acmutv.moviedoop.common.util.DateParser;
 import com.acmutv.moviedoop.common.util.DoubleWritableDecreasingComparator;
 import org.apache.hadoop.conf.Configuration;

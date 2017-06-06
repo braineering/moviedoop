@@ -29,7 +29,6 @@ import com.acmutv.moviedoop.query3.Query3_1;
 import com.acmutv.moviedoop.query3.Query3_2;
 import com.acmutv.moviedoop.query3.Query3_3;
 import com.acmutv.moviedoop.query3.Query3_4;
-import com.acmutv.moviedoop.test.map.IdentityMapper;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;

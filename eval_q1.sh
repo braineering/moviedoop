@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ##
-# EVAL_Q2
+# EVAL_Q1
 ##
 
 MOVIEDOOP_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

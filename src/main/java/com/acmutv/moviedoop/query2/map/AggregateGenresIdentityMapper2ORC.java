@@ -26,8 +26,6 @@
 package com.acmutv.moviedoop.query2.map;
 
 import com.acmutv.moviedoop.query2.Query2_2;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.orc.TypeDescription;

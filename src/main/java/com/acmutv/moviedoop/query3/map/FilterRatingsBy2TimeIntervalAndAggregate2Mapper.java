@@ -27,8 +27,6 @@ package com.acmutv.moviedoop.query3.map;
 
 import com.acmutv.moviedoop.common.util.DateParser;
 import com.acmutv.moviedoop.common.util.RecordParser;
-import com.acmutv.moviedoop.query3.Query3_1;
-import com.acmutv.moviedoop.query3.Query3_2;
 import com.acmutv.moviedoop.query3.Query3_3;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;

@@ -65,11 +65,6 @@ public class RatingsAggregateCachedMapper extends Mapper<Object,Text,LongWritabl
   /**
    * The tuple (score,repetitions) to emit.
    */
-  private String tupla = new String();
-
-  /**
-   * The tuple (score,repetitions) to emit.
-   */
   private Text tuple = new Text();
 
   /**

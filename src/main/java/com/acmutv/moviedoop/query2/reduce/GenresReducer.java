@@ -25,15 +25,12 @@
  */
 package com.acmutv.moviedoop.query2.reduce;
 
-import com.acmutv.moviedoop.common.model.GenreWritable;
 import com.acmutv.moviedoop.query2.Query2_1;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.util.ArrayList;
 
 /**
  * The reducer for the {@link Query2_1} job.

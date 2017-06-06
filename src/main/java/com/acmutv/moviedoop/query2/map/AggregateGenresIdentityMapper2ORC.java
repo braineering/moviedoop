@@ -23,58 +23,34 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
  */
-package com.acmutv.moviedoop.query2.reduce;
+package com.acmutv.moviedoop.query2.map;
 
 import com.acmutv.moviedoop.query2.Query2_2;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
 
 /**
- * The reducer for the {@link Query2_2} job.
+ * The mapper for the {@link Query2_2} job.
+ * It emits (movieId,'M'movieTitle).
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AggregateGenresReducer extends Reducer<Text, Text, Text, Text> {
+public class AggregateGenresIdentityMapper2ORC extends Mapper<Text, Text, Text, Text> {
 
   /**
-   * The reduction routine.
+   * The mapping routine.
    *
    * @param key the input key.
-   * @param values the input values.
+   * @param value the input value.
    * @param ctx the context.
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(Text key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
-
-    Text genreTitle = key;
-    long occ = 0L;
-    double avg = 0.0;
-    double stdDev = 0.0;
-    double sum = 0.0;
-    double sumStd = 0.0;
-
-    for (Text value : values) {
-      int length = value.toString().length();
-      String[] tokens = value.toString().substring(1,length-1).split(",");
-      for(String t : tokens) {
-        String[] couple = t.split("=");
-        double score = Double.parseDouble(couple[0]);
-        long repetitions = Long.parseLong(couple[1]);
-        occ += repetitions;
-        double temp = score * repetitions;
-        sum += temp;
-        sumStd += ((score) * (score)) * repetitions;
-      }
-    }
-
-    avg = sum / occ;
-    stdDev = (sumStd - (occ * avg * avg)) / (occ - 1);
-    stdDev = Math.sqrt(stdDev);
-    ctx.write(genreTitle, new Text(Double.toString(avg) + " "+Double.toString(stdDev)));
+  public void map(Text key, Text value, Context ctx) throws IOException, InterruptedException {
+    ctx.write(key,value);
   }
 }

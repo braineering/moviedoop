@@ -26,9 +26,11 @@
 package com.acmutv.moviedoop.query2;
 
 import com.acmutv.moviedoop.query2.map.AggregateGenresIdentityMapper;
+import com.acmutv.moviedoop.query2.map.GenresIdentityMapper;
 import com.acmutv.moviedoop.query2.map.RatingsAggregateCachedMapper;
 import com.acmutv.moviedoop.query2.reduce.AggregateGenresReducer;
 import com.acmutv.moviedoop.query2.reduce.AggregateRatingJoinGenreCachedReducer;
+import com.acmutv.moviedoop.query2.reduce.GenresReducer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
@@ -101,7 +103,7 @@ public class Query2_2 extends Configured implements Tool {
 
     // JOB1 CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME+"_STEP1");
-    job.setJarByClass(Query2_1.class);
+    job.setJarByClass(Query2_2.class);
 
     for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
@@ -116,12 +118,11 @@ public class Query2_2 extends Configured implements Tool {
     job.setNumReduceTasks(RATINGS_REDUCE_CARDINALITY);
 
     job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(Text.class);
+    job.setOutputValueClass(DoubleWritable.class);
     job.setOutputFormatClass(SequenceFileOutputFormat.class);
     FileOutputFormat.setOutputPath(job, staging);
 
     job.waitForCompletion(true);
-
     /* *********************************************************************************************
      * GENRES MAPPER AND GENRE'S STATISTICS COMPUTING
      **********************************************************************************************/
@@ -133,16 +134,15 @@ public class Query2_2 extends Configured implements Tool {
     FileInputFormat.addInputPath(job2, staging);
     job2.setInputFormatClass(SequenceFileInputFormat.class);
 
-    job2.setMapperClass(AggregateGenresIdentityMapper.class);
+    job2.setMapperClass(GenresIdentityMapper.class);
     job2.setMapOutputKeyClass(Text.class);
-    job2.setMapOutputValueClass(Text.class);
+    job2.setMapOutputValueClass(DoubleWritable.class);
 
-    job2.setReducerClass(AggregateGenresReducer.class);
-    job2.setNumReduceTasks(RATINGS_REDUCE_CARDINALITY);
+    job2.setReducerClass(GenresReducer.class);
+    job2.setNumReduceTasks(GENRES_REDUCE_CARDINALITY);
+
     job2.setOutputKeyClass(Text.class);
     job2.setOutputValueClass(Text.class);
-    job2.setOutputFormatClass(TextOutputFormat.class);
-
     TextOutputFormat.setOutputPath(job2, output);
 
     // JOB EXECUTION

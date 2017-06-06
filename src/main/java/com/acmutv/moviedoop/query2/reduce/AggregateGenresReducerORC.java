@@ -38,7 +38,7 @@ import java.io.IOException;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AggregateGenresReducer extends Reducer<Text, Text, Text, Text> {
+public class AggregateGenresReducerORC extends Reducer<Text, Text, Text, Text> {
 
   /**
    * The reduction routine.

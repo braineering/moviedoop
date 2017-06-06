@@ -52,8 +52,10 @@ Notice that the following map/reduce programs are available:
 * **query1_4** the 1st query, leveraging inner join (replication join, distributed cache on reduce) and optimizations on average computation (type 1).
 * **query1_5** the 1st query, leveraging inner join (replication join, distributed cache on reduce) and optimizations on average computation (type 2).
 * **query1_6** the 1st query, leveraging inner join (replication join, distributed cache on mapper), optimizations on average computation (type 2) and ORC serialization.
-* **query2_1** the 2nd query, leveraging ....
-* **query2_2** the 2nd query, leveraging ....
+* **query2_1** the 2nd query, leveraging inner join (replication join, distributed cache on reduce)
+* **query2_2** the 2nd query, leveraging inner join (replication join, distributed cache on reduce) and optimizations and aggregation type 1
+* **query2_3** the 2nd query,
+* **query2_4** the 2nd query,
 * **query3_1** the 3rd query, leveraging inner join (replication join, distributed cache on map) and BestMap for top-k.
 * **query3_2** the 3rd query, leveraging inner join (replication join, distributed cache on map), BestMap for top-k and optimizations on average computation (type 1).
 * **query3_3** the 3rd query, leveraging inner join (replication join, distributed cache on map), BestMap for top-k and optimizations on average computation (type 2).

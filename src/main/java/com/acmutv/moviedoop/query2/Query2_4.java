@@ -26,19 +26,16 @@
 package com.acmutv.moviedoop.query2;
 
 import com.acmutv.moviedoop.query2.map.AggregateGenresIdentityMapper;
-import com.acmutv.moviedoop.query2.map.GenresIdentityMapper;
 import com.acmutv.moviedoop.query2.map.RatingsAggregateCachedMapper;
 import com.acmutv.moviedoop.query2.map.RatingsAggregateMoviesAggregateCachedMapper;
 import com.acmutv.moviedoop.query2.reduce.AggregateGenresReducer;
-import com.acmutv.moviedoop.query2.reduce.AggregateRatingAggregateMovieJoinGenreCachedReducer;
+import com.acmutv.moviedoop.query2.reduce.AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer;
 import com.acmutv.moviedoop.query2.reduce.AggregateRatingJoinGenreCachedReducer;
-import com.acmutv.moviedoop.query2.reduce.GenresReducer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -58,12 +55,12 @@ import org.apache.hadoop.util.ToolRunner;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query2_3 extends Configured implements Tool {
+public class Query2_4 extends Configured implements Tool {
 
   /**
    * The program name.
    */
-  private static final String PROGRAM_NAME = "Query2_3";
+  private static final String PROGRAM_NAME = "Query2_4";
 
   /**
    * The default number of reducers for the job.
@@ -105,7 +102,7 @@ public class Query2_3 extends Configured implements Tool {
 
     // JOB1 CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME+"_STEP1");
-    job.setJarByClass(Query2_3.class);
+    job.setJarByClass(Query2_4.class);
 
     for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
@@ -116,11 +113,12 @@ public class Query2_3 extends Configured implements Tool {
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(Text.class);
 
-    job.setReducerClass(AggregateRatingAggregateMovieJoinGenreCachedReducer.class);
+    job.setReducerClass(AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer.class);
     job.setNumReduceTasks(RATINGS_REDUCE_CARDINALITY);
 
+
     job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(DoubleWritable.class);
+    job.setOutputValueClass(Text.class);
     job.setOutputFormatClass(SequenceFileOutputFormat.class);
     FileOutputFormat.setOutputPath(job, staging);
 
@@ -131,20 +129,21 @@ public class Query2_3 extends Configured implements Tool {
 
     // JOB 2 CONFIGURATION
     Job job2 = Job.getInstance(config, PROGRAM_NAME+"_STEP2");
-    job2.setJarByClass(Query2_3.class);
+    job2.setJarByClass(Query2_4.class);
 
     FileInputFormat.addInputPath(job2, staging);
     job2.setInputFormatClass(SequenceFileInputFormat.class);
 
-    job2.setMapperClass(GenresIdentityMapper.class);
+    job2.setMapperClass(AggregateGenresIdentityMapper.class);
     job2.setMapOutputKeyClass(Text.class);
-    job2.setMapOutputValueClass(DoubleWritable.class);
+    job2.setMapOutputValueClass(Text.class);
 
-    job2.setReducerClass(GenresReducer.class);
-    job2.setNumReduceTasks(GENRES_REDUCE_CARDINALITY);
-
+    job2.setReducerClass(AggregateGenresReducer.class);
+    job2.setNumReduceTasks(RATINGS_REDUCE_CARDINALITY);
     job2.setOutputKeyClass(Text.class);
     job2.setOutputValueClass(Text.class);
+    job2.setOutputFormatClass(TextOutputFormat.class);
+
     TextOutputFormat.setOutputPath(job2, output);
 
     // JOB EXECUTION
@@ -158,7 +157,7 @@ public class Query2_3 extends Configured implements Tool {
    * @throws Exception when the program cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new Query2_3(), args);
+    int res = ToolRunner.run(new Configuration(), new Query2_4(), args);
     System.exit(res);
   }
 }

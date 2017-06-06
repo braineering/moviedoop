@@ -82,7 +82,7 @@ public class RatingsAggregateCachedMapper extends Mapper<Object,Text,LongWritabl
    * @throws InterruptedException when the context cannot be written.
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
+    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, RecordParser.DELIMITER);
 
     long movieId = Long.valueOf(rating.get("movieId"));
     double score = Double.valueOf(rating.get("score"));
@@ -95,7 +95,7 @@ public class RatingsAggregateCachedMapper extends Mapper<Object,Text,LongWritabl
    *
    * @param ctx the job context.
    */
-  /*protected void cleanup(Context ctx) throws IOException, InterruptedException {
+  protected void cleanup(Context ctx) throws IOException, InterruptedException {
     for (Long movieId : this.movieIdToAggregateRatings.keySet()) {
       this.movieId.set(movieId);
       for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings.get(movieId).entrySet()) {
@@ -105,23 +105,6 @@ public class RatingsAggregateCachedMapper extends Mapper<Object,Text,LongWritabl
         this.tuple.set(score + "," + repetitions);
         ctx.write(this.movieId, this.tuple);
       }
-    }
-  }*/
-
-  protected void cleanup(Context ctx) throws IOException, InterruptedException {
-    for (Long movieId : this.movieIdToAggregateRatings.keySet()) {
-      this.movieId.set(movieId);
-      this.tupla = "";
-      for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings.get(movieId).entrySet()) {
-        long repetitions = entry.getValue();
-        if (repetitions == 0) continue;
-        double score = entry.getKey();
-        if (this.tupla.equals(""))
-          this.tupla += Double.toString(score) + "=" + Long.toString(repetitions);
-        else
-          this.tupla += "," + Double.toString(score) + "=" + Long.toString(repetitions);
-      }
-      ctx.write(this.movieId, new Text(this.tupla));
     }
   }
 }

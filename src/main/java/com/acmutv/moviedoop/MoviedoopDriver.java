@@ -107,6 +107,20 @@ public class MoviedoopDriver {
                       "and optimizations (aggregations in a single tupla) on average - stdDev computation." +
                       "Data beetween mapreduce's steps with ORC serialization" );
 
+      driver.addClass("query2_4", Query2_4.class,
+              "A map/reduce program that returns for each genre of the movies with the follow statistics: " +
+                      "average and standard deviation of rating. " +
+                      "The program leverages inner joins (replication joins as distributed caching on reduce)" +
+                      "and optimizations (aggregations in a single tupla) on average - stdDev computation." +
+                      "Data beetween mapreduce's steps with ORC serialization" );
+
+      driver.addClass("query2_5", Query2_5.class,
+              "A map/reduce program that returns for each genre of the movies with the follow statistics: " +
+                      "average and standard deviation of rating. " +
+                      "The program leverages inner joins (replication joins as distributed caching on reduce)" +
+                      "and optimizations (aggregations in a single tupla) on average - stdDev computation." +
+                      "Data beetween mapreduce's steps with ORC serialization" );
+
       /* *******************************************************************************************
        * QUERY 3
        ********************************************************************************************/

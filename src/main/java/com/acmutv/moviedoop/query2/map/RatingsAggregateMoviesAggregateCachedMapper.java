@@ -31,10 +31,6 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.log4j.Logger;
-import org.apache.orc.TypeDescription;
-import org.apache.orc.mapred.OrcKey;
-import org.apache.orc.mapred.OrcStruct;
-import org.apache.orc.mapred.OrcValue;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -49,42 +45,12 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RatingsAggregateCachedMapper2Orc extends Mapper<Object,OrcStruct,OrcKey,OrcValue> {
+public class RatingsAggregateMoviesAggregateCachedMapper extends Mapper<Object,Text,LongWritable,Text> {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(RatingsAggregateCachedMapper2Orc.class);
-
-  /**
-   * The ORC schema for key.
-   */
-  public static final TypeDescription ORC_SCHEMA_KEY = TypeDescription.fromString("struct<id:bigint>");
-
-  /**
-   * The ORC schema for value.
-   */
-  public static final TypeDescription ORC_SCHEMA_VALUE = TypeDescription.fromString("struct<ratings:string>");
-
-  /**
-   * The key ORC wrapper
-   */
-  private OrcKey keywrapper = new OrcKey();
-
-  /**
-   * The value ORC wrapper.
-   */
-  private OrcValue valuewrapper = new OrcValue();
-
-  /**
-   * The ORC struct for key.
-   */
-  private OrcStruct keyStruct = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA_KEY);
-
-  /**
-   * The ORC struct for value.
-   */
-  private OrcStruct valueStruct = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA_VALUE);
+  private static final Logger LOG = Logger.getLogger(RatingsAggregateMoviesAggregateCachedMapper.class);
 
   /**
    * The map movieId->(score,repetitions).
@@ -116,7 +82,7 @@ public class RatingsAggregateCachedMapper2Orc extends Mapper<Object,OrcStruct,Or
    * @throws InterruptedException when the context cannot be written.
    */
   public void map(Object key, Text value, Context ctx) throws IOException, InterruptedException {
-    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, ",");
+    Map<String,String> rating = RecordParser.parse(value.toString(), new String[] {"userId","movieId","score","timestamp"}, RecordParser.DELIMITER);
 
     long movieId = Long.valueOf(rating.get("movieId"));
     double score = Double.valueOf(rating.get("score"));
@@ -132,12 +98,17 @@ public class RatingsAggregateCachedMapper2Orc extends Mapper<Object,OrcStruct,Or
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
     for (Long movieId : this.movieIdToAggregateRatings.keySet()) {
       this.movieId.set(movieId);
-      String report = this.movieIdToAggregateRatings.get(movieId).toString().replaceAll(" ", "");
-      report = report.substring(1, report.length() - 1);
-      this.tuple.set(report);
-      this.keywrapper.key = keyStruct;
-      this.valuewrapper.value = valueStruct;
-      ctx.write(this.keywrapper, this.valuewrapper);
+      this.tupla = "";
+      for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings.get(movieId).entrySet()) {
+        long repetitions = entry.getValue();
+        if (repetitions == 0) continue;
+        double score = entry.getKey();
+        if (this.tupla.equals(""))
+          this.tupla += Double.toString(score) + "=" + Long.toString(repetitions);
+        else
+          this.tupla += "," + Double.toString(score) + "=" + Long.toString(repetitions);
+      }
+      ctx.write(this.movieId, new Text(this.tupla));
     }
   }
 }

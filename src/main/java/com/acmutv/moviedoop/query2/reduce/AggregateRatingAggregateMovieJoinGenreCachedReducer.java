@@ -31,11 +31,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.log4j.Logger;
-import org.apache.orc.mapred.OrcKey;
-import org.apache.orc.mapred.OrcValue;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -52,12 +49,12 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AggregateRatingJoinGenreCachedReducer extends Reducer<LongWritable,Text,Text,DoubleWritable> {
+public class AggregateRatingAggregateMovieJoinGenreCachedReducer extends Reducer<LongWritable,Text,Text,DoubleWritable> {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(AggregateRatingJoinGenreCachedReducer.class);
+  private static final Logger LOG = Logger.getLogger(AggregateRatingAggregateMovieJoinGenreCachedReducer.class);
 
   /**
    * The cached map (movieId,movieTitle)
@@ -65,14 +62,15 @@ public class AggregateRatingJoinGenreCachedReducer extends Reducer<LongWritable,
   private Map<Long,Text> movieIdToGenres = new HashMap<>();
 
   /**
+   * The genre name to emit.
+   */
+  private Text genreTitle = new Text();
+
+  /**
    *
    */
   private DoubleWritable score = new DoubleWritable();
 
-  /**
-   * The genre name to emit.
-   */
-  private Text genreTitle = new Text();
 
   /**
    * Configures the reducer.
@@ -114,15 +112,19 @@ public class AggregateRatingJoinGenreCachedReducer extends Reducer<LongWritable,
 
     for (Text value : values) {
       String[] tokens = value.toString().split(",");
-      double score = Double.parseDouble(tokens[0]);
-      long repetitions = Long.parseLong(tokens[1]);
-      for(int j=0; j<=repetitions; j++) {
-        if (this.movieIdToGenres.containsKey(movieId)) {
-          String[] genres = this.movieIdToGenres.get(movieId).toString().split("\\|");
-          for (int i = 0; i < genres.length; i++) {
-            this.genreTitle.set(genres[i]);
-            this.score.set(score);
-            ctx.write(genreTitle, this.score);
+      for(String t : tokens) {
+        String[] couple = t.split("=");
+        double score = Double.parseDouble(couple[0]);
+        long repetitions = Long.parseLong(couple[1]);
+
+        for(int j=0; j<=repetitions; j++) {
+          if (this.movieIdToGenres.containsKey(movieId)) {
+            String[] genres = this.movieIdToGenres.get(movieId).toString().split("\\|");
+            for (int i = 0; i < genres.length; i++) {
+              this.genreTitle.set(genres[i]);
+              this.score.set(score);
+              ctx.write(genreTitle, this.score);
+            }
           }
         }
       }

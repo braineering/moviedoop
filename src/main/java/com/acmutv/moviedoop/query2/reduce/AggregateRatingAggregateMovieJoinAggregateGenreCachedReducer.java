@@ -33,10 +33,6 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.log4j.Logger;
-import org.apache.orc.TypeDescription;
-import org.apache.orc.mapred.OrcKey;
-import org.apache.orc.mapred.OrcStruct;
-import org.apache.orc.mapred.OrcValue;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -53,17 +49,12 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AggregateRatingJoinGenreCachedReducer2Orc extends Reducer<LongWritable,Text,Text,Text> {
+public class AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer extends Reducer<LongWritable,Text,Text,Text> {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(AggregateRatingJoinGenreCachedReducer2Orc.class);
-
-  /**
-   * The ORC schema.
-   */
-  public static final TypeDescription ORC_SCHEMA = TypeDescription.fromString("struct<id:string,ratings:string>");
+  private static final Logger LOG = Logger.getLogger(AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer.class);
 
   /**
    * The cached map (movieId,movieTitle)
@@ -79,6 +70,11 @@ public class AggregateRatingJoinGenreCachedReducer2Orc extends Reducer<LongWrita
    * The genre name to emit.
    */
   private Text genreTitle = new Text();
+
+  /**
+   * The genre Id to emit.
+   */
+  private Text genreId = new Text();
 
 
   /**
@@ -116,19 +112,18 @@ public class AggregateRatingJoinGenreCachedReducer2Orc extends Reducer<LongWrita
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(OrcKey key, Iterable<OrcValue> values, Context ctx) throws IOException, InterruptedException {
-    long movieId = ((LongWritable) ((OrcStruct) key.key).getFieldValue(0)).get();
+  public void reduce(LongWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+    long movieId = key.get();
 
     this.allRatingsForAMovie.clear();
 
-    for (OrcValue orcValue : values) {
-      String value = ((Text) ((OrcStruct) orcValue.value).getFieldValue(0)).toString();
-      String pairs[] = value.split(",", -1);
-      for (String pair : pairs) {
-        String elems[] = pair.split("=", -1);
-        double score = Double.valueOf(elems[0]);
-        long repetitions = Long.valueOf(elems[1]);
-        this.allRatingsForAMovie.put(score, repetitions);
+    for (Text value : values) {
+      String[] tokens = value.toString().split(",");
+      for(String t : tokens) {
+        String[] couple = t.split("=");
+        double score = Double.parseDouble(couple[0]);
+        long repetitions = Long.parseLong(couple[1]);
+        this.allRatingsForAMovie.put(score,repetitions);
       }
     }
 

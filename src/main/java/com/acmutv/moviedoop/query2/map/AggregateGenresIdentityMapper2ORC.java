@@ -98,7 +98,7 @@ public class AggregateGenresIdentityMapper2ORC extends Mapper<Object, OrcStruct,
    */
   public void map(Object key, OrcStruct value, Context ctx) throws IOException, InterruptedException {
     String genre = String.valueOf(value.getFieldValue(0).toString());
-    String ratings = String.valueOf(value.getFieldValue(1).toString());
+    String ratings = String.valueOf(value.getFieldValue(0).toString());
     this.genre.set(genre);
     this.ratings.set(ratings);
     this.keywrapper.key = this.keyStruct;

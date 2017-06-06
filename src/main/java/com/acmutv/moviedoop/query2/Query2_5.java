@@ -25,7 +25,6 @@
  */
 package com.acmutv.moviedoop.query2;
 
-import com.acmutv.moviedoop.query1.map.FilterRatingsByTimestampAndAggregate2MapperORC;
 import com.acmutv.moviedoop.query2.map.AggregateGenresIdentityMapper2ORC;
 import com.acmutv.moviedoop.query2.map.RatingsAggregateCachedMapper2Orc;
 import com.acmutv.moviedoop.query2.reduce.AggregateGenresReducerORC;
@@ -115,6 +114,7 @@ public class Query2_5 extends Configured implements Tool {
     OrcInputFormat.addInputPath(job, inputRatings);
     job.setMapOutputKeyClass(OrcKey.class);
     job.setMapOutputValueClass(OrcValue.class);
+    job.setMapperClass(RatingsAggregateCachedMapper2Orc.class);
     job.getConfiguration().setIfUnset("orc.mapred.map.output.key.schema",
             RatingsAggregateCachedMapper2Orc.ORC_SCHEMA_KEY.toString());
     job.getConfiguration().setIfUnset("orc.mapred.map.output.value.schema",

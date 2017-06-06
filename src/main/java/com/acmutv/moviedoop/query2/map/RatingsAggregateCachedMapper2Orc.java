@@ -39,6 +39,7 @@ import org.apache.orc.mapred.OrcValue;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringJoiner;
 
 /**
  * The mapper for jobs in: {@link Query2_2}.
@@ -99,7 +100,7 @@ public class RatingsAggregateCachedMapper2Orc extends Mapper<Object,OrcStruct,Or
   /**
    * The tuple {rating=repetitions,...,rating=repetitions} to emit.
    */
-  private Text tupla = (Text) valueStruct.getFieldValue(0);
+  private Text ratings = (Text) valueStruct.getFieldValue(0);
 
   /**
    * The mapping routine.
@@ -126,17 +127,16 @@ public class RatingsAggregateCachedMapper2Orc extends Mapper<Object,OrcStruct,Or
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
     for (Long movieId : this.movieIdToAggregateRatings.keySet()) {
       this.movieId.set(movieId);
-      this.tupla.set("");
+      this.ratings.set("");
 
+      StringJoiner sj = new StringJoiner(",");
       for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings.get(movieId).entrySet()) {
         long repetitions = entry.getValue();
-        if (repetitions == 0) continue;
         double score = entry.getKey();
-        if (this.tupla.toString().isEmpty())
-          this.tupla.set(this.tupla + Double.toString(score) + "=" + Long.toString(repetitions));
-        else
-          this.tupla.set(this.tupla + "," + Double.toString(score) + "=" + Long.toString(repetitions));
+        sj.add(score + "=" + repetitions);
       }
+      String ratingsStr = sj.toString();
+      this.ratings.set(ratingsStr);
       this.keywrapper.key = keyStruct;
       this.valuewrapper.value = valueStruct;
       ctx.write(this.keywrapper, valuewrapper);

@@ -78,6 +78,6 @@ GenresReducer extends Reducer<Text, DoubleWritable, Text, Text> {
 
     stdDev = Math.sqrt(stdDev);
 
-    ctx.write(genreTitle, new Text("AVG:" + Double.toString(avg) + " - STDDEV:"+Double.toString(stdDev)));
+    ctx.write(genreTitle, new Text( Double.toString(avg) + "  "+Double.toString(stdDev)));
   }
 }

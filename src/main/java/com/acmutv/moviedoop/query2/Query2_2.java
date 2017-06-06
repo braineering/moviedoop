@@ -26,9 +26,11 @@
 package com.acmutv.moviedoop.query2;
 
 import com.acmutv.moviedoop.query2.map.AggregateGenresIdentityMapper;
+import com.acmutv.moviedoop.query2.map.GenresIdentityMapper;
 import com.acmutv.moviedoop.query2.map.RatingsAggregateCachedMapper;
 import com.acmutv.moviedoop.query2.reduce.AggregateGenresReducer;
 import com.acmutv.moviedoop.query2.reduce.AggregateRatingJoinGenreCachedReducer;
+import com.acmutv.moviedoop.query2.reduce.GenresReducer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
@@ -61,6 +63,11 @@ public class Query2_2 extends Configured implements Tool {
    */
   private static final String PROGRAM_NAME = "Query2_2";
 
+  /**
+   * The default number of reducers for the job.
+   */
+  private static final int REDUCE_CARDINALITY = 1;
+
   @Override
   public int run(String[] args) throws Exception {
     if (args.length < 3) {
@@ -78,6 +85,11 @@ public class Query2_2 extends Configured implements Tool {
     // CONTEXT CONFIGURATION
     Configuration config = super.getConf();
 
+    // OTHER CONFIGURATION
+    final int RATINGS_REDUCE_CARDINALITY = Integer.valueOf(config.get("moviedoop.average.reduce.cardinality", String.valueOf(REDUCE_CARDINALITY)));
+    final int GENRES_REDUCE_CARDINALITY = RATINGS_REDUCE_CARDINALITY;
+    config.unset("moviedoop.average.reduce.cardinality");
+
     // USER PARAMETERS RESUME
     System.out.println("############################################################################");
     System.out.printf("%s\n", PROGRAM_NAME);
@@ -85,11 +97,13 @@ public class Query2_2 extends Configured implements Tool {
     System.out.println("Input Ratings: " + inputRatings);
     System.out.println("Input Movies: " + inputMovies);
     System.out.println("Output: " + output);
+    System.out.println("----------------------------------------------------------------------------");
+    System.out.println("Reduce Cardinality (average): " + RATINGS_REDUCE_CARDINALITY);
     System.out.println("############################################################################");
 
     // JOB1 CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME+"_STEP1");
-    job.setJarByClass(Query2_1.class);
+    job.setJarByClass(Query2_2.class);
 
     for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
@@ -101,36 +115,34 @@ public class Query2_2 extends Configured implements Tool {
     job.setMapOutputValueClass(Text.class);
 
     job.setReducerClass(AggregateRatingJoinGenreCachedReducer.class);
-    job.setNumReduceTasks(1);
+    job.setNumReduceTasks(RATINGS_REDUCE_CARDINALITY);
 
     job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(Text.class);
+    job.setOutputValueClass(DoubleWritable.class);
     job.setOutputFormatClass(SequenceFileOutputFormat.class);
     FileOutputFormat.setOutputPath(job, staging);
 
     job.waitForCompletion(true);
-
     /* *********************************************************************************************
      * GENRES MAPPER AND GENRE'S STATISTICS COMPUTING
      **********************************************************************************************/
 
     // JOB 2 CONFIGURATION
     Job job2 = Job.getInstance(config, PROGRAM_NAME+"_STEP2");
-    job2.setJarByClass(Query2_1.class);
+    job2.setJarByClass(Query2_2.class);
 
     FileInputFormat.addInputPath(job2, staging);
     job2.setInputFormatClass(SequenceFileInputFormat.class);
 
-    job2.setMapperClass(AggregateGenresIdentityMapper.class);
+    job2.setMapperClass(GenresIdentityMapper.class);
     job2.setMapOutputKeyClass(Text.class);
-    job2.setMapOutputValueClass(Text.class);
+    job2.setMapOutputValueClass(DoubleWritable.class);
 
-    job2.setReducerClass(AggregateGenresReducer.class);
-    job2.setNumReduceTasks(1);
+    job2.setReducerClass(GenresReducer.class);
+    job2.setNumReduceTasks(GENRES_REDUCE_CARDINALITY);
+
     job2.setOutputKeyClass(Text.class);
     job2.setOutputValueClass(Text.class);
-    job2.setOutputFormatClass(TextOutputFormat.class);
-
     TextOutputFormat.setOutputPath(job2, output);
 
     // JOB EXECUTION

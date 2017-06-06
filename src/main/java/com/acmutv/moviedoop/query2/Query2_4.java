@@ -25,16 +25,17 @@
  */
 package com.acmutv.moviedoop.query2;
 
-import com.acmutv.moviedoop.query2.map.GenresIdentityMapper;
-import com.acmutv.moviedoop.query2.map.RatingsMapper;
-import com.acmutv.moviedoop.query2.reduce.GenresReducer;
-import com.acmutv.moviedoop.query2.reduce.RatingJoinGenreCachedReducer;
+import com.acmutv.moviedoop.query2.map.AggregateGenresIdentityMapper;
+import com.acmutv.moviedoop.query2.map.RatingsAggregateCachedMapper;
+import com.acmutv.moviedoop.query2.map.RatingsAggregateMoviesAggregateCachedMapper;
+import com.acmutv.moviedoop.query2.reduce.AggregateGenresReducer;
+import com.acmutv.moviedoop.query2.reduce.AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer;
+import com.acmutv.moviedoop.query2.reduce.AggregateRatingJoinGenreCachedReducer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -43,40 +44,33 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 /**
- * A map/reduce program that returns for each genre of the movies with the follow statistics:
- * average and standard deviation of rating.
- * The program leverages inner joins (replication joins as distributed caching on reduce).
+ * INSERT DESCRIPTION HERE
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class Query2_1 extends Configured implements Tool {
+public class Query2_4 extends Configured implements Tool {
 
   /**
    * The program name.
    */
-  private static final String PROGRAM_NAME = "Query2_1";
+  private static final String PROGRAM_NAME = "Query2_4";
 
   /**
    * The default number of reducers for the job.
    */
   private static final int REDUCE_CARDINALITY = 1;
 
-  /**
-   * The job main method.
-   *
-   * @param args the job arguments.
-   * @throws Exception when job cannot be executed.
-   */
   @Override
   public int run(String[] args) throws Exception {
     if (args.length < 3) {
-      System.err.printf("Usage: %s <inRatings> <inMovies> <out>\n", PROGRAM_NAME);
+      System.err.printf("Usage: %s [-D prop=val] <inRatings> <inMovies> <out>\n", PROGRAM_NAME);
       ToolRunner.printGenericCommandUsage(System.out);
       return 2;
     }
@@ -95,7 +89,7 @@ public class Query2_1 extends Configured implements Tool {
     final int GENRES_REDUCE_CARDINALITY = RATINGS_REDUCE_CARDINALITY;
     config.unset("moviedoop.average.reduce.cardinality");
 
-    // CONFIGURATION RESUME
+    // USER PARAMETERS RESUME
     System.out.println("############################################################################");
     System.out.printf("%s\n", PROGRAM_NAME);
     System.out.println("****************************************************************************");
@@ -106,54 +100,51 @@ public class Query2_1 extends Configured implements Tool {
     System.out.println("Reduce Cardinality (average): " + RATINGS_REDUCE_CARDINALITY);
     System.out.println("############################################################################");
 
-    /* *********************************************************************************************
-     * RATINGS JOIN WITH GENRES BY THE SAME movieId
-     **********************************************************************************************/
-
     // JOB1 CONFIGURATION
     Job job = Job.getInstance(config, PROGRAM_NAME+"_STEP1");
-    job.setJarByClass(Query2_1.class);
+    job.setJarByClass(Query2_4.class);
 
     for (FileStatus status : FileSystem.get(config).listStatus(inputMovies)) {
       job.addCacheFile(status.getPath().toUri());
     }
     TextInputFormat.addInputPath(job, inputRatings);
 
-    job.setMapperClass(RatingsMapper.class);
+    job.setMapperClass(RatingsAggregateMoviesAggregateCachedMapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
-    job.setMapOutputValueClass(DoubleWritable.class);
+    job.setMapOutputValueClass(Text.class);
 
-    job.setReducerClass(RatingJoinGenreCachedReducer.class);
+    job.setReducerClass(AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer.class);
     job.setNumReduceTasks(RATINGS_REDUCE_CARDINALITY);
 
+
     job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(DoubleWritable.class);
+    job.setOutputValueClass(Text.class);
     job.setOutputFormatClass(SequenceFileOutputFormat.class);
     FileOutputFormat.setOutputPath(job, staging);
 
     job.waitForCompletion(true);
-
     /* *********************************************************************************************
      * GENRES MAPPER AND GENRE'S STATISTICS COMPUTING
      **********************************************************************************************/
 
     // JOB 2 CONFIGURATION
     Job job2 = Job.getInstance(config, PROGRAM_NAME+"_STEP2");
-    job2.setJarByClass(Query2_1.class);
+    job2.setJarByClass(Query2_4.class);
 
     FileInputFormat.addInputPath(job2, staging);
     job2.setInputFormatClass(SequenceFileInputFormat.class);
 
-    job2.setMapperClass(GenresIdentityMapper.class);
+    job2.setMapperClass(AggregateGenresIdentityMapper.class);
     job2.setMapOutputKeyClass(Text.class);
-    job2.setMapOutputValueClass(DoubleWritable.class);
+    job2.setMapOutputValueClass(Text.class);
 
-    job2.setReducerClass(GenresReducer.class);
-    job2.setNumReduceTasks(GENRES_REDUCE_CARDINALITY);
-
+    job2.setReducerClass(AggregateGenresReducer.class);
+    job2.setNumReduceTasks(RATINGS_REDUCE_CARDINALITY);
     job2.setOutputKeyClass(Text.class);
     job2.setOutputValueClass(Text.class);
-    FileOutputFormat.setOutputPath(job2, output);
+    job2.setOutputFormatClass(TextOutputFormat.class);
+
+    TextOutputFormat.setOutputPath(job2, output);
 
     // JOB EXECUTION
     return job2.waitForCompletion(true) ? 0 : 1;
@@ -166,7 +157,7 @@ public class Query2_1 extends Configured implements Tool {
    * @throws Exception when the program cannot be executed.
    */
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new Query2_1(), args);
+    int res = ToolRunner.run(new Configuration(), new Query2_4(), args);
     System.exit(res);
   }
 }

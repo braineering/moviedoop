@@ -26,8 +26,12 @@
 package com.acmutv.moviedoop.query2.reduce;
 
 import com.acmutv.moviedoop.query2.Query2_2;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.orc.mapred.OrcKey;
+import org.apache.orc.mapred.OrcStruct;
+import org.apache.orc.mapred.OrcValue;
 
 import java.io.IOException;
 
@@ -38,7 +42,7 @@ import java.io.IOException;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AggregateGenresReducer extends Reducer<Text, Text, Text, Text> {
+public class AggregateGenresReducerORC extends Reducer<OrcKey, OrcValue, Text, Text> {
 
   /**
    * The reduction routine.
@@ -49,16 +53,18 @@ public class AggregateGenresReducer extends Reducer<Text, Text, Text, Text> {
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(Text key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
+  public void reduce(OrcKey key, Iterable<OrcValue> values, Context ctx) throws IOException, InterruptedException {
 
-    Text genreTitle = key;
+    Text genreTitle = ((Text)((OrcStruct) key.key).getFieldValue(0));
+
     long occ = 0L;
     double avg = 0.0;
     double stdDev = 0.0;
     double sum = 0.0;
     double sumStd = 0.0;
 
-    for (Text value : values) {
+    for (OrcValue orcValue : values) {
+      String value = ((Text)((OrcStruct) orcValue.value).getFieldValue(0)).toString();
       int length = value.toString().length();
       String[] tokens = value.toString().substring(1,length-1).split(",");
       for(String t : tokens) {

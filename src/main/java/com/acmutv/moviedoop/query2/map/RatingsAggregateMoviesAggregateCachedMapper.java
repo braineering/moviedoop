@@ -45,12 +45,12 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class RatingsAggregateCachedMapper extends Mapper<Object,Text,LongWritable,Text> {
+public class RatingsAggregateMoviesAggregateCachedMapper extends Mapper<Object,Text,LongWritable,Text> {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(RatingsAggregateCachedMapper.class);
+  private static final Logger LOG = Logger.getLogger(RatingsAggregateMoviesAggregateCachedMapper.class);
 
   /**
    * The map movieId->(score,repetitions).
@@ -98,13 +98,17 @@ public class RatingsAggregateCachedMapper extends Mapper<Object,Text,LongWritabl
   protected void cleanup(Context ctx) throws IOException, InterruptedException {
     for (Long movieId : this.movieIdToAggregateRatings.keySet()) {
       this.movieId.set(movieId);
+      this.tupla = "";
       for (Map.Entry<Double,Long> entry : this.movieIdToAggregateRatings.get(movieId).entrySet()) {
         long repetitions = entry.getValue();
         if (repetitions == 0) continue;
         double score = entry.getKey();
-        this.tuple.set(score + "," + repetitions);
-        ctx.write(this.movieId, this.tuple);
+        if (this.tupla.equals(""))
+          this.tupla += Double.toString(score) + "=" + Long.toString(repetitions);
+        else
+          this.tupla += "," + Double.toString(score) + "=" + Long.toString(repetitions);
       }
+      ctx.write(this.movieId, new Text(this.tupla));
     }
   }
 }

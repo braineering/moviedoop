@@ -15,6 +15,9 @@ The system needs to be provided with the following:
 * Java >= 1.8.0
 * Maven >= 3.3.9
 * Hadoop 2.8.0
+* Hive
+* HBase
+* Flume
 
 
 ## Build
@@ -49,8 +52,10 @@ Notice that the following map/reduce programs are available:
 * **query1_4** the 1st query, leveraging inner join (replication join, distributed cache on reduce) and optimizations on average computation (type 1).
 * **query1_5** the 1st query, leveraging inner join (replication join, distributed cache on reduce) and optimizations on average computation (type 2).
 * **query1_6** the 1st query, leveraging inner join (replication join, distributed cache on mapper), optimizations on average computation (type 2) and ORC serialization.
-* **query2_1** the 2nd query, leveraging ....
-* **query2_2** the 2nd query, leveraging ....
+* **query2_1** the 2nd query, leveraging inner join (replication join, distributed cache on reduce)
+* **query2_2** the 2nd query, leveraging inner join (replication join, distributed cache on reduce) and optimizations and aggregation type 1
+* **query2_3** the 2nd query,
+* **query2_4** the 2nd query,
 * **query3_1** the 3rd query, leveraging inner join (replication join, distributed cache on map) and BestMap for top-k.
 * **query3_2** the 3rd query, leveraging inner join (replication join, distributed cache on map), BestMap for top-k and optimizations on average computation (type 1).
 * **query3_3** the 3rd query, leveraging inner join (replication join, distributed cache on map), BestMap for top-k and optimizations on average computation (type 2).
@@ -96,6 +101,24 @@ Here is an example:
     /moviedoop/_test/output/query1_1
 
 
+### Query2_*
+
+    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query2_1 <IN_RATINGS> <IN_MOVIES> <OUT>
+    
+where:
+* *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR,
+* *[IN\_RATINGS]* is the HDFS absolute path to the directory containing the ratings data set,
+* *[IN\_MOVIES]* is the HDFS absolute path to the directory containing the movies data set,
+* *[OUT]* is the HDFS absolute path to the directory for the output.
+
+Here is an example:
+
+    $hadoop_home> bin/hadoop jar moviedoop-1.0.jar \
+    query2_1 \
+    /moviedoop/_test/input/ratings \
+    /moviedoop/_test/input/movies \
+    /moviedoop/_test/output/query2_1
+
 ### Query3_*
 
     $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query3_1 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>
@@ -127,6 +150,31 @@ Here is an example:
     /moviedoop/_test/input/ratings \
     /moviedoop/_test/input/movies \
     /moviedoop/_test/output/query3_1
+    
+### Data Injestion
+
+Required:
+
+*[Put data with Flume on HDFS from local file system:]* 
+
+ USAGE:													
+ 1) Put configuration file (./flume/moviedoop.conf) in the $FLUME_HOME/conf directory 											
+ 2) Change the spoolDir path for setting the source directory
+ 3) Change path of HDFS sink
+ 4) Create a directory in HDFS with: $hdfs dfs -mkdir /namedirectory_of_sink						
+ 5) Run:
+		$ cd $FLUME_HOME/bin (if you have FLUME_HOME as environment variable)
+		$ ./flume-ng agent -n movieagent -f $FLUME_HOME/conf/moviedoop.conf -c $FLUME_HOME/conf
+
+*[Put data with Flume on HBase from HDFS:]*
+ 
+ USAGE:													
+ 1) Put configuration file (./flume/moviedoop.conf) in the $FLUME_HOME/conf directory 											
+ 2) Change path of HDFS source
+ 3) Create table on HBase with command: create 'movietable','d'
+ 4) Run:
+        $ cd $FLUME_HOME/bin (if you have FLUME_HOME as environment variable)
+        $ ./flume-ng agent -n movieagent2 -f $FLUME_HOME/conf/moviedoop.conf -c $FLUME_HOME/conf		
 
 ## Authors
 Giacomo Marciani, [gmarciani@acm.org](mailto:gmarciani@acm.org)

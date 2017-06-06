@@ -28,13 +28,19 @@ package com.acmutv.moviedoop.query2.reduce;
 import com.acmutv.moviedoop.common.util.RecordParser;
 import com.acmutv.moviedoop.query1.Query1_1;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
+import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.log4j.Logger;
+import org.apache.orc.OrcFile;
+import org.apache.orc.Reader;
+import org.apache.orc.RecordReader;
+import org.apache.orc.TypeDescription;
 import org.apache.orc.mapred.OrcKey;
+import org.apache.orc.mapred.OrcStruct;
 import org.apache.orc.mapred.OrcValue;
 
 import java.io.BufferedReader;
@@ -52,12 +58,22 @@ import java.util.Map;
  * @author Michele Porretta {@literal <mporretta@acm.org>}
  * @since 1.0
  */
-public class AggregateRatingJoinGenreCachedReducer extends Reducer<LongWritable,Text,Text,DoubleWritable> {
+public class AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc extends Reducer<OrcKey,OrcValue,NullWritable,OrcStruct> {
 
   /**
    * The logger.
    */
-  private static final Logger LOG = Logger.getLogger(AggregateRatingJoinGenreCachedReducer.class);
+  private static final Logger LOG = Logger.getLogger(AggregateRatingAggregateMovieJoinAggregateGenreCachedReducer2Orc.class);
+
+  /**
+   * The ORC schema.
+   */
+  public static final TypeDescription ORC_SCHEMA = TypeDescription.fromString("struct<genre:string,ratings:string>");
+
+  /**
+   * The ORC struct for value.
+   */
+  private OrcStruct valueStruct = (OrcStruct) OrcStruct.createValue(ORC_SCHEMA);
 
   /**
    * The cached map (movieId,movieTitle)
@@ -67,12 +83,17 @@ public class AggregateRatingJoinGenreCachedReducer extends Reducer<LongWritable,
   /**
    *
    */
-  private DoubleWritable score = new DoubleWritable();
+  private Map<Double,Long> allRatingsForAMovie = new HashMap<>();
 
   /**
    * The genre name to emit.
    */
-  private Text genreTitle = new Text();
+  private Text genreTitle = (Text) valueStruct.getFieldValue(0);
+
+  /**
+   * The tuple {rating=repetitions,...,rating=repetitions} to emit.
+   */
+  private Text ratings = (Text) valueStruct.getFieldValue(1);
 
   /**
    * Configures the reducer.
@@ -80,6 +101,7 @@ public class AggregateRatingJoinGenreCachedReducer extends Reducer<LongWritable,
    * @param ctx the job context.
    */
   protected void setup(Context ctx) {
+    /*
     try {
       for (URI uri : ctx.getCacheFiles()) {
         Path path = new Path(uri);
@@ -98,6 +120,30 @@ public class AggregateRatingJoinGenreCachedReducer extends Reducer<LongWritable,
     } catch (IOException exc) {
       exc.printStackTrace();
     }
+    */
+
+    try {
+      for (URI uri : ctx.getCacheFiles()) {
+        Path path = new Path(uri);
+        Reader reader = OrcFile.createReader(path, new OrcFile.ReaderOptions(ctx.getConfiguration()));
+        RecordReader rows = reader.rows();
+        VectorizedRowBatch batch = reader.getSchema().createRowBatch();
+        while (rows.nextBatch(batch)) {
+          BytesColumnVector cvMovieId = (BytesColumnVector) batch.cols[0];
+          BytesColumnVector cvGeneres = (BytesColumnVector) batch.cols[1];
+          for (int r = 0; r < batch.size; r++) {
+            long movieId = Long.valueOf(cvMovieId.toString(r));
+            String genres = cvGeneres.toString(r);
+            if(!genres.equals("(no genres listed)"))
+              this.movieIdToGenres.put(movieId,new Text(genres));
+          }
+        }
+        rows.close();
+      }
+    } catch (IOException exc) {
+      LOG.error(exc.getMessage());
+      exc.printStackTrace();
+    }
   }
 
   /**
@@ -109,22 +155,28 @@ public class AggregateRatingJoinGenreCachedReducer extends Reducer<LongWritable,
    * @throws IOException when the context cannot be written.
    * @throws InterruptedException when the context cannot be written.
    */
-  public void reduce(LongWritable key, Iterable<Text> values, Context ctx) throws IOException, InterruptedException {
-    long movieId = key.get();
+  public void reduce(OrcKey key, Iterable<OrcValue> values, Context ctx) throws IOException, InterruptedException {
+    long movieId = ((LongWritable) ((OrcStruct) key.key).getFieldValue(0)).get();
 
-    for (Text value : values) {
-      String[] tokens = value.toString().split(",");
-      double score = Double.parseDouble(tokens[0]);
-      long repetitions = Long.parseLong(tokens[1]);
-      for(int j=0; j<=repetitions; j++) {
-        if (this.movieIdToGenres.containsKey(movieId)) {
-          String[] genres = this.movieIdToGenres.get(movieId).toString().split("\\|");
-          for (int i = 0; i < genres.length; i++) {
-            this.genreTitle.set(genres[i]);
-            this.score.set(score);
-            ctx.write(genreTitle, this.score);
-          }
-        }
+    this.allRatingsForAMovie.clear();
+
+    for (OrcValue orcValue : values) {
+      String value = ((Text) ((OrcStruct) orcValue.value).getFieldValue(0)).toString();
+      String pairs[] = value.split(",", -1);
+      for (String pair : pairs) {
+        String elems[] = pair.split("=", -1);
+        double score = Double.valueOf(elems[0]);
+        long repetitions = Long.valueOf(elems[1]);
+        this.allRatingsForAMovie.put(score, repetitions);
+      }
+    }
+
+    if (this.movieIdToGenres.containsKey(movieId)) {
+      String[] genres = this.movieIdToGenres.get(movieId).toString().split("\\|");
+      for (int i = 0; i < genres.length; i++) {
+        this.genreTitle.set(genres[i]);
+        this.ratings.set(new Text(this.allRatingsForAMovie.toString().replaceAll("\\s+","")));
+        ctx.write(NullWritable.get(), this.valueStruct);
       }
     }
   }

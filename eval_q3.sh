@@ -9,7 +9,7 @@ MOVIEDOOP_JAR="${MOVIEDOOP_HOME}/target/moviedoop-1.0.jar"
 
 HADOOP_JAR="${HADOOP_HOME}/bin/hadoop jar"
 HDFS_WAREHOUSE="/user/hive/warehouse"
-HDFS_OUT="/moviedoop/output"
+HDFS_OUT="/moviedoop/output/eval_q3"
 
 HDFS_RM="${HADOOP_HOME}/bin/hdfs dfs -rm -r -f"
 
@@ -45,11 +45,11 @@ for QUERY in "${QUERIES[@]}"; do
                 OPTS="${OPTS} ${OPT_TOPK_REDUCE_CARDINALITY}=${TOPK_REDUCE_CARDINALITY}"
                 OPTS="${OPTS} ${OPT_SORT_REDUCE_CARDINALITY}=${SORT_REDUCE_CARDINALITY}"
                 START="$( date +%s )"
-                echo "${HADOOP_JAR} ${MOVIEDOOP_JAR} ${QUERY} ${OPTS} ${IN_RATINGS} ${IN_MOVIES} ${OUT_QUERY}"
+                ${HADOOP_JAR} ${MOVIEDOOP_JAR} ${QUERY} ${OPTS} ${IN_RATINGS} ${IN_MOVIES} ${OUT_QUERY}
                 END="$( date +%s )"
                 ELAPSED="$(( ${END} - ${START} ))"
                 echo "${QUERY} (${OPTS}) : ${ELAPSED} seconds" >> ${OUT_EVALUATION}
-                #sleep ${SLEEP_BETWEEN_QUERIES}
+                sleep ${SLEEP_BETWEEN_QUERIES}
             done
         done
     done

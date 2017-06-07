@@ -2,9 +2,12 @@
 
 MOVIEDOOP_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+##
+# HADOOP
+##
 $HADOOP_HOME/sbin/stop-dfs.sh
 $HADOOP_HOME/sbin/stop-yarn.sh
-sudo rm -rf /tmp/*
+sudo rm -rf /tmp/hadoop*
 
 $HADOOP_HOME/bin/hdfs namenode -format -force
 $HADOOP_HOME/sbin/start-dfs.sh
@@ -23,15 +26,21 @@ $HADOOP_HOME/bin/hdfs dfs -mkdir /tmp
 $HADOOP_HOME/bin/hdfs dfs -chmod g+w /user/hive/warehouse
 $HADOOP_HOME/bin/hdfs dfs -chmod g+w /tmp
 
+##
+# HIVE
+##
 rm -rf $HIVE_HOME/metastore_db
 rm     $HIVE_HOME/derby.log
 rm -rf metastore_db
 rm     derby.log
 $HIVE_HOME/bin/schematool -initSchema -dbType derby
-
 $HIVE_HOME/bin/hive -f $MOVIEDOOP_HOME/data/hive/movies_test.q
 $HIVE_HOME/bin/hive -f $MOVIEDOOP_HOME/data/hive/ratings_test.q
 $HIVE_HOME/bin/hive -f $MOVIEDOOP_HOME/data/hive/movies.q
 $HIVE_HOME/bin/hive -f $MOVIEDOOP_HOME/data/hive/ratings.q
 
+##
+# HBASE
+##
+$HBASE_HOME/bin/stop-hbase.sh
 $HBASE_HOME/bin/start-hbase.sh

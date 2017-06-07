@@ -21,18 +21,18 @@ SLEEP_BETWEEN_QUERIES=20s
 
 for QUERY in "${QUERIES[@]}"; do
     OPT_AVERAGE_REDUCE_CARDINALITY="-Dmoviedoop.average.reduce.cardinality"
-    AVERAGE_REDUCE_CARDINALITIES=( "1" "2" )
+    AVERAGE_REDUCE_CARDINALITIES=( "1" "2" "4" "8" "16" )
     OPT_TOPK_REDUCE_CARDINALITY="-Dmoviedoop.topk.reduce.cardinality"
-    TOPK_REDUCE_CARDINALITIES=( "1" "2" )
+    TOPK_REDUCE_CARDINALITIES=( "1" "2" "4" "8" "16" )
     OPT_SORT_REDUCE_CARDINALITY="-Dmoviedoop.sort.reduce.cardinality"
-    SORT_REDUCE_CARDINALITIES=( "1" "2" )
+    SORT_REDUCE_CARDINALITIES=( "1" "2" "4" "8" "16" )
 
     if [ ${QUERY} = "query3_1" ]; then
-        IN_RATINGS="${HDFS_WAREHOUSE}/ratings_test"
-        IN_MOVIES="${HDFS_WAREHOUSE}/movies_test"
+        IN_RATINGS="${HDFS_WAREHOUSE}/ratings"
+        IN_MOVIES="${HDFS_WAREHOUSE}/movies"
     elif [ ${QUERY} = "query3_5" ]; then
-        IN_RATINGS="${HDFS_WAREHOUSE}/ratings_test_orc"
-        IN_MOVIES="${HDFS_WAREHOUSE}/movies_test_orc"
+        IN_RATINGS="${HDFS_WAREHOUSE}/ratings_orc"
+        IN_MOVIES="${HDFS_WAREHOUSE}/movies_orc"
     fi
 
     for AVERAGE_REDUCE_CARDINALITY in "${AVERAGE_REDUCE_CARDINALITIES[@]}"; do

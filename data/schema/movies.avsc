@@ -1,9 +1,0 @@
-{"namespace": "moviedoop.avro",
- "type": "record",
- "name": "Movie",
- "fields": [
-     {"name": "id", "type": "long"},
-     {"name": "title",  "type": "string"},
-     {"name": "genres", "type": "string"}
- ]
-}

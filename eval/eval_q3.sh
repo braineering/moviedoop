@@ -16,7 +16,8 @@ HDFS_RM="${HADOOP_HOME}/bin/hdfs dfs -rm -r -f"
 OUT_EVALUATION="eval_q3.out"
 rm ${OUT_EVALUATION}
 
-QUERIES=( "query3_1" "query3_5" )
+#QUERIES=( "query3_1" "query3_5" )
+QUERIES=( "query3_5" )
 SLEEP_BETWEEN_QUERIES=20s
 
 for QUERY in "${QUERIES[@]}"; do

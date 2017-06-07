@@ -1,0 +1,10 @@
+query1_1 ( -Dmoviedoop.average.reduce.cardinality=1) : 127 seconds
+query1_1 ( -Dmoviedoop.average.reduce.cardinality=2) : 132 seconds
+query1_1 ( -Dmoviedoop.average.reduce.cardinality=4) : 133 seconds
+query1_1 ( -Dmoviedoop.average.reduce.cardinality=8) : 132 seconds
+query1_1 ( -Dmoviedoop.average.reduce.cardinality=16) : 131 seconds
+query1_6 ( -Dmoviedoop.average.reduce.cardinality=1) : 39 seconds
+query1_6 ( -Dmoviedoop.average.reduce.cardinality=2) : 45 seconds
+query1_6 ( -Dmoviedoop.average.reduce.cardinality=4) : 49 seconds
+query1_6 ( -Dmoviedoop.average.reduce.cardinality=8) : 51 seconds
+query1_6 ( -Dmoviedoop.average.reduce.cardinality=16) : 53 seconds

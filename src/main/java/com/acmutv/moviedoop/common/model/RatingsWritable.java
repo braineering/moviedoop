@@ -82,6 +82,7 @@ public class RatingsWritable implements WritableComparable<RatingsWritable> {
    * @param out the output.
    * @throws IOException when the output cannot be written.
    */
+  @SuppressWarnings("ConstantConditions")
   @Override
   public void write(DataOutput out) throws IOException {
     out.writeLong(this.userId);

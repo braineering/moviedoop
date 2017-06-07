@@ -65,7 +65,7 @@ public class RatingsAggregateMoviesAggregateCachedMapper extends Mapper<Object,T
   /**
    * The tuple (score,repetitions) to emit.
    */
-  private String tupla = new String();
+  private String tupla;
 
   /**
    * The tuple (score,repetitions) to emit.

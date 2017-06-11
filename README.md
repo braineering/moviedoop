@@ -4,12 +4,6 @@
 
 *Coursework in Systems and Architectures for Big Data 2016/2017*
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-
-
 ## Installation
 The system needs to be provided with the following:
 * Java >= 1.8.0
@@ -26,7 +20,6 @@ Build the job:
     $> mvn clean package -P driver
     
 where *[JOB]* is the name of the job to build.
-
 
 
 ## Usage
@@ -53,9 +46,10 @@ Notice that the following map/reduce programs are available:
 * **query1_5** the 1st query, leveraging inner join (replication join, distributed cache on reduce) and optimizations on average computation (type 2).
 * **query1_6** the 1st query, leveraging inner join (replication join, distributed cache on mapper), optimizations on average computation (type 2) and ORC serialization.
 * **query2_1** the 2nd query, leveraging inner join (replication join, distributed cache on reduce)
-* **query2_2** the 2nd query, leveraging inner join (replication join, distributed cache on reduce) and optimizations and aggregation type 1
-* **query2_3** the 2nd query,
-* **query2_4** the 2nd query,
+* **query2_2** the 2nd query, leveraging inner join (replication join, distributed cache on reduce) and aggregation on ratings' score (type 1)
+* **query2_3** the 2nd query, leveraging inner join (replication join, distributed cache on reduce) and aggregation type 1 and aggregation on ratings' movieID (type 2)
+* **query2_4** the 2nd query, leveraging inner join (replication join, distributed cache on reduce) and aggregations type 1, type 2 and aggregations of genres (type 3).
+* **query2_5** the 2nd query, leveraging inner join (replication join, distributed cache on reduce) and aggregations: type 1, type 2 and (type 3); and ORC serialization.
 * **query3_1** the 3rd query, leveraging inner join (replication join, distributed cache on map) and BestMap for top-k.
 * **query3_2** the 3rd query, leveraging inner join (replication join, distributed cache on map), BestMap for top-k and optimizations on average computation (type 1).
 * **query3_3** the 3rd query, leveraging inner join (replication join, distributed cache on map), BestMap for top-k and optimizations on average computation (type 2).

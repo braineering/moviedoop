@@ -46,7 +46,7 @@ Notice that the following map/reduce programs are available:
 * **query1_5** the 1st query, leveraging inner join (replication join, distributed cache on reduce) and optimizations on average computation (type 2).
 * **query1_6** the 1st query, leveraging inner join (replication join, distributed cache on mapper), optimizations on average computation (type 2) and ORC serialization.
 * **query2_1** the 2nd query, leveraging inner join (replication join, distributed cache on reduce)
-* **query2_2** the 2nd query, leveraging inner join (replication join, distributed cache on reduce) and aggregation on ratings' score (type 1)
+* **query2_2** the 2nd query, leveraging inner join (replication join, distributed cache on reduce) and aggregation on ratings' score (type 1).
 * **query2_3** the 2nd query, leveraging inner join (replication join, distributed cache on reduce) and aggregation type 1 and aggregation on ratings' movieID (type 2)
 * **query2_4** the 2nd query, leveraging inner join (replication join, distributed cache on reduce) and aggregations type 1, type 2 and aggregations of genres (type 3).
 * **query2_5** the 2nd query, leveraging inner join (replication join, distributed cache on reduce) and aggregations: type 1, type 2 and (type 3); and ORC serialization.

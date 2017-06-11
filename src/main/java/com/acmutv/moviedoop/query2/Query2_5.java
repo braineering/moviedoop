@@ -47,7 +47,10 @@ import org.apache.orc.mapreduce.OrcInputFormat;
 import org.apache.orc.mapreduce.OrcOutputFormat;
 
 /**
- * INSERT DESCRIPTION HERE
+ * A map/reduce program that returns for each genre of the movies with the follow statistics:
+ * average and standard deviation of rating.
+ * The program leverages leveraging inner join (replication join, distributed cache on reduce)
+ * and aggregations: type 1, type 2 and (type 3); and ORC serialization.
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}

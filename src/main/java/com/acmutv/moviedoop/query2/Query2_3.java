@@ -48,7 +48,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 /**
- * INSERT DESCRIPTION HERE
+ * A map/reduce program that returns for each genre of the movies with the follow statistics:
+ * average and standard deviation of rating.
+ * The program leverages inner join (replication join, distributed cache on reduce)
+ * and aggregation type 1 and aggregation on ratings' movieID (type 2)
  *
  * @author Giacomo Marciani {@literal <gmarciani@acm.org>}
  * @author Michele Porretta {@literal <mporretta@acm.org>}

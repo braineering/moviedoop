@@ -210,9 +210,11 @@ public class Query3_3 extends Configured implements Tool {
     Job jobAverageRatings = Job.getInstance(config, PROGRAM_NAME + "_AVERAGE-RATINGS");
     jobAverageRatings.setJarByClass(Query3_3.class);
 
-    // JOB AVERAGE RATINGS: MAP CONFIGURATION
+    // JOB AVERAGE RATINGS: INPUT CONFIGURATION
     jobAverageRatings.setInputFormatClass(TextInputFormat.class);
     TextInputFormat.addInputPath(jobAverageRatings, inputRatings);
+
+    // JOB AVERAGE RATINGS: MAP CONFIGURATION
     jobAverageRatings.setMapperClass(FilterRatingsBy2TimeIntervalAndAggregate2Mapper.class);
     jobAverageRatings.setMapOutputKeyClass(LongWritable.class);
     jobAverageRatings.setMapOutputValueClass(Text.class);
@@ -240,7 +242,7 @@ public class Query3_3 extends Configured implements Tool {
       Job jobTopRatings = Job.getInstance(config, PROGRAM_NAME + "_TOP-BY-RATING");
       jobTopRatings.setJarByClass(Query3_3.class);
 
-      // JOB TOP BY RATING: MAP CONFIGURATION
+      // JOB TOP BY RATING: INPUT CONFIGURATION
       jobTopRatings.setInputFormatClass(SequenceFileInputFormat.class);
       for (FileStatus status : FileSystem.get(config).listStatus(stagingAverage)) {
         Path path = status.getPath();
@@ -249,6 +251,7 @@ public class Query3_3 extends Configured implements Tool {
         }
       }
 
+      // JOB TOP BY RATING: MAP CONFIGURATION
       jobTopRatings.setMapperClass(MoviesTopKBestMapMapper.class);
       jobTopRatings.setMapOutputKeyClass(NullWritable.class);
       jobTopRatings.setMapOutputValueClass(Text.class);
@@ -276,7 +279,7 @@ public class Query3_3 extends Configured implements Tool {
       Job jobRatingAsKey = Job.getInstance(config, PROGRAM_NAME + "_RATING-AS-KEY");
       jobRatingAsKey.setJarByClass(Query3_3.class);
 
-      // JOB RATING AS KEY: MAP CONFIGURATION
+      // JOB RATING AS KEY: INPUT CONFIGURATION
       jobRatingAsKey.setInputFormatClass(SequenceFileInputFormat.class);
       for (FileStatus status : FileSystem.get(config).listStatus(stagingAverage)) {
         Path path = status.getPath();
@@ -284,6 +287,8 @@ public class Query3_3 extends Configured implements Tool {
           SequenceFileInputFormat.addInputPath(jobRatingAsKey, path);
         }
       }
+
+      // JOB RATING AS KEY: MAP CONFIGURATION
       jobRatingAsKey.setMapperClass(AverageRatingAsKeyMapper.class);
 
       // JOB RATING AS KEY: REDUCE CONFIGURATION
@@ -305,9 +310,11 @@ public class Query3_3 extends Configured implements Tool {
       jobSortByRating.setJarByClass(Query3_3.class);
       jobSortByRating.setSortComparatorClass(DoubleWritableDecreasingComparator.class);
 
-      // JOB SORT BY AVERAGE RATING: MAP CONFIGURATION
+      // JOB SORT BY AVERAGE RATING: INPUT CONFIGURATION
       jobSortByRating.setInputFormatClass(SequenceFileInputFormat.class);
       SequenceFileInputFormat.addInputPath(jobSortByRating, stagingSort1);
+
+      // JOB SORT BY AVERAGE RATING: MAP CONFIGURATION
       jobSortByRating.setMapperClass(IdentityMapper2.class);
       jobSortByRating.setMapOutputKeyClass(DoubleWritable.class);
       jobSortByRating.setMapOutputValueClass(Text.class);
@@ -353,9 +360,11 @@ public class Query3_3 extends Configured implements Tool {
       jobRankComparison.getConfiguration().setIfUnset("moviedoop.path.movies", inputMovies.toString());
       jobRankComparison.getConfiguration().setIfUnset("moviedoop.path.topk", stagingTopK.toString());
 
-      // JOB AVERAGE RATINGS: MAP CONFIGURATION
+      // JOB AVERAGE RATINGS: INPUT CONFIGURATION
       jobRankComparison.setInputFormatClass(LinenoSequenceFileInputFormat.class);
       LinenoSequenceFileInputFormat.addInputPath(jobRankComparison, stagingSort2);
+
+      // JOB AVERAGE RATINGS: MAP CONFIGURATION
       jobRankComparison.setMapperClass(RankComparisonMapper.class);
 
       // JOB AVERAGE RATINGS: REDUCE CONFIGURATION

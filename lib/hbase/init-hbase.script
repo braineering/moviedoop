@@ -1,0 +1,9 @@
+create 'query1', 'd'
+
+create 'query2', 'd'
+enable 'query2'
+
+create 'query3', 'd'
+enable 'query3'
+
+exit

@@ -129,9 +129,11 @@ public class Query1_1 extends Configured implements Tool {
     Job job = Job.getInstance(config, PROGRAM_NAME);
     job.setJarByClass(Query1_1.class);
 
-    // MAP CONFIGURATION
+    //INPUT CONFIGURATION
     MultipleInputs.addInputPath(job, inputRatings, TextInputFormat.class, FilterRatingsByTimestampJMapper.class);
     MultipleInputs.addInputPath(job, inputMovies, TextInputFormat.class, MoviesJMapper.class);
+
+    // MAP CONFIGURATION
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(Text.class);
 

@@ -133,9 +133,11 @@ public class Query1_4 extends Configured implements Tool {
       job.addCacheFile(status.getPath().toUri());
     }
 
-    // MAP CONFIGURATION
+    // INPUT CONFIGURATION
     job.setInputFormatClass(TextInputFormat.class);
     TextInputFormat.addInputPath(job, inputRatings);
+
+    // MAP CONFIGURATION
     job.setMapperClass(FilterRatingsByTimestampAndAggregate1Mapper.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(Text.class);

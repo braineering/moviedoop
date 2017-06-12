@@ -134,9 +134,11 @@ public class Query1_6 extends Configured implements Tool {
       job.addCacheFile(status.getPath().toUri());
     }
 
-    // MAP CONFIGURATION
+    // INPUT CONFIGURATION
     job.setInputFormatClass(OrcInputFormat.class);
     OrcInputFormat.addInputPath(job, inputRatings);
+
+    // MAP CONFIGURATION
     job.setMapperClass(FilterRatingsByTimestampAndAggregate2MapperORC.class);
     job.setMapOutputKeyClass(OrcKey.class);
     job.setMapOutputValueClass(OrcValue.class);

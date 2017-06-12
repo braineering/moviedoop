@@ -4,28 +4,44 @@
 
 *Coursework in Systems and Architectures for Big Data 2016/2017*
 
-## Installation
-The system needs to be provided with the following:
+
+## Requirements
+The system needs to be provided with the following packages:
 * Java >= 1.8.0
 * Maven >= 3.3.9
-* Hadoop 2.8.0
-* Hive
-* HBase
-* Flume
+* Hadoop = 2.8.0
+* Hive >= 2.1.1
+* HBase >= 1.2.6
+* Flume >= 1.7.0
+* Postgres >= 9.4.0
+
+and the following environment variables, pointing to the respective package home directory:
+* JAVA_HOME
+* MAVEN_HOME
+* HADOOP_HOME
+* HIVE_HOME
+* HBASE_HOME
+* FLUME_HOME
 
 
 ## Build
-Build the job:
+Build the map/reduce driver for all queries:
 
     $> mvn clean package -P driver
-    
-where *[JOB]* is the name of the job to build.
 
 
 ## Usage
-Start Hadoop:
+Start the environment:
     
-    $hadoop_home> sbin/start-dfs.sh
+    $moviedoop_home> bash start-env.sh
+    
+If you want to reformat HDFS and setup the Hive metastore for the first time, you need to run: 
+
+    $moviedoop_home> bash start-env.sh format
+    
+WARNING: notice that this last command will format your HDFS.
+
+
 
 Submit the job:
 
@@ -58,17 +74,22 @@ Notice that the following map/reduce programs are available:
 
 Read the output:
 
-    $hadoop_home> bin/hadoop hdfs -cat [RESULT]
+    $hadoop_home> bin/hadoop hdfs -cat [RESULT]/*
     
 where
-*[RESULT]* is the HDFS file of results (e.g. *[OUTDIR]/part-r-00000*).
+*[RESULT]* is the HDFS directory of results.
 
-Stop Hadoop:
+Stop the environment:
 
-    $hadoop_home> sbin/stop-dfs.sh
+    $moviedoop_home> bash stop-env.sh
+    
+    
+### Moviedoop as a single job
+Moviedoop's queries can be executed
 
 
-### Query1_*
+
+### Query1
 
     $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query1_1 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>
     
@@ -95,7 +116,7 @@ Here is an example:
     /moviedoop/_test/output/query1_1
 
 
-### Query2_*
+### Query2
 
     $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query2_1 <IN_RATINGS> <IN_MOVIES> <OUT>
     
@@ -113,7 +134,7 @@ Here is an example:
     /moviedoop/_test/input/movies \
     /moviedoop/_test/output/query2_1
 
-### Query3_*
+### Query3
 
     $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query3_1 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>
     
@@ -168,7 +189,19 @@ Required:
  3) Create table on HBase with command: create 'movietable','d'
  4) Run:
         $ cd $FLUME_HOME/bin (if you have FLUME_HOME as environment variable)
-        $ ./flume-ng agent -n movieagent2 -f $FLUME_HOME/conf/moviedoop.conf -c $FLUME_HOME/conf		
+        $ ./flume-ng agent -n movieagent2 -f $FLUME_HOME/conf/moviedoop.conf -c $FLUME_HOME/conf
+        		
+        		
+## Evaluation
+The performance of all queries can be evaluated leveraging the bash scripts in folder `eval/`. 
+Every evaluation script compares the baseline and the optimized implementation of a specific query,
+generating a report file in the same directory.
+For user's convenience, all the evaluation reports have been included in `eval/out` 
+The following evaluation scripts are available:
+* **eval_q1.sh**: evaluates query1 by comparing the performance of the baseline implementation (1.1) with the best implementation (1.6);
+* **eval_q2.sh**: evaluates query1 by comparing the performance of the baseline implementation (2.1) with the best implementation (2.5);
+* **eval_q3.sh**: evaluates query1 by comparing the performance of the baseline implementation (3.1) with the best implementation (3.5);
+
 
 ## Authors
 Giacomo Marciani, [gmarciani@acm.org](mailto:gmarciani@acm.org)

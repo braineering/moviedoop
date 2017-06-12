@@ -1,0 +1,9 @@
+disable 'query1'
+disable 'query2'
+disable 'query3'
+
+drop 'query1'
+drop 'query2'
+drop 'query3'
+
+exit

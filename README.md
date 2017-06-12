@@ -1,6 +1,6 @@
 # MOVIEDOOP
 
-*A batch processing application for movie analytics, leveraging Hadoop.*
+*A map/reduce application for movie analytics, leveraging Hadoop and Movielens.*
 
 *Coursework in Systems and Architectures for Big Data 2016/2017*
 
@@ -46,11 +46,11 @@ The general job submission is as follows:
     $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> <PROGRAM> [HADOOP_OPTS] [PROGRAM_OPTS] <ARGS>
 
 where
-* *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR,
-* *[PROGRAM]* is the name of the map/reduce program to execute,
-* *[HADOOP_OPTS]* are optional Hadoop options specified as `-Dopt=val`,
-* *[PROGRAM_OPTS]* are optional program options specified as `-D opt=val`,
-* *[ARGS]* are the mandatory program arguments.
+* **[MOVIEDOOP-JAR]** is the local absolute path to the Mooviedoop's JAR;
+* **[PROGRAM]** is the name of the map/reduce program to execute;
+* **[HADOOP_OPTS]** are optional Hadoop options (e.g. -Dopt=val);
+* **[PROGRAM_OPTS]** are optional program options (e.g. -D opt=val);
+* **[ARGS]** are the mandatory program arguments.
 
 Notice that the following map/reduce programs are available:
 * **query1_1** the 1st query, leveraging inner join (repartition join).
@@ -87,12 +87,12 @@ Stop the environment:
     $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query1_6 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>
 
 where:
-* *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR,
-* *[HADOOP_OPTS]* are optional Hadoop options specified as `-Dopt=val`,
-* *[PROGRAM_OPTS]* are optional program options specified as `-D opt=val`,
-* *[IN\_RATINGS]* is the HDFS absolute path to the directory containing the ratings data set,
-* *[IN\_MOVIES]* is the HDFS absolute path to the directory containing the movies data set,
-* *[OUT]* is the HDFS absolute path to the directory for the output.
+* **[MOVIEDOOP-JAR]** is the local absolute path to the Mooviedoop's JAR;
+* **[HADOOP_OPTS]** are optional Hadoop options (e.g. -Dopt=val);
+* **[PROGRAM_OPTS]** are optional program options (e.g. -D opt=val);
+* **[IN\_RATINGS]** is the HDFS absolute path to the directory containing the ratings data set;
+* **[IN\_MOVIES]** is the HDFS absolute path to the directory containing the movies data set;
+* **[OUT]** is the HDFS absolute path to the directory for the output.
 
 Important note: query1_1 accepts only Text input files, while query1_6 accepts only ORC input files.
 
@@ -115,13 +115,15 @@ Here is an example:
 
 ### Query2
 
-    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query2_5 <IN_RATINGS> <IN_MOVIES> <OUT>
+    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query2_5 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>
 
 where:
-* *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR,
-* *[IN\_RATINGS]* is the HDFS absolute path to the directory containing the ratings data set,
-* *[IN\_MOVIES]* is the HDFS absolute path to the directory containing the movies data set,
-* *[OUT]* is the HDFS absolute path to the directory for the output.
+* **[MOVIEDOOP-JAR]** is the local absolute path to the Mooviedoop's JAR;
+* **[HADOOP_OPTS]** are optional Hadoop options (e.g. -Dopt=val);
+* **[PROGRAM_OPTS]** are optional program options (e.g. -D opt=val);
+* **[IN\_RATINGS]** is the HDFS absolute path to the directory containing the ratings data set;
+* **[IN\_MOVIES]** is the HDFS absolute path to the directory containing the movies data set;
+* **[OUT]** is the HDFS absolute path to the directory for the output.
 
 Important note: query2_1 accepts only Text input files, while query2_5 accepts only ORC input files.
 
@@ -145,12 +147,12 @@ Here is an example:
     $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query3_5 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>
 
 where:
-* *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR,
-* *[HADOOP_OPTS]* are optional Hadoop options specified as `-Dopt=val`,
-* *[PROGRAM_OPTS]* are optional program options specified as `-D opt=val`,
-* *[IN\_RATINGS]* is the HDFS absolute path to the directory containing the ratings data set,
-* *[IN\_MOVIES]* is the HDFS absolute path to the directory containing the movies data set,
-* *[OUT]* is the HDFS absolute path to the directory for the output.
+* **[MOVIEDOOP-JAR]** is the local absolute path to the Mooviedoop's JAR;
+* **[HADOOP_OPTS]** are optional Hadoop options (e.g. -Dopt=val);
+* **[PROGRAM_OPTS]** are optional program options (e.g. -D opt=val);
+* **[IN\_RATINGS]** is the HDFS absolute path to the directory containing the ratings data set;
+* **[IN\_MOVIES]** is the HDFS absolute path to the directory containing the movies data set;
+* **[OUT]** is the HDFS absolute path to the directory for the output.
 
 Important note: query3_1 accepts only Text input files, while query3_5 accepts only ORC input files.
 

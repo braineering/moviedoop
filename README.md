@@ -13,7 +13,7 @@ The system needs to be provided with the following packages:
 * Hive >= 2.1.1
 * HBase >= 1.2.6
 * Flume >= 1.7.0
-* Postgres >= 9.4.0
+* Postgresql >= 9.4.0
 
 and the following environment variables, pointing to the respective package home directory:
 * JAVA_HOME
@@ -32,23 +32,21 @@ Build the map/reduce driver for all queries:
 
 ## Usage
 Start the environment:
-    
+
     $moviedoop_home> bash start-env.sh
-    
-If you want to reformat HDFS and setup the Hive metastore for the first time, you need to run: 
+
+If it is the first environment setup, you need to run:
 
     $moviedoop_home> bash start-env.sh format
-    
-WARNING: notice that this last command will format your HDFS.
 
+WARNING: notice that the last command will format your HDFS and Hive metastore.
 
-
-Submit the job:
+The general job submission is as follows:
 
     $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> <PROGRAM> [HADOOP_OPTS] [PROGRAM_OPTS] <ARGS>
-    
-where 
-* *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR, 
+
+where
+* *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR,
 * *[PROGRAM]* is the name of the map/reduce program to execute,
 * *[HADOOP_OPTS]* are optional Hadoop options specified as `-Dopt=val`,
 * *[PROGRAM_OPTS]* are optional program options specified as `-D opt=val`,
@@ -75,24 +73,19 @@ Notice that the following map/reduce programs are available:
 Read the output:
 
     $hadoop_home> bin/hadoop hdfs -cat [RESULT]/*
-    
+
 where
 *[RESULT]* is the HDFS directory of results.
 
 Stop the environment:
 
     $moviedoop_home> bash stop-env.sh
-    
-    
-### Moviedoop as a single job
-Moviedoop's queries can be executed
-
 
 
 ### Query1
 
-    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query1_1 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>
-    
+    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query1_6 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>
+
 where:
 * *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR,
 * *[HADOOP_OPTS]* are optional Hadoop options specified as `-Dopt=val`,
@@ -101,43 +94,56 @@ where:
 * *[IN\_MOVIES]* is the HDFS absolute path to the directory containing the movies data set,
 * *[OUT]* is the HDFS absolute path to the directory for the output.
 
-Notice that the following program options are available:
-* `movie.rating.average.lb`: the lower bound for the movie average rating;
-* `movie.rating.timestamp.lb`: the lower bound for the movie rating timestamp (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss).
+Important note: query1_1 accepts only Text input files, while query1_6 accepts only ORC input files.
+
+The following program options are available:
+* `moviedoop.average.rating.lb`: the lower bound for the movie average rating;
+* `moviedoop.average.rating.timestamp.lb`: the lower bound for the movie rating timestamp (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
+* `moviedoop.average.reduce.cardinality`: the number of reducers for the average job.
 
 Here is an example:
 
     $hadoop_home> bin/hadoop jar moviedoop-1.0.jar \
-    query1_1 \
-    -D movie.rating.average.lb=2.5 \
-    -D movie.rating.timestamp.lb=01/01/1970 \
-    /moviedoop/_test/input/ratings \
-    /moviedoop/_test/input/movies \
-    /moviedoop/_test/output/query1_1
+    query1_6 \
+    -D moviedoop.average.rating.lb=2.5 \
+    -D moviedoop.average.rating.timestamp.lb=01/01/1970 \
+    -D moviedoop.average.reduce.cardinality=2 \
+    /hdfs/path/to/ratings \
+    /hdfs/path/to/movies \
+    /hdfs/path/to/query1
 
 
 ### Query2
 
-    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query2_1 <IN_RATINGS> <IN_MOVIES> <OUT>
-    
+    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query2_5 <IN_RATINGS> <IN_MOVIES> <OUT>
+
 where:
 * *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR,
 * *[IN\_RATINGS]* is the HDFS absolute path to the directory containing the ratings data set,
 * *[IN\_MOVIES]* is the HDFS absolute path to the directory containing the movies data set,
 * *[OUT]* is the HDFS absolute path to the directory for the output.
 
+Important note: query2_1 accepts only Text input files, while query2_5 accepts only ORC input files.
+
+The following program options are available:
+* `moviedoop.ratings.reduce.cardinality`: the number of reducers for the ratings job.
+* `moviedoop.average.reduce.cardinality`: the number of reducers for the average job.
+
 Here is an example:
 
     $hadoop_home> bin/hadoop jar moviedoop-1.0.jar \
-    query2_1 \
-    /moviedoop/_test/input/ratings \
-    /moviedoop/_test/input/movies \
-    /moviedoop/_test/output/query2_1
+    query2_5 \
+    -D moviedoop.ratings.reduce.cardinality=2 \
+    -D moviedoop.average.reduce.cardinality=2 \
+    /hdfs/path/to/ratings \
+    /hdfs/path/to/movies \
+    /hdfs/path/to/query2
+
 
 ### Query3
 
-    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query3_1 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>
-    
+    $hadoop_home> bin/hadoop jar <MOVIEDOOP-JAR> query3_5 [HADOOP_OPTS] [PROGRAM_OPTS] <IN_RATINGS> <IN_MOVIES> <OUT>
+
 where:
 * *[MOVIEDOOP-JAR]* is the local absolute path to the Mooviedoop's JAR,
 * *[HADOOP_OPTS]* are optional Hadoop options specified as `-Dopt=val`,
@@ -146,57 +152,57 @@ where:
 * *[IN\_MOVIES]* is the HDFS absolute path to the directory containing the movies data set,
 * *[OUT]* is the HDFS absolute path to the directory for the output.
 
-Notice that the following program options are available:
-* `movie.topk.size`: the movies top rank size;
-* `movie.topk.rating.timestamp.lb`: the lower bound for the movie rating timestamp considered for top ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
-* `movie.topk.rating.timestamp.ub`: the upper bound for the movie rating timestamp considered for top ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
-* `movie.rank.rating.timestamp.lb`: the lower bound for the movie rating timestamp considered for total ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
-* `movie.rank.rating.timestamp.ub`: the upper bound for the movie rating timestamp considered for total ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
+Important note: query3_1 accepts only Text input files, while query3_5 accepts only ORC input files.
+
+The following program options are available:
+* `moviedoop.topk.size`: the movies top rank size;
+* `moviedoop.average.rating.timestamp.lb.1`: the lower bound for the movie rating timestamp considered for top ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
+* `moviedoop.average.rating.timestamp.ub.1`: the upper bound for the movie rating timestamp considered for top ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
+* `moviedoop.average.rating.timestamp.lb.2`: the lower bound for the movie rating timestamp considered for total ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
+* `moviedoop.average.rating.timestamp.ub.2`: the upper bound for the movie rating timestamp considered for total ranking (e.g. dd/mm/yyyy or dd/mm/yyyyThh:mm:ss);
+* `moviedoop.average.reduce.cardinality`: the number of reducers for the average job;
+* `moviedoop.topk.reduce.cardinality`: the number of reducers for the topk job;
+* `moviedoop.sort.reduce.cardinality`: the number of reducers for the sort job;
+* `moviedoop.sort.partition.samples`: the number of samples for the total sort partition;
+* `moviedoop.sort.partition.frequency`: the frequency for the total sort partition;
+* `moviedoop.sort.partition.splits.max`: the maximum number of splits for the total sort partition.
 
 Here is an example:
 
     $hadoop_home> bin/hadoop jar moviedoop-1.0.jar \
-    query3_1 \
-    -D movie.topk.size=10 \
-    -D movie.topk.rating.timestamp.lb=01/01/1990 \
-    -D movie.topk.rating.timestamp.lb=01/01/1991 \
-    -D movie.rank.rating.timestamp.lb=01/01/1988 \
-    -D movie.rank.rating.timestamp.lb=01/01/1989 \
-    /moviedoop/_test/input/ratings \
-    /moviedoop/_test/input/movies \
-    /moviedoop/_test/output/query3_1
-    
-### Data Injestion
+    query3_5 \
+    -D moviedoop.topk.size=10 \
+    -D moviedoop.average.rating.timestamp.lb.1=01/01/1990 \
+    -D moviedoop.average.rating.timestamp.ub.1=01/01/1991 \
+    -D moviedoop.average.rating.timestamp.lb.2=01/01/1988 \
+    -D moviedoop.average.rating.timestamp.ub.2=01/01/1989 \
+    -D moviedoop.average.reduce.cardinality=2 \
+    -D moviedoop.topk.reduce.cardinality=2 \
+    -D moviedoop.sort.reduce.cardinality=2 \
+    -D moviedoop.sort.partition.samples=1000 \
+    -D moviedoop.sort.partition.frequency=0.01 \
+    -D moviedoop.sort.partition.splits.max=100 \
+    /hdfs/path/to/ratings \
+    /hdfs/path/to/movies \
+    /hdfs/path/to/query3
 
-Required:
 
-*[Put data with Flume on HDFS from local file system:]* 
+### Data Ingestion/Exportation
 
- USAGE:													
- 1) Put configuration file (./flume/moviedoop.conf) in the $FLUME_HOME/conf directory 											
- 2) Change the spoolDir path for setting the source directory
- 3) Change path of HDFS sink
- 4) Create a directory in HDFS with: $hdfs dfs -mkdir /namedirectory_of_sink						
- 5) Run:
-		$ cd $FLUME_HOME/bin (if you have FLUME_HOME as environment variable)
-		$ ./flume-ng agent -n movieagent -f $FLUME_HOME/conf/moviedoop.conf -c $FLUME_HOME/conf
+The environment setup activates both the data ingestion and exportation.
+In particular it activates the following Flume agents:
+* **movies_agent**: imports movies dataset from the local spooldir `/path/to/moviedoop/data/flume/movies` to the HDFS directory `/user/flume/movies` as an external Hive table in sequence file format;
+* **movies_agent**: imports ratings dataset from the local spooldir `/path/to/moviedoop/data/flume/ratings` to the HDFS directory `/user/flume/ratings` as an external Hive table in  sequence file format;
+* **query1_agent**: exports the results of query1 from `hdfs:///user/moviedoop/output/query1` to the HBase table `query1`;
+* **query2_agent**: exports the results of query2 from `hdfs:///user/moviedoop/output/query2` to the HBase table `query2`;
+* **query3_agent**: exports the results of query3 from `hdfs:///user/moviedoop/output/query3` to the HBase table `query3`.
 
-*[Put data with Flume on HBase from HDFS:]*
- 
- USAGE:													
- 1) Put configuration file (./flume/moviedoop.conf) in the $FLUME_HOME/conf directory 											
- 2) Change path of HDFS source
- 3) Create table on HBase with command: create 'movietable','d'
- 4) Run:
-        $ cd $FLUME_HOME/bin (if you have FLUME_HOME as environment variable)
-        $ ./flume-ng agent -n movieagent2 -f $FLUME_HOME/conf/moviedoop.conf -c $FLUME_HOME/conf
-        		
-        		
+
 ## Evaluation
-The performance of all queries can be evaluated leveraging the bash scripts in folder `eval/`. 
+The performance of all queries can be evaluated running the bash scripts in folder `eval/`.
 Every evaluation script compares the baseline and the optimized implementation of a specific query,
 generating a report file in the same directory.
-For user's convenience, all the evaluation reports have been included in `eval/out` 
+For user's convenience, all the evaluation reports have been included in `eval/out`
 The following evaluation scripts are available:
 * **eval_q1.sh**: evaluates query1 by comparing the performance of the baseline implementation (1.1) with the best implementation (1.6);
 * **eval_q2.sh**: evaluates query1 by comparing the performance of the baseline implementation (2.1) with the best implementation (2.5);
@@ -210,7 +216,7 @@ Michele Porretta, [mporretta@acm.org](mailto:mporretta@acm.org)
 
 
 ## References
-Giacomo Marciani, Marco Piu, Michele Porretta, Matteo Nardelli, and Valeria Cardellini. 2016. Real-time analysis of social networks leveraging the flink framework. In *Proceedings of the 10th ACM International Conference on Distributed and Event-based Systems (DEBS '16)*. ACM, New York, NY, USA, 386-389. [DOI](http://dx.doi.org/10.1145/2933267.2933517) [Read here](http://dl.acm.org/citation.cfm?id=2933517)
+Systems and Architectures for Big Data, course by prof. Valeria Cardellini. 2016/2017 [Read here](http://www.ce.uniroma2.it/courses/sabd1617/)
 
 
 ## License
